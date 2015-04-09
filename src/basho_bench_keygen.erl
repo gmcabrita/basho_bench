@@ -35,6 +35,19 @@
 %% ====================================================================
 %% API
 %% ====================================================================
+
+new({biased_partial, MaxKey, ReplicationFactor, PercentageExternal}, Id) ->
+    Workers = basho_bench_config:get(concurrent),
+    NumNodes = lists:size(basho_bench_config:get(antidote_pb_ips)),
+    NumDcs = basho_bench_config:get(antidote_pb_num_dcs),
+    KeysPerDc = MaxKey div NumDcs,
+    WorkersPerDc = Workers div NumDcs,
+    IdDc = Id div WorkersPerDc,
+    LocalKeyStart = IdDc
+    fun() ->
+	    case random:uniform() > PercentageExternal of
+		true ->
+		    
 new({int_to_bin, InputGen}, Id) ->
     ?WARN("The int_to_bin key generator wrapper is deprecated, please use the "
           "int_to_bin_bigendian or int_to_bin_littleendian wrapper instead\n",
