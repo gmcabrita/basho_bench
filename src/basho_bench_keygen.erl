@@ -36,17 +36,35 @@
 %% API
 %% ====================================================================
 
+
 new({biased_partial, MaxKey, ReplicationFactor, PercentageExternal}, Id) ->
-    Workers = basho_bench_config:get(concurrent),
-    NumNodes = lists:size(basho_bench_config:get(antidote_pb_ips)),
     NumDcs = basho_bench_config:get(antidote_pb_num_dcs),
-    KeysPerDc = MaxKey div NumDcs,
-    WorkersPerDc = Workers div NumDcs,
-    IdDc = Id div WorkersPerDc,
-    LocalKeyStart = IdDc
-    fun() ->
-	    case random:uniform() > PercentageExternal of
-		true ->
+    NodesPerDc = basho_bench_config:get(antidote_pb_nodes_per_dc),
+    NodeId = Id rem Nodes +1,
+    IdDc = ((NodeId - 1) div NodesPerDc) +1,
+    KeySpace = MaxKey div NumDcs,
+    RangeHere = ReplicationFactor,
+    MinHere = IdDc,
+    MinNotHere = (IdDc + ReplicationFactor) rem (NumDcs+1),
+    RangeNotHere = NumDcs - ReplicationFactor,
+    fun() -> DcNum = case random:uniform() > PercentageExternal of
+			 false ->
+			     case (MinNotHere + (random:uniform(RangeNotHere)-1)) rem (NumDcs) of
+				 0 ->
+				     NumDcs;
+				 Other ->
+				     Other
+			     end;
+			 true ->
+			     case (MinHere + (random:uniform(RangeHere)-1)) rem (NumDcs) of
+				 0 ->
+				     NumDcs;
+				 Other ->
+				     Other
+			     end
+		     end,
+	     (((random:uniform(KeySpace)-1) * NumDcs) + DcNum)
+    end;
 		    
 new({int_to_bin, InputGen}, Id) ->
     ?WARN("The int_to_bin key generator wrapper is deprecated, please use the "
