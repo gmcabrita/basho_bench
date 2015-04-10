@@ -38,6 +38,7 @@
 
 
 new({biased_partial, MaxKey, ReplicationFactor, PercentageExternal}, Id) ->
+    Nodes = lists:size(basho_bench_config:get(antidote_pb_ips)),
     NumDcs = basho_bench_config:get(antidote_pb_num_dcs),
     NodesPerDc = basho_bench_config:get(antidote_pb_nodes_per_dc),
     NodeId = Id rem Nodes +1,
