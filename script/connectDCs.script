@@ -20,8 +20,10 @@ main(StringNodes) ->
     Ports = createPorts(8050,NumDCs,NumDCs,[]),
     DCInfo = combineLists(HeadNodes, Ports, []),
     startListening(HeadNodes,Ports,1),
-    connect_each(CookieNodes, DCPerRing, 1, DCInfo),
-    startSenders(HeadNodes).
+    {DCInfoIds,_} = add_ids(DCInfo),
+    connect_each(CookieNodes, DCPerRing, 1, DCInfoIds),
+    startSenders(HeadNodes),
+    setReplicationFunction(HeadNodes,NumDCs,1).
 
 createPorts(_StartInt, _NumDcs, 0, Acc) ->
     Acc;
@@ -68,7 +70,7 @@ startListening(Nodes,Ports,DcNum) ->
 	    [[Port|RestPort]|Rem] = Ports,
 	    NewRestPort = RestPort -- [lists:nth(DcNum,RestPort)],
 	    io:format("connecting to node ~w, rep ports ~w, read port ~w~n", [Node,NewRestPort,Port]),
-	    {ok,DCRepPorts,DC} = rpc:call(Node,antidote_sup,start_recvrs,[internet,RestPort,Port]),
+	    {ok,DCRepPorts,DC} = rpc:call(Node,antidote_sup,start_recvrs,[internet,DcNum,RestPort,Port]),
 	    io:format("Datacenter listening: ~w, ~w ~n", [DCRepPorts,DC]),
 	    startListening(Rest,Rem,DcNum+1)
     end.
@@ -123,7 +125,27 @@ connect(Nodes, OtherDCs, DcNum) ->
 	    connect(Rest, OtherDCs,DcNum)
     end.
 
+
+setReplicationFunction(DcList,NumDcs,ReplicationFactor) ->
+    Function = create_biased_key_function(ReplicationFactor,NumDcs),
+    lists:foldl(fun(Dc,Id) ->
+			ok = rpc:call(Dc,inter_dc_manager,set_replication_keys,[Function,Id]),
+			Id + 1
+		end, 0, DcList).
+
+
+
+add_ids(DoubleDcList) ->
+    lists:foldl(fun(DcList,{Acc,Id}) ->
+			ADC = lists:foldl(fun(Dc,Acc2) ->
+					    Acc2 ++ [{Id,Dc}]
+					  end,[],DcList),
+			{Acc ++ [ADC],Id+1}
+		end,{[],1},DoubleDcList).
+
+
 get_external_dcs(DcNum,OtherDCs) ->
+    io:format("the other dcs: ~w~n", [OtherDCs]),
     lists:foldl(fun(DcPorts,Acc) ->
 			Acc ++ [lists:nth(DcNum+1,DcPorts)]
 		end,[],OtherDCs).
@@ -132,3 +154,29 @@ get_external_read_dcs(OtherDCs) ->
     lists:foldl(fun(DcPorts,Acc) ->
 			Acc ++ [hd(DcPorts)]
 		end,[],OtherDCs).
+
+% Should return a list where each value is a sigle element tuple with the Dc number
+create_biased_key_function(ReplicationFactor,NumDcs) ->
+    fun(Key) ->
+	    FirstDc = case Key rem NumDcs of
+			  0 ->
+			      NumDcs;
+			  Else ->
+			      Else
+		      end,
+	    ListFun = fun(Self,Count,Acc) ->
+			      case Count of
+				  ReplicationFactor ->
+				      Acc;
+				  _ ->
+				      case (FirstDc + Count) rem NumDcs of
+					  0 ->
+					      Self(Self,Count + 1,Acc ++ [{NumDcs}]);
+					  Other ->
+					      Self(Self,Count+1,Acc ++ [{Other}])
+				      end
+			      end
+		      end,
+	    ListFun(ListFun,1,[{FirstDc}])
+    end.
+    
