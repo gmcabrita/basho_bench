@@ -70,7 +70,7 @@ startListening(Nodes,Ports,DcNum) ->
 	    [[Port|RestPort]|Rem] = Ports,
 	    NewRestPort = RestPort -- [lists:nth(DcNum,RestPort)],
 	    io:format("connecting to node ~w, rep ports ~w, read port ~w~n", [Node,NewRestPort,Port]),
-	    {ok,DCRepPorts,DC} = rpc:call(Node,antidote_sup,start_recvrs,[internet,DcNum,RestPort,Port]),
+	    {ok,DCRepPorts,DC} = rpc:call(Node,antidote_sup,start_recvrs,[internet,DcNum,NewRestPort,Port]),
 	    io:format("Datacenter listening: ~w, ~w ~n", [DCRepPorts,DC]),
 	    startListening(Rest,Rem,DcNum+1)
     end.
