@@ -46,7 +46,12 @@ new({biased_partial, MaxKey, ReplicationFactor, PercentageExternal}, Id) ->
     KeySpace = MaxKey div NumDcs,
     RangeHere = ReplicationFactor,
     MinHere = IdDc,
-    MinNotHere = (IdDc + ReplicationFactor) rem (NumDcs+1),
+    MinNotHere = case (IdDc + ReplicationFactor) rem (NumDcs) of
+		     0 ->
+			 NumDcs;
+		     Oth ->
+			 Oth
+		 end,
     RangeNotHere = NumDcs - ReplicationFactor,
     fun() -> DcNum = case random:uniform() > PercentageExternal of
 			 false ->
