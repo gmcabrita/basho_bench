@@ -16,9 +16,10 @@ main(StringNodes) ->
 
     CookieNodes = addCookie(Nodes, Cookie, []),
     HeadNodes = keepnth(CookieNodes, DCPerRing, 0, []), 
+    HeadNodesNoCookie = keepnth(Nodes, DCPerRing, 0, []), 
     %Ports = lists:seq(8091, 8090 + NumDCs),
     Ports = createPorts(8050,NumDCs,NumDCs,[]),
-    DCInfo = combineLists(HeadNodes, Ports, []),
+    DCInfo = combineLists(HeadNodesNoCookie, Ports, []),
     startListening(HeadNodes,Ports,1),
     {DCInfoIds,_} = add_ids(DCInfo),
     connect_each(CookieNodes, DCPerRing, 1, DCInfoIds),

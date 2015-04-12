@@ -33,7 +33,7 @@ if [ $BenchmarkType -eq 0 ]; then
     FileName="examples/antidote.config"
     ./script/changeErlConfig.sh "$AllNodes" $Cookie $FileName
 else
-    FileName="examples/antidote_pb.config"
+    FileName="examples/antidote_pb_biased.config"
     ./script/changePBConfig.sh "$AllNodes" $Cookie $FileName
 fi
 
