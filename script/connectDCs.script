@@ -7,7 +7,9 @@ main(StringNodes) ->
     Temp = [list_to_atom(StringNode) || StringNode <- StringNodes],
     Cookie = hd(Temp),
     DCPerRing = list_to_integer(atom_to_list(hd(tl(Temp)))),
-    Nodes = tl(tl(Temp)),
+    ReplicationFactor = list_to_integer(atom_to_list(hd(tl(tl(Temp))))),
+    Nodes = tl(tl(tl(Temp))),
+    io:format("Replication factor: ~w~n", [ReplicationFactor]),
     io:format("Nodes ~w ~n", [Nodes]),
 
     true = erlang:set_cookie(node(), Cookie),
@@ -24,7 +26,7 @@ main(StringNodes) ->
     {DCInfoIds,_} = add_ids(DCInfo),
     connect_each(CookieNodes, DCPerRing, 1, DCInfoIds),
     startSenders(HeadNodes),
-    setReplicationFunction(HeadNodes,NumDCs,2).
+    setReplicationFunction(HeadNodes,NumDCs,ReplicationFactor).
 
 createPorts(_StartInt, _NumDcs, 0, Acc) ->
     Acc;

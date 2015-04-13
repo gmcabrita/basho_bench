@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $# -eq 0 ]; then
-	echo "Usage: all_nodes, cookie, number_of_dcs, nodes_per_dc, connect_dc_or_not, erl|pb"
+	echo "Usage: all_nodes, cookie, number_of_dcs, nodes_per_dc, connect_dc_or_not, rep1|rep2|rep3"
 	exit
 else
 	AllSystemNodes=$1
@@ -14,26 +14,32 @@ else
     AllNodes=`echo ${AllNodes[@]}`
     ConnectDCs=$5
     echo "Using" $AllNodes ", will connect DCs:" $ConnectDCs
-    if [ "$6" = "erl" ]; then
-	echo "Benchmark erl"
-        BenchmarkType=0
-    elif [ "$6" = "pb" ]; then
-	echo "Benchmark pb"
+    if [ "$6" = "rep1" ]; then
+	echo "Benchmark rep1"
         BenchmarkType=1
+    elif [ "$6" = "rep2" ]; then
+	echo "Benchmark rep2"
+        BenchmarkType=2
+    elif [ "$6" = "rep3" ]; then
+	echo "Benchmark rep3"
+        BenchmarkType=3
     else
         echo "Wrong benchmark type!"
         exit
     fi
 fi
 ./script/stopNodes.sh "$AllSystemNodes" 
-./script/deployMultiDCs.sh "$AllNodes" $Cookie $ConnectDCs $NodesPerDC
+./script/deployMultiDCs.sh "$AllNodes" $Cookie $ConnectDCs $NodesPerDC $BenchmarkType
 
 ##Replace benchmark configuration to include nodes
-if [ $BenchmarkType -eq 0 ]; then
-    FileName="examples/antidote.config"
-    ./script/changeErlConfig.sh "$AllNodes" $Cookie $FileName
-else
-    FileName="examples/antidote_pb_biased.config"
+if [ $BenchmarkType -eq 1 ]; then
+    FileName="examples/antidote_pb_biased_rep1.config"
+    ./script/changePBConfig.sh "$AllNodes" $Cookie $FileName
+elif [$BenchmarkType -eq 2]
+    FileName="examples/antidote_pb_biased_rep2.config"
+    ./script/changePBConfig.sh "$AllNodes" $Cookie $FileName
+elif [$BenchmarkType -eq 3]
+    FileName="examples/antidote_pb_biased_rep3.config"
     ./script/changePBConfig.sh "$AllNodes" $Cookie $FileName
 fi
 

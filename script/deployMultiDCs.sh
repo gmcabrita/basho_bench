@@ -33,12 +33,13 @@ function joinNodes {
 AllNodes=$1
 Cookie=$2	
 NodesPerDC=$4
+ReplicationFactor=$5
 ./script/startNodes.sh "$AllNodes"
 echo "Finished restarting"
 if [ $3 -eq 1 ]; then
 	echo "Connect DCs"
 	joinNodes "$AllNodes" $NodesPerDC
-	sudo escript ./script/connectDCs.script $Cookie $NodesPerDC $AllNodes
+	sudo escript ./script/connectDCs.script $Cookie $NodesPerDC $ReplicationFactor $AllNodes
 else
 	echo "Not connecting DCs"
 fi
