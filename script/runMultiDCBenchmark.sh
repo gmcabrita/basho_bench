@@ -35,7 +35,7 @@ fi
 if [ $BenchmarkType -eq 1 ]; then
     FileName="examples/antidote_pb_biased_rep1.config"
     ./script/changePBConfig.sh "$AllNodes" $Cookie $FileName
-elif [$BenchmarkType -eq 2]; then
+elif [ $BenchmarkType -eq 2 ]; then
     FileName="examples/antidote_pb_biased_rep2.config"
     ./script/changePBConfig.sh "$AllNodes" $Cookie $FileName
 else
