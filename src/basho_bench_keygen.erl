@@ -86,7 +86,7 @@ new({biased_partial, MaxKey, ReplicationFactor, PercentageExternal}, Id) ->
 				     Other
 			     end
 		     end,
-	     (((random:uniform(KeySpace)) * NumDcs) + (DcNum - 1))
+	     (((random:uniform(KeySpace)) * NumDcs) + (DcNum))
     end;
 		    
 new({int_to_bin, InputGen}, Id) ->
