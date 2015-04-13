@@ -52,7 +52,12 @@ new({biased_partial, MaxKey, ReplicationFactor, PercentageExternal}, Id) ->
 		     Oth ->
 			 Oth
 		 end,
-    RangeNotHere = NumDcs - ReplicationFactor,
+    RangeNotHere = case NumDcs - ReplicationFactor of
+		       0 ->
+			   1;
+		       Oth2 ->
+			   Oth2
+		   end,
     fun() -> DcNum = case random:uniform() > PercentageExternal of
 			 false ->
 			     case (MinNotHere + (random:uniform(RangeNotHere)-1)) rem (NumDcs) of

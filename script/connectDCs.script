@@ -24,7 +24,7 @@ main(StringNodes) ->
     {DCInfoIds,_} = add_ids(DCInfo),
     connect_each(CookieNodes, DCPerRing, 1, DCInfoIds),
     startSenders(HeadNodes),
-    setReplicationFunction(HeadNodes,NumDCs,1).
+    setReplicationFunction(HeadNodes,NumDCs,2).
 
 createPorts(_StartInt, _NumDcs, 0, Acc) ->
     Acc;
