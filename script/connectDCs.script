@@ -161,6 +161,7 @@ get_external_read_dcs(OtherDCs) ->
 % Should return a list where each value is a sigle element tuple with the Dc number
 create_biased_key_function(ReplicationFactor,NumDcs) ->
     fun(Key) ->
+	    
 	    FirstDc = case Key rem NumDcs of
 			  0 ->
 			      NumDcs;

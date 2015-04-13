@@ -45,13 +45,25 @@ new({biased_partial, MaxKey, ReplicationFactor, PercentageExternal}, Id) ->
     IdDc = ((NodeId - 1) div NodesPerDc) +1,
     KeySpace = MaxKey div NumDcs,
     RangeHere = ReplicationFactor,
-    MinHere = IdDc,
-    MinNotHere = case (IdDc + ReplicationFactor) rem (NumDcs) of
+    MinHere = case IdDc - (ReplicationFactor - 1) of
+		  Val when Val < 1 ->
+		      NumDcs - Val;
+		  Val2 ->
+		      Val2
+	      end,
+    MinNotHere = case (IdDc + 1) rem NumDcs of
 		     0 ->
 			 NumDcs;
 		     Oth ->
 			 Oth
 		 end,
+    
+    %% MinNotHere = case (IdDc + ReplicationFactor) rem (NumDcs) of
+    %% 		     0 ->
+    %% 			 NumDcs;
+    %% 		     Oth ->
+    %% 			 Oth
+    %% 		 end,
     RangeNotHere = case NumDcs - ReplicationFactor of
 		       0 ->
 			   1;
