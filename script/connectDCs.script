@@ -125,7 +125,7 @@ connect(Nodes, OtherDCs, DcNum) ->
 	    ExtReadDcs = get_external_read_dcs(OtherDCs),
 	    io:format("Connect read node ~w to ~w ~n", [Node, ExtReadDcs]),
 	    ok = rpc:call(Node, inter_dc_manager, add_list_read_dcs, [ExtReadDcs]),
-	    connect(Rest, OtherDCs,DcNum)
+	    %%connect(Rest, OtherDCs,DcNum)
     end.
 
 
