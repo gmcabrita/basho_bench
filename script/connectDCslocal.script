@@ -1,0 +1,188 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
+%%! -name haha@localhost
+%%-module('connectDCs.script').
+
+main(StringNodes) -> 
+    Temp = [list_to_atom(StringNode) || StringNode <- StringNodes],
+    io:format("the list ~w~n",[Temp]),
+    DCPerRing = list_to_integer(atom_to_list(hd(Temp))),
+    ReplicationFactor = list_to_integer(atom_to_list(hd(tl(Temp)))),
+    NumNodes = list_to_integer(atom_to_list(hd(tl(tl(Temp))))),
+    NodesCookies = tl(tl(tl(Temp))),
+    {Nodes,Cookies} = lists:split(NumNodes,NodesCookies),
+    io:format("Replication factor: ~w~n", [ReplicationFactor]),
+    io:format("Nodes ~w ~n", [Nodes]),
+
+    true = erlang:set_cookie(node(), 'antidote'),
+    NumDCs = length(Nodes) div DCPerRing,
+    io:format("NumDCs ~w ~n", [NumDCs]),
+
+    CookieNodes = addCookie(Nodes, Cookies, []),
+    HeadNodes = keepnth(CookieNodes, DCPerRing, 0, []), 
+    HeadNodesNoCookie = keepnth(Nodes, DCPerRing, 0, []), 
+    %Ports = lists:seq(8091, 8090 + NumDCs),
+    Ports = createPorts(8050,NumDCs,NumDCs,[]),
+    DCInfo = combineLists(HeadNodesNoCookie, Ports, []),
+    startListening(HeadNodes,Ports,1),
+    {DCInfoIds,_} = add_ids(DCInfo),
+    connect_each(CookieNodes, DCPerRing, 1, DCInfoIds),
+    startSenders(HeadNodes),
+    setReplicationFunction(HeadNodes,NumDCs,ReplicationFactor).
+
+createPorts(_StartInt, _NumDcs, 0, Acc) ->
+    Acc;
+createPorts(StartInt,NumDcs,Remainder,Acc) ->
+    NewAcc = Acc ++ [lists:seq(StartInt,StartInt + NumDcs)],
+    createPorts(StartInt + NumDcs + 1, NumDcs, Remainder - 1, NewAcc).
+
+
+addCookie([], [], Adder) ->
+    Adder;
+addCookie([Node|RestNodes], [Cookie|RestCookie], Adder) ->
+    NodeAddr = list_to_atom(atom_to_list(Cookie) ++ "@" ++ atom_to_list(Node)),
+    addCookie(RestNodes, RestCookie, Adder ++ [NodeAddr]).
+
+
+combineLists([],[],Acc) ->
+    Acc;
+combineLists([Node|RestNodes],[Ports|RestPorts],Acc) ->
+    NodePort = lists:foldl(fun(Port,LAcc) ->
+				   LAcc ++ [{Node,Port}]
+			   end,[],Ports),
+    combineLists(RestNodes,RestPorts,Acc ++ [NodePort]).
+
+
+%% combineLists([], [], Adder) ->
+%%     Adder;
+%% combineLists([Node|RestNodes], [Port|RestPorts], Adder) ->
+%%     combineLists(RestNodes, RestPorts, Adder ++ [{Node, Port}]).
+
+keepnth([], _, _, AccList) ->
+    AccList;
+keepnth([First|Rest], Length, AccNum, AccList) ->
+    case AccNum rem Length of
+	0 -> keepnth(Rest, Length, AccNum+1, AccList++[First]);
+	_ -> keepnth(Rest, Length, AccNum+1, AccList)
+    end.
+
+
+startListening(Nodes,Ports,DcNum) ->
+    case Nodes of
+	[] ->
+	    ok;
+	[Node|Rest] ->
+	    [[Port|RestPort]|Rem] = Ports,
+	    NewRestPort = RestPort -- [lists:nth(DcNum,RestPort)],
+	    io:format("connecting to node ~w, rep ports ~w, read port ~w~n", [Node,NewRestPort,Port]),
+	    {ok,DCRepPorts,DC} = rpc:call(Node,antidote_sup,start_recvrs,[internet,DcNum,NewRestPort,Port]),
+	    io:format("Datacenter listening: ~w, ~w ~n", [DCRepPorts,DC]),
+	    startListening(Rest,Rem,DcNum+1)
+    end.
+
+
+startSenders(Nodes) ->
+    case Nodes of
+	[] ->
+	    ok;
+	[Node|Rest] ->
+	    io:format("Starting senders at node ~w~n",[Node]),
+	    ok = rpc:call(Node,antidote_sup,start_senders,[]),
+	    startSenders(Rest)
+    end.
+
+
+%% startListening(Nodes) ->
+%%     case Nodes of
+%% 	[] ->
+%% 	    ok;
+%% 	[{Node, Port}|Rest] ->
+%%     	    {ok, DC} = rpc:call(Node, inter_dc_manager, start_receiver,[Port]),
+%% 	    io:format("Datacenter ~w ~n", [DC]),
+%% 	    startListening(Rest)
+%%     end.
+
+
+connect_each([], _DCPerRing, _Acc, _AllDCs) ->
+    ok;
+connect_each(Nodes, DCPerRing, Acc, AllDCs) ->
+    {DCNodes, Rest} = lists:split(DCPerRing, Nodes),
+    OtherDCs = AllDCs -- [lists:nth(Acc, AllDCs)],
+    case OtherDCs of 
+	[] ->
+	    io:format("Empty dc, no need to connect!~n");
+	_ ->
+    	    connect(DCNodes, OtherDCs, Acc)
+    end,
+    connect_each(Rest, DCPerRing, Acc+1, AllDCs).
+
+connect(Nodes, OtherDCs, DcNum) ->
+    case Nodes of
+	[] ->
+	    ok;
+	[Node|Rest] ->
+	    ExtDcs = get_external_dcs(DcNum,OtherDCs),
+	    io:format("Connect node ~w to ~w ~n", [Node, ExtDcs]),
+	    ok = rpc:call(Node, inter_dc_manager, add_list_dcs, [ExtDcs]),
+	    ExtReadDcs = get_external_read_dcs(OtherDCs),
+	    io:format("Connect read node ~w to ~w ~n", [Node, ExtReadDcs]),
+	    ok = rpc:call(Node, inter_dc_manager, add_list_read_dcs, [ExtReadDcs])
+	    %%connect(Rest, OtherDCs,DcNum)
+    end.
+
+
+setReplicationFunction(DcList,NumDcs,ReplicationFactor) ->
+    Function = create_biased_key_function(ReplicationFactor,NumDcs),
+    lists:foldl(fun(Dc,Id) ->
+			ok = rpc:call(Dc,inter_dc_manager,set_replication_keys,[Function,Id]),
+			Id + 1
+		end, 0, DcList).
+
+
+
+add_ids(DoubleDcList) ->
+    lists:foldl(fun(DcList,{Acc,Id}) ->
+			ADC = lists:foldl(fun(Dc,Acc2) ->
+					    Acc2 ++ [{Id,Dc}]
+					  end,[],DcList),
+			{Acc ++ [ADC],Id+1}
+		end,{[],1},DoubleDcList).
+
+
+get_external_dcs(DcNum,OtherDCs) ->
+    io:format("the other dcs: ~w~n", [OtherDCs]),
+    lists:foldl(fun(DcPorts,Acc) ->
+			Acc ++ [lists:nth(DcNum+1,DcPorts)]
+		end,[],OtherDCs).
+
+get_external_read_dcs(OtherDCs) ->
+    lists:foldl(fun(DcPorts,Acc) ->
+			Acc ++ [hd(DcPorts)]
+		end,[],OtherDCs).
+
+% Should return a list where each value is a sigle element tuple with the Dc number
+create_biased_key_function(ReplicationFactor,NumDcs) ->
+    fun(Key) ->
+	    
+	    FirstDc = case Key rem NumDcs of
+			  0 ->
+			      NumDcs;
+			  Else ->
+			      Else
+		      end,
+	    ListFun = fun(Self,Count,Acc) ->
+			      case Count of
+				  ReplicationFactor ->
+				      Acc;
+				  _ ->
+				      case (FirstDc + Count) rem NumDcs of
+					  0 ->
+					      Self(Self,Count + 1,Acc ++ [{NumDcs}]);
+					  Other ->
+					      Self(Self,Count+1,Acc ++ [{Other}])
+				      end
+			      end
+		      end,
+	    ListFun(ListFun,1,[{FirstDc}])
+    end.
+    
