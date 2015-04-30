@@ -28,6 +28,7 @@ main(StringNodes) ->
     {DCInfoIds,_} = add_ids(DCInfo),
     connect_each(CookieNodes, DCPerRing, 1, DCInfoIds),
     startSenders(HeadNodes),
+    startPerNodeConnection(CookieNodes),
     setReplicationFunction(HeadNodes,NumDCs,ReplicationFactor).
 
 createPorts(_StartInt, _NumDcs, 0, Acc) ->
@@ -89,6 +90,16 @@ startSenders(Nodes) ->
 	    io:format("Starting senders at node ~w~n",[Node]),
 	    ok = rpc:call(Node,antidote_sup,start_senders,[]),
 	    startSenders(Rest)
+    end.
+
+startPerNodeConnection(Nodes) ->
+    case Nodes of
+	[] ->
+	    ok;
+	[Node|Rest] ->
+	    io:format("Starting ext read connection node ~w~n",[Node]),
+	    ok = rpc:call(Node,antidote_sup,start_ext_read_connection,[]),
+	    startPerNodeConnection(Rest)
     end.
 
 
