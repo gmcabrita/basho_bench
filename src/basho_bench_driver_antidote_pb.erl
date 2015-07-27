@@ -31,6 +31,8 @@
                 time,
                 type_dict,
                 pb_pid,
+                num_updates,
+                num_txns,
 		        num_partitions,
                 pb_port,
                 target_node}).
@@ -53,6 +55,8 @@ new(Id) ->
     PbPort = basho_bench_config:get(antidote_pb_port),
     Types  = basho_bench_config:get(antidote_types),
     NumPartitions = length(IPs),
+    NumUpdates = basho_bench_config:get(num_updates), 
+    NumTxns = basho_bench_config:get(num_txns), 
 
     %% Choose the node using our ID as a modulus
     TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
@@ -62,7 +66,9 @@ new(Id) ->
     TypeDict = dict:from_list(Types),
     {ok, #state{time={1,1,1}, worker_id=Id,
                pb_pid = Pid,
-	       num_partitions = NumPartitions,
+	           num_partitions = NumPartitions,
+               num_updates = NumUpdates,
+               num_txns = NumTxns,
                type_dict = TypeDict, pb_port=PbPort,
                target_node=TargetNode}}.
 
@@ -110,9 +116,9 @@ run(read_all_write_one, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id =
     end;
     
 
-run(append_multiple, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id = Id, pb_port=Port, target_node=Node, type_dict=TypeDict}) ->
+run(append_multiple, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id = Id, pb_port=Port, target_node=Node, type_dict=TypeDict, num_updates=NumUpdates}) ->
     KeyInt = KeyGen(),
-    KeyList = lists:seq(KeyInt, KeyInt+8), 
+    KeyList = lists:seq(KeyInt, KeyInt+NumUpdates-1), 
     Value = ValueGen(),
     OpList = lists:foldl(fun(X, Acc) -> 
                                 Type = get_key_type(X, TypeDict),
@@ -132,8 +138,7 @@ run(append_multiple, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id = Id
             lager:error("Error: ~p",[Reason]),
             {error, Reason, State};
         error ->
-            lager:info("Error!!!"),
-            {error, State};
+            {error, abort, State};
         {badrpc, Reason} ->
             {error, Reason, State}
     end;
@@ -163,12 +168,34 @@ run(append, KeyGen, ValueGen,
             {ok, NewPid} = antidotec_pb_socket:start_link(Node, Port),
             {error, timeout, State#state{pb_pid=NewPid}}; 
         {error, Reason} ->
-            lager:error("Error: ~p",[Reason]),
+            %lager:error("Error: ~p",[Reason]),
             {error, Reason, State};
         {badrpc, Reason} ->
             {error, Reason, State}
     end;
 
+%% @doc Write to a key
+run(general_tx, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict, 
+                target_node=Node, num_txns=NumTxns, num_updates=NumUpdates, pb_port=Port, pb_pid=Pid}) ->
+    Operations=generate_list_of_txns(NumTxns, NumUpdates, TypeDict, Id, ValueGen), 
+    lager:info("Operations are ~w",[Operations]),
+
+    Response =  antidotec_pb_socket:general_tx(Operations, Pid),
+    case Response of
+        {ok, _} ->
+            {ok, State};
+        {error,timeout} ->
+            lager:info("Timeout on client ~p",[Id]),
+            antidotec_pb_socket:stop(Pid),
+            {ok, NewPid} = antidotec_pb_socket:start_link(Node, Port),
+            {error, timeout, State#state{pb_pid=NewPid}};
+        {error, Reason} ->
+            {error, Reason, State};
+        error ->
+            {error, abort, State};
+        {badrpc, Reason} ->
+            {error, Reason, State}
+    end;
 
 run(update, KeyGen, ValueGen,
     State=#state{type_dict=TypeDict,
@@ -223,7 +250,7 @@ get_random_param(Dict, Type, Value) ->
         riak_dt_pncounter ->
            {antidotec_counter,lists:nth(Num, Params), 1};
         riak_dt_orset ->
-            {antidotec_set, lists:nth(Num, Params), Value}                     
+           {antidotec_set, lists:nth(Num, Params), Value}                     
     end.
 
 get_random_param(Dict, Type, Value, Obj) ->
@@ -246,3 +273,18 @@ get_random_param(Dict, Type, Value, Obj) ->
                     {antidotec_set, Op, Value}
             end                      
     end.
+
+generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen) ->
+    L = lists:seq(1, NumUpdates),
+    M = lists:seq(1, NumTxn),
+    GenerateOp = fun(Key, Acc) ->
+                    Key1 = (Key + random:uniform(5000)) rem 20000,
+                    Type1 = get_key_type(Key1, TypeDict),
+                    {_Mod1, Op1, KeyParam1} = get_random_param(TypeDict, Type1, Id, ValueGen()),
+                    BKey1 = list_to_binary(integer_to_list(Key1)),
+                    [{read, BKey1, Type1}, {update, BKey1, Type1, Op1, KeyParam1}|Acc]
+                 end,
+    lists:map(fun(_) -> lists:foldl(GenerateOp, [], L) end, M).
+
+
+
