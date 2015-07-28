@@ -178,7 +178,6 @@ run(append, KeyGen, ValueGen,
 run(general_tx, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict, 
                 target_node=Node, num_txns=NumTxns, num_updates=NumUpdates, pb_port=Port, pb_pid=Pid}) ->
     Operations=generate_list_of_txns(NumTxns, NumUpdates, TypeDict, Id, ValueGen), 
-    lager:info("Operations are ~w",[Operations]),
 
     Response =  antidotec_pb_socket:general_tx(Operations, Pid),
     case Response of
@@ -277,14 +276,14 @@ get_random_param(Dict, Type, Value, Obj) ->
 generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen) ->
     L = lists:seq(1, NumUpdates),
     M = lists:seq(1, NumTxn),
-    GenerateOp = fun(Key, Acc) ->
-                    Key1 = (Key + random:uniform(5000)) rem 20000,
+    GenerateOp = fun(_, {Acc, AccList}) ->
+                    Key1 = Acc, 
                     Type1 = get_key_type(Key1, TypeDict),
                     {_Mod1, Op1, KeyParam1} = get_random_param(TypeDict, Type1, Id, ValueGen()),
                     BKey1 = list_to_binary(integer_to_list(Key1)),
-                    [{read, BKey1, Type1}, {update, BKey1, Type1, Op1, KeyParam1}|Acc]
+                    {Acc+500,[{read, BKey1, Type1}, {update, BKey1, Type1, Op1, KeyParam1}|AccList]}
                  end,
-    lists:map(fun(_) -> lists:foldl(GenerateOp, [], L) end, M).
+    lists:map(fun(Init) -> {_, FList}=lists:foldl(GenerateOp, {Init,[]}, L), FList end, M).
 
 
 
