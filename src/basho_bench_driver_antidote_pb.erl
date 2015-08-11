@@ -51,6 +51,7 @@ new(Id) ->
             ok
     end,
 
+    random:seed(now()),
     IPs = basho_bench_config:get(antidote_pb_ips),
     PbPort = basho_bench_config:get(antidote_pb_port),
     Types  = basho_bench_config:get(antidote_types),
@@ -74,9 +75,8 @@ new(Id) ->
 
 %% @doc Read a key
 run(read, KeyGen, _ValueGen, State=#state{pb_pid = Pid, worker_id = Id, pb_port=Port, target_node=Node, type_dict=TypeDict}) ->
-    KeyInt = KeyGen(),
-    Key = list_to_binary(integer_to_list(KeyInt)),
-    Type = get_key_type(KeyInt, TypeDict),
+    Key = KeyGen(),
+    Type = get_key_type(Key, TypeDict),
     Response =  antidotec_pb_socket:get_crdt(Key, Type, Pid),
     case Response of
         {ok, _Value} ->
@@ -123,7 +123,7 @@ run(append_multiple, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id = Id
     OpList = lists:foldl(fun(X, Acc) -> 
                                 Type = get_key_type(X, TypeDict),
                                 {Mod, Op, Param} = get_random_param(TypeDict, Type, Value),
-                                Acc++[Mod:Op(Param, Mod:new(list_to_binary(integer_to_list(X))))] 
+                                Acc++[Mod:Op(Param, Mod:new(X))] 
                          end, [], KeyList),
     Response =  antidotec_pb_socket:atomic_store_crdts(OpList, Pid),
     case Response of
@@ -150,10 +150,9 @@ run(append, KeyGen, ValueGen,
                  worker_id = Id,
                  pb_port=Port,
                  target_node=Node}) ->
-    KeyInt = KeyGen(),
-    Key = list_to_binary(integer_to_list(KeyInt)),
+    Key = KeyGen(),
     %%TODO: Support for different data types
-    Type = get_key_type(KeyInt, TypeDict),
+    Type = get_key_type(Key, TypeDict),
     {Mod, Op, Param} = get_random_param(TypeDict, Type, ValueGen()),
     Obj = Mod:Op(Param, Mod:new(Key)),
     Response = antidotec_pb_socket:store_crdt(Obj, Pid),
@@ -178,7 +177,6 @@ run(append, KeyGen, ValueGen,
 run(general_tx, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict, 
                 target_node=Node, num_txns=NumTxns, num_updates=NumUpdates, pb_port=Port, pb_pid=Pid}) ->
     Operations=generate_list_of_txns(NumTxns, NumUpdates, TypeDict, Id, ValueGen), 
-
     Response =  antidotec_pb_socket:general_tx(Operations, Pid),
     case Response of
         {ok, _} ->
@@ -202,10 +200,9 @@ run(update, KeyGen, ValueGen,
                  worker_id = Id,
                  pb_port=Port,
                  target_node=Node}) ->
-    KeyInt = KeyGen(),
-    Key = list_to_binary(integer_to_list(KeyInt)),
+    Key = KeyGen(),
     %%TODO: Support for different data types
-    Type = get_key_type(KeyInt, TypeDict),
+    Type = get_key_type(Key, TypeDict),
     Response =  case antidotec_pb_socket:get_crdt(Key, Type, Pid) of
                     {ok, CRDT} ->
                         {Mod, Op, Param} = get_random_param(TypeDict, Type, ValueGen(), CRDT),
@@ -233,7 +230,7 @@ run(update, KeyGen, ValueGen,
 get_list_key_type([], _Dict, Acc) ->
     Acc;
 get_list_key_type([Key|Rest], Dict, Acc) ->
-    Pair = {list_to_binary(integer_to_list(Key)), get_key_type(Key, Dict)},
+    Pair = {Key, get_key_type(Key, Dict)},
     get_list_key_type(Rest, Dict, [Pair | Acc]).
 
 get_key_type(Key, Dict) ->
@@ -277,13 +274,13 @@ generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen) ->
     L = lists:seq(1, NumUpdates),
     M = lists:seq(1, NumTxn),
     GenerateOp = fun(_, {Acc, AccList}) ->
-                    Key1 = Acc, 
+                    Key1 = Acc, %random:uniform(20000),
                     Type1 = get_key_type(Key1, TypeDict),
-                    {_Mod1, Op1, KeyParam1} = get_random_param(TypeDict, Type1, Id, ValueGen()),
-                    BKey1 = list_to_binary(integer_to_list(Key1)),
-                    {Acc+500,[{read, BKey1, Type1}, {update, BKey1, Type1, Op1, KeyParam1}|AccList]}
+                    %ByteKey = list_to_binary(integer_to_list(Key1)),
+                    {_Mod1, _Op1, _KeyParam1} = get_random_param(TypeDict, Type1, Id, ValueGen()),
+                    %{Acc+500,[{read, Key1, Type1}, {update, Key1, Type1, Op1, KeyParam1}|AccList]}
+                    %{Acc+500,[{update, Key1, Type1, Op1, KeyParam1}|AccList]}
+                    {Acc+500,[{read, Key1, Type1}|AccList]}
                  end,
     lists:map(fun(Init) -> {_, FList}=lists:foldl(GenerateOp, {Init,[]}, L), FList end, M).
-
-
 
