@@ -4,9 +4,9 @@ function joinNodes {
     TNodes=($1)
     NodesPerDC=$2
     TotalLength="${#TNodes[@]}"
-	echo "Total nodes:" $TotalLength ", nodes per dc:"$NodesPerDC
+    echo "Total nodes:" $TotalLength ", nodes per dc:"$NodesPerDC
     NumDCs=$((TotalLength / NodesPerDC))
-	echo $NumDCs
+    echo $NumDCs
     for I in $(seq 1 $NumDCs);
         do
             SI=$((I * NodesPerDC - NodesPerDC))
@@ -34,12 +34,12 @@ AllNodes=$1
 Cookie=$2	
 NodesPerDC=$4
 ./script/startNodes.sh "$AllNodes"
+joinNodes "$AllNodes" $NodesPerDC
 echo "Finished restarting"
 if [ $3 -eq 1 ]; then
-	echo "Connect DCs"
-	joinNodes "$AllNodes" $NodesPerDC
+    echo "Connect DCs"
     sudo erl -pa script -name setter@localhost -setcookie $Cookie -run connectDCs listenAndConnect $Cookie $NodesPerDC $AllNodes -run init stop 
 else
-	echo "Not connecting DCs"
+    echo "Not connecting DCs"
 fi
 

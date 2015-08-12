@@ -1,12 +1,13 @@
 #!/bin/bash
-
+set -u
+set -e
 FAIL=0
 nodes=$1
 command=$2
 echo $command" for nodes:"$nodes 
 for node in $nodes
 do
-   ssh -o ConnectTimeout=3 -t ubuntu@$node -i key ${command/localhost/$node} 
+   ssh -o ConnectTimeout=3 -t root@$node -i key ${command/localhost/$node} 
    sleep 1
 done
 echo $command done

@@ -1,11 +1,8 @@
 #!/bin/bash
 
 AllNodes=$1
-Cookie=$2
-File="./"$3
-sudo sed -i '/antidote_pb_ips/d' $File 
-sudo sed -i '/concurrent/d' $File
-PerNodeNum=20
+File="./"$2
+PerNodeNum=$3
 Thread=0
 BenchConfig="{antidote_pb_ips, ["
 for Node in $AllNodes
@@ -16,5 +13,5 @@ do
 done
 BenchConfig=${BenchConfig::-1}"]}."
 echo $BenchConfig
-sudo echo "$BenchConfig" >> $File
-sudo sed -i "5i {concurrent, $Thread}." $File
+sudo sed -i "s/{antidote_pb_ips.*/$BenchConfig/" $File
+sudo sed -i "s/{concurrent,.*/{concurrent, $Thread}./" $File
