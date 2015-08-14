@@ -9,12 +9,8 @@ AllNodes=`cat script/allnodes`
 Pid=$!
 
 #./script/makeRel.sh opt_speculation
-./script/changePartition.sh 2 
-./script/changeReplication.sh false
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 2 0 1 
-
-./script/changePartition.sh 4 
-./script/changeReplication.sh false
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 4 0 1 
+./script/changePartition.sh 8 
+./script/changeReplication.sh false 
+./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 4 0 100 
 
 sudo kill $Pid

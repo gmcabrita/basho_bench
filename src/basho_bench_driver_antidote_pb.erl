@@ -271,16 +271,18 @@ get_random_param(Dict, Type, Value, Obj) ->
     end.
 
 generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen) ->
-    L = lists:seq(1, NumUpdates),
-    M = lists:seq(1, NumTxn),
+    Base = NumTxn*NumUpdates*(Id-1),
+    L = lists:seq(0, NumUpdates-1),
+    M = lists:seq(0, NumTxn-1),
     GenerateOp = fun(_, {Acc, AccList}) ->
                     Key1 = Acc, %random:uniform(20000),
+                    lager:info("Id is ~w, Numtxn ~w, NumUpdates ~w, key ~w",[Id, NumTxn, NumUpdates, Key1]),
                     Type1 = get_key_type(Key1, TypeDict),
                     %ByteKey = list_to_binary(integer_to_list(Key1)),
-                    {_Mod1, _Op1, _KeyParam1} = get_random_param(TypeDict, Type1, Id, ValueGen()),
-                    %{Acc+500,[{read, Key1, Type1}, {update, Key1, Type1, Op1, KeyParam1}|AccList]}
+                    {_Mod1, Op1, KeyParam1} = get_random_param(TypeDict, Type1, Id, ValueGen()),
+                    {Acc+1,[{read, Key1, Type1}, {update, Key1, Type1, Op1, KeyParam1}|AccList]}
                     %{Acc+500,[{update, Key1, Type1, Op1, KeyParam1}|AccList]}
-                    {Acc+500,[{read, Key1, Type1}|AccList]}
+                    %{Acc+500,[{read, Key1, Type1}|AccList]}
                  end,
-    lists:map(fun(Init) -> {_, FList}=lists:foldl(GenerateOp, {Init,[]}, L), FList end, M).
+    lists:map(fun(Init) -> {_, FList}=lists:foldl(GenerateOp, {Base+Init*NumUpdates,[]}, L), FList end, M).
 
