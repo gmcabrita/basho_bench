@@ -33,6 +33,7 @@
                 pb_pid,
                 num_updates,
                 num_txns,
+                op_type,
 		        num_partitions,
                 pb_port,
                 target_node}).
@@ -58,6 +59,7 @@ new(Id) ->
     NumPartitions = length(IPs),
     NumUpdates = basho_bench_config:get(num_updates), 
     NumTxns = basho_bench_config:get(num_txns), 
+    OpType = basho_bench_config:get(op_type), 
 
     %% Choose the node using our ID as a modulus
     TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
@@ -70,6 +72,7 @@ new(Id) ->
 	           num_partitions = NumPartitions,
                num_updates = NumUpdates,
                num_txns = NumTxns,
+               op_type = OpType,
                type_dict = TypeDict, pb_port=PbPort,
                target_node=TargetNode}}.
 
@@ -174,15 +177,15 @@ run(append, KeyGen, ValueGen,
     end;
 
 %% @doc Write to a key
-run(general_tx, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict, 
+run(general_tx, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict, op_type=OpType, 
                 target_node=Node, num_txns=NumTxns, num_updates=NumUpdates, pb_port=Port, pb_pid=Pid}) ->
-    Operations=generate_list_of_txns(NumTxns, NumUpdates, TypeDict, Id, ValueGen), 
+    Operations=generate_list_of_txns(NumTxns, NumUpdates, TypeDict, Id, ValueGen, OpType), 
     Response =  antidotec_pb_socket:general_tx(Operations, Pid),
     case Response of
         {ok, _} ->
             {ok, State};
         {error,timeout} ->
-            lager:info("Timeout on client ~p",[Id]),
+            lager:info("Timeout on client ~p, operations are ~p",[Id, Operations]),
             antidotec_pb_socket:stop(Pid),
             {ok, NewPid} = antidotec_pb_socket:start_link(Node, Port),
             {error, timeout, State#state{pb_pid=NewPid}};
@@ -270,19 +273,23 @@ get_random_param(Dict, Type, Value, Obj) ->
             end                      
     end.
 
-generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen) ->
+generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType) ->
     Base = NumTxn*NumUpdates*(Id-1),
     L = lists:seq(0, NumUpdates-1),
     M = lists:seq(0, NumTxn-1),
     GenerateOp = fun(_, {Acc, AccList}) ->
                     Key1 = Acc, %random:uniform(20000),
-                    lager:info("Id is ~w, Numtxn ~w, NumUpdates ~w, key ~w",[Id, NumTxn, NumUpdates, Key1]),
                     Type1 = get_key_type(Key1, TypeDict),
                     %ByteKey = list_to_binary(integer_to_list(Key1)),
                     {_Mod1, Op1, KeyParam1} = get_random_param(TypeDict, Type1, Id, ValueGen()),
-                    {Acc+1,[{read, Key1, Type1}, {update, Key1, Type1, Op1, KeyParam1}|AccList]}
-                    %{Acc+500,[{update, Key1, Type1, Op1, KeyParam1}|AccList]}
-                    %{Acc+500,[{read, Key1, Type1}|AccList]}
+                    case OpType of
+                        update ->
+                            {Acc+1,[{update, Key1, Type1, Op1, KeyParam1}|AccList]};
+                        read ->
+                            {Acc+1,[{read, Key1, Type1}|AccList]};
+                        all ->
+                            {Acc+1,[{read, Key1, Type1}, {update, Key1, Type1, Op1, KeyParam1}|AccList]}
+                    end
                  end,
     lists:map(fun(Init) -> {_, FList}=lists:foldl(GenerateOp, {Base+Init*NumUpdates,[]}, L), FList end, M).
 
