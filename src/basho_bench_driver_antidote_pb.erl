@@ -197,7 +197,7 @@ run(general_tx, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict
             {error, Reason, State}
     end;
 
-run(work_by_name, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict,  
+run(workload_by_id, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict,  
                 target_node=Node, num_txns=NumTxns, num_updates=NumUpdates, pb_port=Port, pb_pid=Pid}) ->
     Operations=generate_txns_by_id(NumTxns, NumUpdates, TypeDict, Id, ValueGen), 
     Response =  antidotec_pb_socket:general_tx(Operations, Pid),
