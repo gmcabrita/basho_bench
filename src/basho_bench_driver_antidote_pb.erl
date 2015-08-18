@@ -197,6 +197,26 @@ run(general_tx, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict
             {error, Reason, State}
     end;
 
+run(work_by_name, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict,  
+                target_node=Node, num_txns=NumTxns, num_updates=NumUpdates, pb_port=Port, pb_pid=Pid}) ->
+    Operations=generate_txns_by_id(NumTxns, NumUpdates, TypeDict, Id, ValueGen), 
+    Response =  antidotec_pb_socket:general_tx(Operations, Pid),
+    case Response of
+        {ok, _} ->
+            {ok, State};
+        {error,timeout} ->
+            lager:info("Timeout on client ~p, operations are ~p",[Id, Operations]),
+            antidotec_pb_socket:stop(Pid),
+            {ok, NewPid} = antidotec_pb_socket:start_link(Node, Port),
+            {error, timeout, State#state{pb_pid=NewPid}};
+        {error, Reason} ->
+            {error, Reason, State};
+        error ->
+            {error, abort, State};
+        {badrpc, Reason} ->
+            {error, Reason, State}
+    end;
+
 run(update, KeyGen, ValueGen,
     State=#state{type_dict=TypeDict,
                  pb_pid = Pid,
@@ -293,3 +313,10 @@ generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType) ->
                  end,
     lists:map(fun(Init) -> {_, FList}=lists:foldl(GenerateOp, {Base+Init*NumUpdates,[]}, L), FList end, M).
 
+generate_txns_by_id(NumTxn, NumUpdates, TypeDict, Id, ValueGen) ->
+    case Id rem 2 of
+        1 ->
+            generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, update); 
+        0 ->
+            generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, read) 
+    end.
