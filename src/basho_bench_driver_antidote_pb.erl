@@ -318,5 +318,5 @@ generate_txns_by_id(NumTxn, NumUpdates, TypeDict, Id, ValueGen) ->
         1 ->
             generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, update); 
         0 ->
-            generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, read) 
+            generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id-1, ValueGen, read) 
     end.
