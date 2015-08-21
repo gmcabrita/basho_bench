@@ -15,7 +15,7 @@ function joinNodes {
 		if [ -n "$Others" ]; then
 			echo "Connecting" "${Others[@]}" to $First
 			Others=`echo ${Others[@]}`
-        		sudo ./script/joinNodesToRing.sh $First "$Others"
+        	sudo ./script/joinNodesToRing.sh $First "$Others"
 		else
 			echo "not connecting.."
 		fi
