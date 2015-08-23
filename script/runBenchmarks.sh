@@ -8,66 +8,41 @@ AllNodes=`cat script/allnodes`
 #%./script/stablizeTime.sh &
 #Pid=$!
 
+#./script/makeRel.sh opt_speculation
+sudo sed -i 's/^{operations.*/{operations, [{general_tx, 1}]}./' examples/antidote_pb.config 
+sudo sed -i 's/^{num_updates.*/{num_updates, 4}./' examples/antidote_pb.config 
+sudo sed -i 's/^{op_type.*/{op_type, all}./' examples/antidote_pb.config 
+sudo sed -i 's/^{num_txns.*/{num_txns, 4}./' examples/antidote_pb.config 
+./script/changePartition.sh 4 
+./script/changeReplication.sh true quorum 3 3 
+./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 4 0 1 
+./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 4 0 1 
+./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 4 0 1 
+
 ./script/makeRel.sh simple_speculation
 sudo sed -i 's/^{operations.*/{operations, [{general_tx, 1}]}./' examples/antidote_pb.config 
 sudo sed -i 's/^{num_updates.*/{num_updates, 4}./' examples/antidote_pb.config 
-sudo sed -i 's/^{num_txns.*/{num_txns, 1}./' examples/antidote_pb.config 
-sudo sed -i 's/^{op_type.*/{op_type, read}./' examples/antidote_pb.config 
-./script/changePartition.sh 4 
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-
-./script/changePartition.sh 4 
-./script/changeReplication.sh false quorum 3 3 
-sudo sed -i 's/^{op_type.*/{op_type, update}./' examples/antidote_pb.config 
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-
-./script/makeRel.sh opt_speculation
-sudo sed -i 's/^{operations.*/{operations, [{general_tx, 1}]}./' examples/antidote_pb.config 
-sudo sed -i 's/^{num_updates.*/{num_updates, 4}./' examples/antidote_pb.config 
-sudo sed -i 's/^{num_txns.*/{num_txns, 1}./' examples/antidote_pb.config 
-sudo sed -i 's/^{op_type.*/{op_type, read}./' examples/antidote_pb.config 
-./script/changePartition.sh 4 
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-
-./script/changePartition.sh 4 
-./script/changeReplication.sh false quorum 3 3 
-sudo sed -i 's/^{op_type.*/{op_type, update}./' examples/antidote_pb.config 
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 1
-
-exit
-
-./script/changeReplication.sh true chain 3 3 
-sudo sed -i 's/^{operations.*/{operations, [{general_tx, 1}]}./' examples/antidote_pb.config 
-
-sudo sed -i 's/^{num_updates.*/{num_updates, 4}./' examples/antidote_pb.config 
+sudo sed -i 's/^{op_type.*/{op_type, all}./' examples/antidote_pb.config 
 sudo sed -i 's/^{num_txns.*/{num_txns, 4}./' examples/antidote_pb.config 
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 4 0 1 
-
-./script/makeRel.sh opt_speculation
 ./script/changePartition.sh 4 
 ./script/changeReplication.sh true quorum 3 3 
-sudo sed -i 's/^{operations.*/{operations, [{general_tx, 1}]}./' examples/antidote_pb.config 
+./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 4 0 1 
+./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 4 0 1 
+./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 4 0 1 
+exit
 
+sudo sed -i 's/^{num_txns.*/{num_txns, 8}./' examples/antidote_pb.config 
+./script/changeReplication.sh true quorum 3 3 
+./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 2 
+
+./script/makeRel.sh opt_speculation
+sudo sed -i 's/^{operations.*/{operations, [{workload_by_id, 1}]}./' examples/antidote_pb.config 
 sudo sed -i 's/^{num_updates.*/{num_updates, 4}./' examples/antidote_pb.config 
 sudo sed -i 's/^{num_txns.*/{num_txns, 4}./' examples/antidote_pb.config 
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 4 0 1 
+./script/changePartition.sh 4 
+./script/changeReplication.sh true quorum 3 3 
+./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 2 
 
-./script/changeReplication.sh true chain 3 3 
-sudo sed -i 's/^{operations.*/{operations, [{general_tx, 1}]}./' examples/antidote_pb.config 
-
-sudo sed -i 's/^{num_updates.*/{num_updates, 4}./' examples/antidote_pb.config 
-sudo sed -i 's/^{num_txns.*/{num_txns, 4}./' examples/antidote_pb.config 
-./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 4 0 1 
-
+sudo sed -i 's/^{num_txns.*/{num_txns, 8}./' examples/antidote_pb.config 
+./script/changeReplication.sh true quorum 3 3 
+./script/multiDCBenchmark.sh "$AllNodes"  antidote 1 1 0 2 
