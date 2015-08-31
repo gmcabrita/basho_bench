@@ -183,7 +183,6 @@ run(append, KeyGen, ValueGen,
 run(general_tx, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict, op_type=OpType, key_gen_mode=KeyGenMode, 
                 target_node=Node, num_txns=NumTxns, num_updates=NumUpdates, pb_port=Port, pb_pid=Pid}) ->
     Operations = generate_list_of_txns(NumTxns, NumUpdates, TypeDict, Id, ValueGen, OpType, KeyGenMode), 
-    lager:info("Operations are ~w", [Operations]),
     Response =  antidotec_pb_socket:general_tx(Operations, Pid),
     case Response of
         {ok, _} ->
@@ -315,7 +314,7 @@ generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType, random
                             [{read, Key1, Type1}, {update, Key1, Type1, Op1, KeyParam1}|AccList]
                     end
                  end,
-    lists:map(fun(_Init) -> {_, FList}=lists:foldl(GenerateOp, [], L), FList end, M);
+    lists:map(fun(_) -> FList=lists:foldl(GenerateOp, [], L), FList end, M);
 generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType, by_id) ->
     Base = NumTxn*NumUpdates*(Id-1),
     L = lists:seq(0, NumUpdates-1),
