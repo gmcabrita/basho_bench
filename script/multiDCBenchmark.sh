@@ -18,4 +18,4 @@ fi
 
 ./script/stopNodes.sh "$AllSystemNodes" 
 ./script/deployMultiDCs.sh "$AllNodes" $Cookie $ConnectDCs $NodesPerDC
-./script/simpleBenchmark.sh $4 $6  
+#./script/simpleBenchmark.sh $4 $6  

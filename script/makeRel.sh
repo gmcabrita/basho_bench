@@ -13,7 +13,7 @@ else
     Branch=$1
     echo "Switching to branch $1 and remake!"
     Command1="sudo ./antidote/rel/antidote/bin/antidote stop" 
-    Command2="cd ./antidote/ && sudo git stash && sudo git fetch && sudo git checkout $Branch && sudo git pull"
+    Command2="cd ./antidote/ && sudo git reset --hard && sudo git fetch && sudo git checkout $Branch && sudo git pull"
     Command3="sudo sed -i 's/127.0.0.1/localhost/g' $File1"
     Command4="sudo sed -i 's/172.31.30.71/localhost/g' $File1"
     Command5="sudo sed -i 's/127.0.0.1/localhost/g' $File2"

@@ -76,6 +76,7 @@ new(Id) ->
                num_txns = NumTxns,
                op_type = OpType,
                type_dict = TypeDict, pb_port=PbPort,
+               key_gen_mode=KeyGenMode,
                target_node=TargetNode}}.
 
 %% @doc Read a key
@@ -182,6 +183,7 @@ run(append, KeyGen, ValueGen,
 run(general_tx, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict, op_type=OpType, key_gen_mode=KeyGenMode, 
                 target_node=Node, num_txns=NumTxns, num_updates=NumUpdates, pb_port=Port, pb_pid=Pid}) ->
     Operations = generate_list_of_txns(NumTxns, NumUpdates, TypeDict, Id, ValueGen, OpType, KeyGenMode), 
+    lager:info("Operations are ~w", [Operations]),
     Response =  antidotec_pb_socket:general_tx(Operations, Pid),
     case Response of
         {ok, _} ->
@@ -199,7 +201,7 @@ run(general_tx, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict
             {error, Reason, State}
     end;
 
-run(workload_by_id, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict,  
+run(workload_by_id, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict, 
                 target_node=Node, num_txns=NumTxns, num_updates=NumUpdates, pb_port=Port, pb_pid=Pid}) ->
     Operations=generate_txns_by_id(NumTxns, NumUpdates, TypeDict, Id, ValueGen), 
     Response =  antidotec_pb_socket:general_tx(Operations, Pid),
@@ -296,7 +298,7 @@ get_random_param(Dict, Type, Value, Obj) ->
     end.
 
 generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType, random) ->
-    Base = NumTxn*NumUpdates*(Id-1),
+    _Base = NumTxn*NumUpdates*(Id-1),
     L = lists:seq(0, NumUpdates-1),
     M = lists:seq(0, NumTxn-1),
     GenerateOp = fun(_, AccList) ->
@@ -313,7 +315,7 @@ generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType, random
                             [{read, Key1, Type1}, {update, Key1, Type1, Op1, KeyParam1}|AccList]
                     end
                  end,
-    lists:map(fun(Init) -> {_, FList}=lists:foldl(GenerateOp, [], L), FList end, M).
+    lists:map(fun(_Init) -> {_, FList}=lists:foldl(GenerateOp, [], L), FList end, M);
 generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType, by_id) ->
     Base = NumTxn*NumUpdates*(Id-1),
     L = lists:seq(0, NumUpdates-1),
@@ -332,12 +334,31 @@ generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType, by_id)
                             {Acc+1,[{read, Key1, Type1}, {update, Key1, Type1, Op1, KeyParam1}|AccList]}
                     end
                  end,
+    lists:map(fun(Init) -> {_, FList}=lists:foldl(GenerateOp, {Base+Init*NumUpdates,[]}, L), FList end, M);
+generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType, Interval) ->
+    Base = NumTxn*NumUpdates*(Id-1),
+    L = lists:seq(0, NumUpdates-1),
+    M = lists:seq(0, NumTxn-1),
+    GenerateOp = fun(_, {Acc, AccList}) ->
+                    Key1 = Acc, %random:uniform(20000),
+                    Type1 = get_key_type(Key1, TypeDict),
+                    %ByteKey = list_to_binary(integer_to_list(Key1)),
+                    {_Mod1, Op1, KeyParam1} = get_random_param(TypeDict, Type1, Id, ValueGen()),
+                    case OpType of
+                        update ->
+                            {Acc+Interval,[{update, Key1, Type1, Op1, KeyParam1}|AccList]};
+                        read ->
+                            {Acc+Interval,[{read, Key1, Type1}|AccList]};
+                        all ->
+                            {Acc+Interval,[{read, Key1, Type1}, {update, Key1, Type1, Op1, KeyParam1}|AccList]}
+                    end
+                 end,
     lists:map(fun(Init) -> {_, FList}=lists:foldl(GenerateOp, {Base+Init*NumUpdates,[]}, L), FList end, M).
 
 generate_txns_by_id(NumTxn, NumUpdates, TypeDict, Id, ValueGen) ->
     case Id rem 2 of
         1 ->
-            generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, update); 
+            generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, update, by_id); 
         0 ->
-            generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id-1, ValueGen, read) 
+            generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id-1, ValueGen, read, by_id) 
     end.
