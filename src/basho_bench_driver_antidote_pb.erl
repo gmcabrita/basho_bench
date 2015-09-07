@@ -183,6 +183,7 @@ run(append, KeyGen, ValueGen,
 run(general_tx, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict, op_type=OpType, key_gen_mode=KeyGenMode, 
                 target_node=Node, num_txns=NumTxns, num_updates=NumUpdates, pb_port=Port, pb_pid=Pid}) ->
     Operations = generate_list_of_txns(NumTxns, NumUpdates, TypeDict, Id, ValueGen, OpType, KeyGenMode), 
+    lager:info("~w",[Operations]),
     Response =  antidotec_pb_socket:general_tx(Operations, Pid),
     case Response of
         {ok, _} ->
@@ -298,10 +299,8 @@ get_random_param(Dict, Type, Value, Obj) ->
 
 generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType, random) ->
     _Base = NumTxn*NumUpdates*(Id-1),
-    L = lists:seq(0, NumUpdates-1),
     M = lists:seq(0, NumTxn-1),
-    GenerateOp = fun(_, AccList) ->
-                    Key1 = random:uniform(20000),
+    GenerateOp = fun(Key1, AccList) ->
                     Type1 = get_key_type(Key1, TypeDict),
                     %ByteKey = list_to_binary(integer_to_list(Key1)),
                     {_Mod1, Op1, KeyParam1} = get_random_param(TypeDict, Type1, Id, ValueGen()),
@@ -314,7 +313,8 @@ generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType, random
                             [{read, Key1, Type1}, {update, Key1, Type1, Op1, KeyParam1}|AccList]
                     end
                  end,
-    lists:map(fun(_) -> FList=lists:foldl(GenerateOp, [], L), FList end, M);
+    lists:map(fun(_) ->
+                        FList=lists:foldl(GenerateOp, [], d_rand(20000,NumUpdates,[])), FList end, M);
 generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType, by_id) ->
     Base = NumTxn*NumUpdates*(Id-1),
     L = lists:seq(0, NumUpdates-1),
@@ -335,7 +335,7 @@ generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType, by_id)
                  end,
     lists:map(fun(Init) -> {_, FList}=lists:foldl(GenerateOp, {Base+Init*NumUpdates,[]}, L), FList end, M);
 generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType, Interval) ->
-    Base = NumTxn*NumUpdates*(Id-1),
+    Base = Id,
     L = lists:seq(0, NumUpdates-1),
     M = lists:seq(0, NumTxn-1),
     GenerateOp = fun(_, {Acc, AccList}) ->
@@ -352,7 +352,7 @@ generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id, ValueGen, OpType, Interv
                             {Acc+Interval,[{read, Key1, Type1}, {update, Key1, Type1, Op1, KeyParam1}|AccList]}
                     end
                  end,
-    lists:map(fun(Init) -> {_, FList}=lists:foldl(GenerateOp, {Base+Init*NumUpdates,[]}, L), FList end, M).
+    lists:map(fun(_) -> {_, FList}=lists:foldl(GenerateOp, {Base,[]}, L), FList end, M).
 
 generate_txns_by_id(NumTxn, NumUpdates, TypeDict, Id, ValueGen) ->
     case Id rem 2 of
@@ -361,3 +361,24 @@ generate_txns_by_id(NumTxn, NumUpdates, TypeDict, Id, ValueGen) ->
         0 ->
             generate_list_of_txns(NumTxn, NumUpdates, TypeDict, Id-1, ValueGen, read, by_id) 
     end.
+
+d_rand(_, 0, Acc) ->
+    Acc;
+d_rand(Range, Num, Acc) ->
+    Key = random:uniform(Range),
+    case if_exist(Key, Acc) of
+        true ->
+            d_rand(Range, Num, Acc);
+        false ->
+            d_rand(Range, Num-1, [Key|Acc])
+    end.
+    
+if_exist(_, []) ->
+    false;
+if_exist(N, [N|_L]) ->
+    true;
+if_exist(N, [_|L]) ->
+    if_exist(N, L).
+    
+    
+

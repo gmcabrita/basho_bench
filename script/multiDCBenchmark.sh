@@ -1,21 +1,3 @@
 #!/bin/bash
-
-if [ $# -eq 0 ]; then
-	echo "Usage: all_nodes, cookie, number_of_dcs, nodes_per_dc, connect_dc_or_not, replication or not, threads per node"
-	exit
-else
-    AllSystemNodes=$1
-    SystemNodesArray=($AllSystemNodes)
-    Cookie=$2
-    NumberDC=$3
-    NodesPerDC=$4
-    NodesToUse=$((NumberDC * NodesPerDC))
-    AllNodes=${SystemNodesArray[@]:0:$NodesToUse}
-    AllNodes=`echo ${AllNodes[@]}`
-    ConnectDCs=$5
-    echo "Using" $AllNodes ", will connect DCs:" $ConnectDCs
-fi
-
-./script/stopNodes.sh "$AllSystemNodes" 
-./script/deployMultiDCs.sh "$AllNodes" $Cookie $ConnectDCs $NodesPerDC
-#./script/simpleBenchmark.sh $4 $6  
+./script/restartAndConnect.sh "$1" $2 $3 $4
+./script/simpleBenchmark.sh $4 $6  
