@@ -183,7 +183,6 @@ run(append, KeyGen, ValueGen,
 run(general_tx, _KeyGen, ValueGen, State=#state{worker_id=Id, type_dict=TypeDict, op_type=OpType, key_gen_mode=KeyGenMode, 
                 target_node=Node, num_txns=NumTxns, num_updates=NumUpdates, pb_port=Port, pb_pid=Pid}) ->
     Operations = generate_list_of_txns(NumTxns, NumUpdates, TypeDict, Id, ValueGen, OpType, KeyGenMode), 
-    lager:info("~w",[Operations]),
     Response =  antidotec_pb_socket:general_tx(Operations, Pid),
     case Response of
         {ok, _} ->
