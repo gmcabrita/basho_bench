@@ -30,9 +30,14 @@
 -record(state, {worker_id,
                 time,
                 type_dict,
+                part_list,
+                target_index,
                 pb_pid,
                 num_updates,
+                num_reads,
+                key_range,
                 op_type,
+                my_tx_server,
 		        num_partitions,
                 key_gen_mode,
                 pb_port,
@@ -54,26 +59,57 @@ new(Id) ->
 
     random:seed(now()),
     IPs = basho_bench_config:get(antidote_pb_ips),
-    PbPort = basho_bench_config:get(antidote_pb_port),
-    Types  = basho_bench_config:get(antidote_types),
+    %_PbPorts = basho_bench_config:get(antidote_pb_port),
     NumPartitions = length(IPs),
+    MyNode = basho_bench_config:get(antidote_mynode),
     NumUpdates = basho_bench_config:get(num_updates), 
+    Cookie = basho_bench_config:get(antidote_cookie),
+    NumReads = basho_bench_config:get(num_reads), 
+    KeyRange = basho_bench_config:get(key_range), 
     KeyGenMode = basho_bench_config:get(key_gen_mode), 
     OpType = basho_bench_config:get(op_type), 
 
+    case net_kernel:start(MyNode) of
+        {ok, _} ->
+            ?INFO("Net kernel started as ~p\n", [node()]);
+        {error, {already_started, _}} ->
+            ?INFO("Net kernel already started as ~p\n", [node()]),
+            ok;
+        {error, Reason} ->
+            ?FAIL_MSG("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
+    end,
+
     %% Choose the node using our ID as a modulus
     TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
-    ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
+    true = erlang:set_cookie(node(), Cookie),
 
-    {ok, Pid} = antidotec_pb_socket:start_link(TargetNode, PbPort),
-    TypeDict = dict:from_list(Types),
+%    PbPort = lists:nth((Id rem length(PbPorts)+1), PbPorts),
+    ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
+    Result = net_adm:ping(TargetNode),
+    ?INFO("Result of ping is ~p \n", [Result]),
+    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list(Id)),
+    %{ok, Pid} = antidotec_pb_socket:start_link(TargetNode, PbPort),
+    %{ok, PartList} = antidotec_pb_socket:get_hash_fun(Pid),
+    {PartList, _} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), %gen_server:call({global, MyTxServer}, {get_hash_fun}),
+    {_, IntPart} = lists:foldl(fun({_, List}, {Num, Acc}) ->  
+                            {Num+1, Acc++[{Num, List}]} end, {0, []}, PartList),
+    lager:info("Part list is ~w",[IntPart]),
+    TargetIndex = case TargetNode of
+                    'dev1@127.0.0.1' -> 3;
+                    'dev2@127.0.0.1' -> 2;
+                    'dev3@127.0.0.1' -> 1;
+                    8087 -> 1
+                  end,
     {ok, #state{time={1,1,1}, worker_id=Id,
-               pb_pid = Pid,
+               my_tx_server=MyTxServer,
+               part_list=IntPart,
 	           num_partitions = NumPartitions,
                num_updates = NumUpdates,
+               num_reads = NumReads,
+               key_range = KeyRange,
                op_type = OpType,
-               type_dict = TypeDict, pb_port=PbPort,
                key_gen_mode=KeyGenMode,
+               target_index=TargetIndex,
                target_node=TargetNode}}.
 
 %% @doc Read a key
@@ -95,6 +131,101 @@ run(read, KeyGen, _ValueGen, State=#state{pb_pid = Pid, worker_id = Id, pb_port=
             {error, Reason, State}
     end;
 
+%% @doc Read a key
+run(test, _KeyGen, _ValueGen, State=#state{pb_pid = Pid, worker_id = Id, pb_port=Port, target_node=Node,
+                    num_updates=NumUpdates}) ->
+    {MegaSecs, Secs, MicroSecs} = now(),
+    Time = (MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs,
+    Updates = [{random:uniform(20000), 1} || _  <- lists:seq(1,NumUpdates)],
+    Response =  antidotec_pb_socket:prepare(Time, whatever, Updates, Pid),
+    case Response of
+        {ok, _Value} ->
+            {ok, State};
+        {error,timeout} ->
+            lager:info("Timeout on client ~p",[Id]),
+            antidotec_pb_socket:stop(Pid),
+            {ok, NewPid} = antidotec_pb_socket:start_link(Node, Port),
+            {error, timeout, State#state{pb_pid=NewPid}    };            
+        {error, Reason} ->
+            lager:error("Error: ~p",[Reason]),
+            {error, Reason, State};
+        {badrpc, Reason} ->
+            {error, Reason, State}
+    end;
+
+
+run(single_read, _KeyGen, _ValueGen, State=#state{pb_pid = Pid, worker_id = Id, pb_port=Port, target_node=Node}) ->
+    PartitionId = random:uniform(4),
+    Key = random:uniform(20000),
+    Response =  antidotec_pb_socket:single_read(Pid, {now_microsec(), self()}, Key, PartitionId),
+    case Response of
+        {ok, _Value} ->
+            {ok, State};
+        {error,timeout} ->
+            lager:info("Timeout on client ~p",[Id]),
+            antidotec_pb_socket:stop(Pid),
+            {ok, NewPid} = antidotec_pb_socket:start_link(Node, Port),
+            {error, timeout, State#state{pb_pid=NewPid}};            
+        {error, Reason} ->
+            lager:error("Error: ~p",[Reason]),
+            {error, Reason, State};
+        {badrpc, Reason} ->
+            {error, Reason, State}
+    end;
+
+%% @doc Multikey txn 
+run(start_tx, _KeyGen, _ValueGen, State=#state{pb_pid = Pid, worker_id = Id, pb_port=Port, target_node=Node}) ->
+    Response = antidotec_pb_socket:start_tx(0, Pid),
+    case Response of
+        {ok, _Value} ->
+            {ok, State};
+        {error,timeout} ->
+            lager:info("Timeout on client ~p",[Id]),
+            antidotec_pb_socket:stop(Pid),
+            {ok, NewPid} = antidotec_pb_socket:start_link(Node, Port),
+            {error, timeout, State#state{pb_pid=NewPid}};            
+        {error, Reason} ->
+            lager:error("Error: ~p",[Reason]),
+            {error, Reason, State};
+        {badrpc, Reason} ->
+            {error, Reason, State}
+    end;
+
+run(certify, _KeyGen, _ValueGen, State=#state{my_tx_server=MyTxServer, part_list=PartList, worker_id = Id, num_updates=NumUpdates, target_index=TargetIndex, key_range=Range, num_reads=NumReads}) ->
+    TxId = gen_server:call({global, MyTxServer}, {start_tx}),
+    %lager:info("TxId is ~w", [TxId]),
+    Keys = generate_read_keys(PartList, NumReads, Range),
+    lists:foreach(fun({Key, NodeId, PartId}) ->
+                {ok, _} =  gen_server:call({global, MyTxServer}, {read, Key, TxId, {raw, NodeId, PartId}})
+                    end, Keys),
+    AvgUpNum = NumUpdates div length(PartList) +1,
+    LocalUps = generate_ups(lists:nth(TargetIndex, PartList), AvgUpNum, Range),
+    RemoteNodes = lists:sublist(PartList, TargetIndex-1) ++ lists:sublist(PartList, TargetIndex+1, length(PartList)),
+    %lager:info("TargetIndex is ~w, RemoteNodes are ~w", [TargetIndex, RemoteNodes]),
+    RemoteUps = case length(PartList) of
+                        1 ->
+                            {1, []};
+                        _ ->
+                            lists:foldl(fun(NodePart, Acc) ->  
+                                [generate_ups(NodePart, AvgUpNum, Range)|Acc] end, [], 
+                            RemoteNodes)
+                    end,
+    FRemoteUps = lists:flatten(RemoteUps),
+    %lager:info("Remote up ~w", [FRemoteUps]),
+    Response =  gen_server:call({global, MyTxServer}, {certify, TxId, {raw, LocalUps}, {raw, FRemoteUps}}),
+    %Response =  antidotec_pb_socket:certify(Pid, {now_microsec(), self()}, LocalUps, FRemoteUps, Id),
+    case Response of
+        {ok, _Value} ->
+            {ok, State};
+        {error,timeout} ->
+            lager:info("Timeout on client ~p",[Id]),
+            {error, timeout, State};            
+        {aborted, _} ->
+            lager:error("Aborted"),
+            {error, aborted, State};
+        {badrpc, Reason} ->
+            {error, Reason, State}
+    end;
 
 %% @doc Multikey txn 
 run(read_all_write_one, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id = Id, num_partitions=NumPart, pb_port=Port, target_node=Node, type_dict=TypeDict}) ->
@@ -116,7 +247,38 @@ run(read_all_write_one, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id =
         {badrpc, Reason} ->
             {error, Reason, State}
     end;
-    
+
+run(single_up, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id = Id, pb_port=Port, target_node=Node}) ->
+    _KeyInt = KeyGen(),
+    _Value = ValueGen(),
+    PartitionId = random:uniform(8),
+    Response =  antidotec_pb_socket:single_up_req(random_string(20),
+             random_string(20), PartitionId, Pid),
+    case Response of
+        {ok, _} ->
+            {ok, State};
+        {error,timeout} ->
+            lager:info("Timeout on client ~p",[Id]),
+            antidotec_pb_socket:stop(Pid),
+            {ok, NewPid} = antidotec_pb_socket:start_link(Node, Port),
+            {error, timeout, State#state{pb_pid=NewPid}    };            
+        {error, Reason} ->
+            lager:error("Error: ~p",[Reason]),
+            {error, Reason, State};
+        error ->
+            {error, abort, State};
+        {badrpc, Reason} ->
+            {error, Reason, State}
+    end;
+
+run(read_only, _KeyGen, _ValueGen, State=#state{pb_pid = Pid}) ->
+    L = lists:seq(1,4),
+    PartitionId = random:uniform(8),
+    {ok, {ok, TxId}} =  antidotec_pb_socket:start_tx(0, Pid),
+    ReadFun = fun(_) -> {ok, _} = antidotec_pb_socket:read(TxId, "Father"++integer_to_list(random:uniform(20000)), 
+                            PartitionId, Pid) end,
+    lists:foreach(ReadFun, L),
+    {ok, State};
 
 run(append_multiple, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id = Id, pb_port=Port, target_node=Node, type_dict=TypeDict, num_updates=NumUpdates}) ->
     KeyInt = KeyGen(),
@@ -360,6 +522,59 @@ if_exist(N, [N|_L]) ->
     true;
 if_exist(N, [_|L]) ->
     if_exist(N, L).
-    
-    
+
+generate_ups({NodeIndex, PartNum}, TotalUpNum, Range) ->
+    UpList = [random:uniform(PartNum) || _ <- lists:seq(1, TotalUpNum)],
+    NewD = lists:foldl(fun(PartN, D) ->
+                    case dict:find(PartN, D) of
+                        {ok, V} ->
+                            dict:store(PartN, V+1, D);
+                        error ->
+                            dict:store(PartN, 1, D)
+                    end end,
+                dict:new(), UpList),
+    lists:map(fun({PartIndex, N}) ->  {NodeIndex, PartIndex, random_ups(N, NodeIndex, Range)} end, dict:to_list(NewD)).
+
+generate_read_keys(PartList, TotalNum, Range) ->
+    Len = length(PartList),
+    L = lists:seq(1, TotalNum), 
+    lists:foldl(fun(_, Acc) ->
+            NodeNum = random:uniform(Len),
+            {_, TotalPartNum} = lists:nth(NodeNum, PartList),
+            PartNum = random:uniform(TotalPartNum),
+            Key = integer_to_list(NodeNum) ++"-"++integer_to_list(random:uniform(Range)),
+            [ {Key, NodeNum-1, PartNum}
+                |Acc] end, [], L).
+
+random_ups(K, Prefix, Range) ->
+    L = lists:seq(1, K),
+    {FL, _} = lists:foldl(fun(_, {Acc, Set}) ->
+         R = uninum(Range, Set),
+         { 
+            [{integer_to_list(Prefix)++"-"++integer_to_list(R), random_string(10)}|Acc],
+            sets:add_element(R, Set) }
+         end, {[], sets:new()}, L),
+    FL.
+
+uninum(Range, Set) ->
+    R = random:uniform(Range),
+    case sets:is_element(R, Set) of
+        true ->
+            uninum(Range, Set);
+        false ->
+            R
+    end.
+        
+
+
+random_string(Len) ->
+    Chrs = list_to_tuple("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"),
+    ChrsSize = size(Chrs),
+    F = fun(_, R) -> [element(random:uniform(ChrsSize), Chrs) | R] end,
+    lists:foldl(F, "", lists:seq(1, Len)).
+
+now_microsec() ->
+    {MegaSecs, Secs, MicroSecs} = now(),
+    (MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs.
+
 
