@@ -179,32 +179,37 @@ run(certify, _KeyGen, _ValueGen, State=#state{part_list=PartList, worker_id = Id
     lists:foreach(fun({Key, NodeId, PartId}) ->
                     {ok, _} =  antidotec_pb_socket:cache_read(TxId, Key, NodeId, PartId, Pid)
                     end, Keys),
-    AvgUpNum = NumUpdates div length(PartList) +1,
-    LocalUps = generate_ups(lists:nth(TargetIndex, PartList), AvgUpNum, Range),
-    RemoteNodes = lists:sublist(PartList, TargetIndex-1) ++ lists:sublist(PartList, TargetIndex+1, length(PartList)),
-    %lager:info("TargetIndex is ~w, RemoteNodes are ~w", [TargetIndex, RemoteNodes]),
-    RemoteUps = case length(PartList) of
-                        1 ->
-                            {1, []};
-                        _ ->
-                            lists:foldl(fun(NodePart, Acc) ->  
-                                [generate_ups(NodePart, AvgUpNum, Range)|Acc] end, [], 
-                            RemoteNodes)
-                    end,
-    FRemoteUps = lists:flatten(RemoteUps),
-    %lager:info("Remote up ~w", [FRemoteUps]),
-    Response =  antidotec_pb_socket:certify(Pid, {now_microsec(), self()}, LocalUps, FRemoteUps, Id),
-    case Response of
-        {ok, _Value} ->
+    case NumUpdates of
+        0 ->
             {ok, State};
-        {error,timeout} ->
-            lager:info("Timeout on client ~p",[Id]),
-            {error, timeout, State};            
-        {error, Reason} ->
-            lager:error("Error: ~p", [Reason]),
-            {error, Reason, State};
-        {badrpc, Reason} ->
-            {error, Reason, State}
+        _ ->
+            AvgUpNum = NumUpdates div length(PartList) +1,
+            LocalUps = generate_ups(lists:nth(TargetIndex, PartList), AvgUpNum, Range),
+            RemoteNodes = lists:sublist(PartList, TargetIndex-1) ++ lists:sublist(PartList, TargetIndex+1, length(PartList)),
+            %lager:info("TargetIndex is ~w, RemoteNodes are ~w", [TargetIndex, RemoteNodes]),
+            RemoteUps = case length(PartList) of
+                                1 ->
+                                    {1, []};
+                                _ ->
+                                    lists:foldl(fun(NodePart, Acc) ->  
+                                        [generate_ups(NodePart, AvgUpNum, Range)|Acc] end, [], 
+                                    RemoteNodes)
+                            end,
+            FRemoteUps = lists:flatten(RemoteUps),
+            %lager:info("Remote up ~w", [FRemoteUps]),
+            Response =  antidotec_pb_socket:certify(Pid, {now_microsec(), self()}, LocalUps, FRemoteUps, Id),
+            case Response of
+                {ok, _Value} ->
+                    {ok, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[Id]),
+                    {error, timeout, State};            
+                {error, Reason} ->
+                    lager:error("Error: ~p", [Reason]),
+                    {error, Reason, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end
     end;
 
 %% @doc Multikey txn 
