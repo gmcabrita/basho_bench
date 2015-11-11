@@ -196,7 +196,7 @@ run(certify, _KeyGen, _ValueGen, State=#state{my_tx_server=MyTxServer, part_list
     %lager:info("TxId is ~w", [TxId]),
     Keys = generate_read_keys(PartList, NumReads, Range),
     lists:foreach(fun({Key, NodeId, PartId}) ->
-                {ok, _} =  gen_server:call({global, MyTxServer}, {read, Key, TxId, {raw, NodeId, PartId}})
+                _ =  gen_server:call({global, MyTxServer}, {read, Key, TxId, {raw, NodeId, PartId}})
                     end, Keys),
     case NumUpdates of
         0 ->
@@ -556,7 +556,7 @@ random_ups(K, Prefix, Range) ->
     {FL, _} = lists:foldl(fun(_, {Acc, Set}) ->
          R = uninum(Range, Set),
          { 
-            [{integer_to_list(Prefix)++"-"++integer_to_list(R), random_string(10)}|Acc],
+            [{integer_to_list(Prefix)++"-"++integer_to_list(R), fixed_string()}|Acc],
             sets:add_element(R, Set) }
          end, {[], sets:new()}, L),
     FL.
@@ -570,6 +570,8 @@ uninum(Range, Set) ->
             R
     end.
         
+fixed_string() ->
+    "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789".
 
 
 random_string(Len) ->
