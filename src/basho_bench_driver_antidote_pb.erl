@@ -95,11 +95,12 @@ new(Id) ->
                             {Num+1, Acc++[{Num, List}]} end, {0, []}, PartList),
     lager:info("Part list is ~w",[IntPart]),
     TargetIndex = case TargetNode of
-                    'dev1@127.0.0.1' -> 3;
+                    'dev1@127.0.0.1' -> 1;
                     'dev2@127.0.0.1' -> 2;
-                    'dev3@127.0.0.1' -> 1;
+                    'dev3@127.0.0.1' -> 3;
                     8087 -> 1
                   end,
+    timer:sleep(1000),
     {ok, #state{time={1,1,1}, worker_id=Id,
                my_tx_server=MyTxServer,
                part_list=IntPart,
@@ -217,6 +218,7 @@ run(certify, _KeyGen, _ValueGen, State=#state{my_tx_server=MyTxServer, part_list
             FRemoteUps = lists:flatten(RemoteUps),
             %lager:info("Remote up ~w", [FRemoteUps]),
             Response =  gen_server:call({global, MyTxServer}, {certify, TxId, {raw, LocalUps}, {raw, FRemoteUps}}),
+            %lager:info("Got response is ~w", [Response]),
             %Response =  antidotec_pb_socket:certify(Pid, {now_microsec(), self()}, LocalUps, FRemoteUps, Id),
             case Response of
                 {ok, _Value} ->

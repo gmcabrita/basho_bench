@@ -13,6 +13,8 @@ Results=`./localScripts/getStat.sh | tail -1 `
 Results=`cut -d ">" -f 2 <<< "$Results"`
 Results=`cut -d "(" -f 1 <<< "$Results"`
 Results=(${Results//,/ })
-SpeculativeError=${Results[0]}
-Committed=${Results[1]}
-echo $SpeculaCommitted $Committed $SpeculativeError $Aborted >> $File
+HitCache=${Results[0]}
+ReadAborted=${Results[1]}
+SpeculaAborted=${Results[2]}
+Committed=${Results[3]}
+echo "Hit cache:" $HitCache ", ReadAborted:" $ReadAborted ", SpeculaAborted:" $SpeculaAborted", Committed:"$Committed", speculaCommitted:"$SpeculaCommitted", Aborted:"$Aborted >> $File

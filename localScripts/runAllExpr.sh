@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 Folder="speculaResults/"
-KeyRanges="500 1000 2000 5000"
+KeyRanges="500 2000 8000"
 
 sudo ./localScripts/changeForAllDevs.sh do_specula true
 sudo ./localScripts/changeForAllDevs.sh do_repl false 
