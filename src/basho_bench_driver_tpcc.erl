@@ -143,15 +143,17 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
         my_rep_ids=MyRepIds, my_rep_list=MyRepList, 
         no_rep_ids=NoRepIds, dc_id=DcId, 
         item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
-    LocalWS = dict:new(),
-    RemoteWS = dict:new(),
+    RS = dict:new(),
+    WS = dict:new(),
+    %LocalWS = dict:new(),
+    %RemoteWS = dict:new(),
     DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
     CustomerId = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
-    NumItems = tpcc_tool:random_number(?MIN_ITEM, ?MAX_ITEM),
-    lager:info("DistrictId is ~w, Customer Id is ~w, NumItems is ~w", [DistrictId, CustomerId, NumItems]),
+    NumItems = tpcc_tool:random_num(?MIN_ITEM, ?MAX_ITEM),
+    %lager:info("DistrictId is ~w, Customer Id is ~w, NumItems is ~w", [DistrictId, CustomerId, NumItems]),
 
-    TxId = tx_utilities:create_transaction_record(0),
-    lager:info("TxId is ~w", [TxId]),
+    TxId = gen_server:call({global, TxServer}, {start_tx}),
+    %lager:info("TxId is ~w", [TxId]),
     CustomerKey = tpcc_tool:get_key_by_param({DcId, DistrictId, CustomerId}, customer), 
     _Customer = read_from_node(TxServer, TxId, CustomerKey, DcId, PartList, MyRepList), 
     WarehouseKey = tpcc_tool:get_key_by_param({DcId}, warehouse),
@@ -163,28 +165,32 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
     NewOrder = tpcc_tool:create_neworder(DcId, DistrictId, OId),
     NewOrderKey = tpcc_tool:get_key_by_param({DcId, DistrictId, OId}, neworder),
-    LocalWS1 = add_to_writeset(NewOrderKey, NewOrder, lists:nth(DcId, PartList), LocalWS),
+    WS1 = dict:store(NewOrderKey, NewOrder, WS), 
+    %LocalWS1 = add_to_writeset(NewOrderKey, NewOrder, lists:nth(DcId, PartList), LocalWS),
     District1 = District#district{d_next_o_id=OId+1},
-    LocalWS2 = add_to_writeset(DistrictKey, District1, lists:nth(DcId, PartList), LocalWS1),
+    %LocalWS2 = add_to_writeset(DistrictKey, District1, lists:nth(DcId, PartList), LocalWS1),
+    WS2 = dict:store(DistrictKey, District1, WS1), 
 
     Seq = lists:seq(1, NumItems),
-    {LocalWS3, RemoteWS3, AllLocal} = lists:foldl(fun(OlNumber, {LWS, RWS, AL}) ->
+    {WS3, _, AllLocal} = lists:foldl(fun(OlNumber, {TWS, TRS, AL}) ->
                     WId = pick_warehouse(DcId, MyRepIds, NoRepIds, AccessMaster, AccessSlave),
                     {Min, Max} = lists:nth(WId, ItemRanges),
-                    ItemId = case tpcc_tool:random_uniform(1, 100) of
-                                1 ->
-                                    -12345;
-                                _ ->
-                                    tpcc_tool:non_uniform_random(C_OL_I_ID, ?A_OL_I_ID, Min, Max)
-                             end,
-                    Quantity = tpcc_tools:random_number(1, ?NB_MAX_DISTRICT),
+                    %ItemId = case tpcc_tool:random_num(1, 100) of
+                    %            1 ->
+                    %                -12345;
+                    %            _ ->
+                    ItemId = tpcc_tool:non_uniform_random(C_OL_I_ID, ?A_OL_I_ID, Min, Max),
+                             %end,
+                    Quantity = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
                     ItemKey = tpcc_tool:get_key_by_param({ItemId}, item),
-                    Item = read_from_node(TxServer, TxId, ItemKey, WId, PartList, MyRepList),
+                    %Item = read_from_node(TxServer, TxId, ItemKey, WId, PartList, MyRepList),
+                    {Item, TRS1} = read_from_cache_or_node(TRS, TxServer, TxId, ItemKey, WId, PartList, MyRepList),
                     StockKey = tpcc_tool:get_key_by_param({WId, ItemId}, stock),
-                    Stock = read_from_node(TxServer, TxId, StockKey, WId, PartList, MyRepList),
+                    %Stock = read_from_node(TxServer, TxId, StockKey, WId, PartList, MyRepList),
+                    {Stock, TRS3} = read_from_cache_or_node(TRS1, TxServer, TxId, StockKey, WId, PartList, MyRepList),
                     NewSQuantity = case Stock#stock.s_quantity - Quantity >= 10 of
-                                        true -> s_quantity - Quantity;
-                                        false -> s_quantity - Quantity + 91
+                                        true -> Stock#stock.s_quantity - Quantity;
+                                        false -> Stock#stock.s_quantity - Quantity + 91
                                     end,
                     SRemote = case WId of 
                                     DcId -> Stock#stock.s_remote_cnt;
@@ -209,12 +215,12 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
                                     DcId -> AL;
                                     _ -> 0 
                                 end,
-                    {LWS2, RWS1, AL1}
-            end, {LocalWS2, RemoteWS, 1}, Seq),
+                    {TWS2, TRS1, AL1}
+            end, {WS2, RS, 1}, Seq),
     Order = tpcc_tool:create_order(DcId, DistrictId, OId, NumItems, CustomerId, tpcc_tool:now_nsec(), AllLocal), 
     OrderKey = tpcc_tool:get_key_by_param({DcId, DistrictId, OId}, order),
     LocalWS4 = add_to_writeset(OrderKey, Order, lists:nth(DcId, PartList), LocalWS3),
-    lager:info("FinalWrite set is ~p, ~p", [LocalWS4, RemoteWS3]),
+    %lager:info("FinalWrite set is ~p, ~p", [LocalWS4, RemoteWS3]),
     Response =  gen_server:call({global, TxServer}, {certify, TxId, dict:to_list(LocalWS4), dict:to_list(RemoteWS3)}),
     case Response of
         {ok, _Value} ->
@@ -255,9 +261,20 @@ read_from_node(TxServer, TxId, Key, DcId, PartList, MyRepList) ->
                 end,
     case V of
         [] ->
-            lager:error("Key not found!!!!");
+            lager:error("Key ~p not found!!!!", [Key]),
+            error;
         _ ->
             V
+    end.
+
+read_from_cache_or_node(ReadSet, TxServer, TxId, Key, DcId, PartList, MyRepList) ->
+    case dict:find(Key, ReadSet) of
+        {ok, V} ->
+            {V, ReadSet};
+        error ->
+            V = read_from_node(TxServer, TxId, Key, DcId, PartList, MyRepList),
+            ReadSet1 = dict:store(Key, V, ReadSet),
+            {V, ReadSet1}
     end.
  
 read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
@@ -265,16 +282,17 @@ read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
     {ok, V} = tx_cert_sup:read(TxServer, TxId, Key, Part),
     case V of
         [] ->
-            lager:error("Key not found!!!!");
+            lager:error("Key ~p not found!!!!", [Key]),
+            error;
         _ ->
-            lager:info("Reading ~p, ~p", [Key, V]),
+            %lager:info("Reading ~p, ~p", [Key, V]),
             V
     end.
 
-add_to_writeset(Key, Value, PartList, WSet) ->
+add_to_writeset(Key, Value, {_, PartList}, WSet) ->
     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(PartList) + 1,
     Part = lists:nth(Index, PartList),
-    lager:info("Adding  ~p, ~p to ~w", [Key, Value, Part]),
+    %lager:info("Adding  ~p, ~p to ~w", [Key, Value, Part]),
     dict:append(Part, {Key, Value}, WSet).
 
 get_indexes(PL, List) ->
@@ -306,7 +324,7 @@ init_item_ranges(NumDCs, Max) ->
                                     _ ->
                                         DivItems + FirstItem -1
                                 end,
-                    Acc++[{FirstItem, LastItem}] 
+                    Acc++[{trunc(FirstItem), trunc(LastItem)}] 
                     end, [], Seq).
     
 get_district_info(Stock, 1) ->
