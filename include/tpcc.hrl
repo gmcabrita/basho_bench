@@ -2,6 +2,8 @@
 -define(A_C_ID, 1023).
 -define(A_OL_I_ID, 8191).
 -define(NB_MAX_ITEM, 10000).
+%-define(NB_MAX_CUSTOMER, 100).
+%-define(NB_MAX_ORDER, 100).
 -define(NB_MAX_CUSTOMER, 50).
 -define(NB_MAX_ORDER, 50).
 -define(NB_MAX_DISTRICT, 10).
@@ -13,6 +15,8 @@
 -define(LIMIT_ORDER, 2101).
 -define(MIN_ITEM, 5).
 -define(MAX_ITEM, 15).
+-define(NUM_NAMES, 2).
+-define(NAMES, ["BAR","OUGHT"]).
 
 -record(item, {
     i_id :: non_neg_integer(),

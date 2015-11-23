@@ -117,6 +117,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
             {ok, State#state{populated=true}};
         true ->
             lager:error("Already populated!!"),
+            timer:sleep(5000),
             {error, aborted, State}
     end.
 
@@ -176,9 +177,21 @@ populate_customers(TxServer, WarehouseId, DistrictId, PartList) ->
                     put_to_node(TxServer, WarehouseId, PartList, CKey, Customer),
                     CBalanceKey = CKey++":c_balance",
                     put_to_node(TxServer, WarehouseId, PartList, CBalanceKey, -10),
-                    CustomerLookup = tpcc_tool:create_customer_lookup(WarehouseId, DistrictId, CLast),
-                    CLKey = tpcc_tool:get_key(CustomerLookup),
-                    put_to_node(TxServer, WarehouseId, PartList, CLKey, CustomerLookup),
+                    %CustomerLookup = tpcc_tool:create_customer_lookup(WarehouseId, DistrictId, CLast),
+                    TxId = gen_server:call({global, TxServer}, {start_tx}),
+                    CLKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CLast}, customer_lookup),
+                    CustomerLookup = 
+                                case read_from_node(TxServer, TxId, CLKey, WarehouseId, PartList) of
+                                    error ->
+                                        lager:info("Loading for the first time"),
+                                        tpcc_tool:create_customer_lookup(WarehouseId, DistrictId, CLast);
+                                    CL ->
+                                        CL
+                                end,  
+                    Ids = CustomerLookup#customer_lookup.ids,
+                    lager:info("Adding ~w to ids ~w", [CustomerId, Ids]),
+                    CustomerLookup1 = CustomerLookup#customer_lookup{ids=[CustomerId|Ids]}, 
+                    put_to_node(TxServer, WarehouseId, PartList, CLKey, CustomerLookup1),
                     History = tpcc_tool:create_history(WarehouseId, DistrictId, CustomerId),
                     HKey = tpcc_tool:get_key(History),
                     put_to_node(TxServer, WarehouseId, PartList, HKey, History)
@@ -260,3 +273,16 @@ put_to_node(TxServer, DcId, PartList, Key, Value) ->
 single_put(TxServer, Part, Key, Value) ->
     %lager:info("Puting [~p, ~p] to ~w", [Key, Value, Part]),
     {ok, _} = tx_cert_sup:single_commit(TxServer, Part, Key, Value).
+
+read_from_node(TxServer, TxId, Key, DcId, PartList) ->
+    {_, L} = lists:nth(DcId, PartList),
+    Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
+    Part = lists:nth(Index, L),
+    {ok, V} = tx_cert_sup:read(TxServer, TxId, Key, Part),
+    case V of
+        [] ->
+            lager:error("Key ~p not found!!!!", [Key]),
+            error;
+        _ ->
+            V
+    end.

@@ -98,7 +98,7 @@ new(Id) ->
                     'dev1@127.0.0.1' -> 1;
                     'dev2@127.0.0.1' -> 2;
                     'dev3@127.0.0.1' -> 3;
-                    8087 -> 1
+                    'antidote@127.0.0.1' -> 1
                   end,
     timer:sleep(1000),
     {ok, #state{time={1,1,1}, worker_id=Id,
@@ -196,8 +196,8 @@ run(certify, _KeyGen, _ValueGen, State=#state{my_tx_server=MyTxServer, part_list
     TxId = gen_server:call({global, MyTxServer}, {start_tx}),
     %lager:info("TxId is ~w", [TxId]),
     Keys = generate_read_keys(PartList, NumReads, Range),
-    lists:foreach(fun({Key, NodeId, PartId}) ->
-                _ =  gen_server:call({global, MyTxServer}, {read, Key, TxId, {raw, NodeId, PartId}})
+    lists:foreach(fun({Key, Node}) ->
+                _ =  gen_server:call({global, MyTxServer}, {read, Key, TxId, Node})
                     end, Keys),
     case NumUpdates of
         0 ->
@@ -209,15 +209,16 @@ run(certify, _KeyGen, _ValueGen, State=#state{my_tx_server=MyTxServer, part_list
             %lager:info("TargetIndex is ~w, RemoteNodes are ~w", [TargetIndex, RemoteNodes]),
             RemoteUps = case length(PartList) of
                                 1 ->
-                                    {1, []};
+                                    generate_ups(lists:nth(TargetIndex, PartList), AvgUpNum, Range);
                                 _ ->
                                     lists:foldl(fun(NodePart, Acc) ->  
                                         [generate_ups(NodePart, AvgUpNum, Range)|Acc] end, [], 
                                     RemoteNodes)
                             end,
+            
             FRemoteUps = lists:flatten(RemoteUps),
-            %lager:info("Remote up ~w", [FRemoteUps]),
-            Response =  gen_server:call({global, MyTxServer}, {certify, TxId, {raw, LocalUps}, {raw, FRemoteUps}}),
+            lager:info("Local ups are ~p, Remote up ~p", [LocalUps, FRemoteUps]),
+            Response =  gen_server:call({global, MyTxServer}, {certify, TxId, LocalUps, FRemoteUps}),
             %lager:info("Got response is ~w", [Response]),
             %Response =  antidotec_pb_socket:certify(Pid, {now_microsec(), self()}, LocalUps, FRemoteUps, Id),
             case Response of
@@ -530,8 +531,9 @@ if_exist(N, [N|_L]) ->
 if_exist(N, [_|L]) ->
     if_exist(N, L).
 
-generate_ups({NodeIndex, PartNum}, TotalUpNum, Range) ->
-    UpList = [random:uniform(PartNum) || _ <- lists:seq(1, TotalUpNum)],
+generate_ups({_, Parts}, TotalUpNum, Range) ->
+    Len = length(Parts),
+    UpList = [lists:nth(random:uniform(Len), Parts) || _ <- lists:seq(1, TotalUpNum)],
     NewD = lists:foldl(fun(PartN, D) ->
                     case dict:find(PartN, D) of
                         {ok, V} ->
@@ -540,17 +542,18 @@ generate_ups({NodeIndex, PartNum}, TotalUpNum, Range) ->
                             dict:store(PartN, 1, D)
                     end end,
                 dict:new(), UpList),
-    lists:map(fun({PartIndex, N}) ->  {NodeIndex, PartIndex, random_ups(N, NodeIndex, Range)} end, dict:to_list(NewD)).
+    lists:map(fun({Node, N}) -> {Part, _}=Node, {Node, random_ups(N, Part, Range)} end, dict:to_list(NewD)).
 
 generate_read_keys(PartList, TotalNum, Range) ->
-    Len = length(PartList),
     L = lists:seq(1, TotalNum), 
+    NumNodes = length(PartList),
+    {_, NodeParts} = lists:nth(random:uniform(NumNodes), PartList),
+    NodePartLen = length(NodeParts),
     lists:foldl(fun(_, Acc) ->
-            NodeNum = random:uniform(Len),
-            {_, TotalPartNum} = lists:nth(NodeNum, PartList),
-            PartNum = random:uniform(TotalPartNum),
-            Key = integer_to_list(NodeNum) ++"-"++integer_to_list(random:uniform(Range)),
-            [ {Key, NodeNum-1, PartNum}
+            Node = lists:nth(random:uniform(NodePartLen), NodeParts),
+            {Part, _} = Node,
+            Key = integer_to_list(Part) ++"-" ++ integer_to_list(random:uniform(Range)),
+            [ {Key, Node}
                 |Acc] end, [], L).
 
 random_ups(K, Prefix, Range) ->
