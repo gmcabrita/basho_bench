@@ -27,10 +27,13 @@
 -include("basho_bench.hrl").
 
 -define(TIMEOUT, 20000).
--record(state, {node,
-                worker_id,
+-record(state, {worker_id,
                 time,
-                type_dict}).
+                num_updates,
+                num_reads,
+                clock,
+                pb_port,
+                target_node}).
 
 %% ====================================================================
 %% API
@@ -49,7 +52,8 @@ new(Id) ->
     Nodes   = basho_bench_config:get(antidote_nodes),
     Cookie  = basho_bench_config:get(antidote_cookie),
     MyNode  = basho_bench_config:get(antidote_mynode, [basho_bench, longnames]),
-    Types  = basho_bench_config:get(antidote_types),
+    NumReads  = basho_bench_config:get(num_reads),
+    NumUpdates  = basho_bench_config:get(num_updates),
 
     %% Try to spin up net_kernel
     case net_kernel:start(MyNode) of
@@ -66,121 +70,81 @@ new(Id) ->
     [true = erlang:set_cookie(N, Cookie) || N <- Nodes],
 
     %% Try to ping each of the nodes
-    AvailableNodes = ping_each(Nodes, []),
 
     %% Choose the node using our ID as a modulus
-    TargetNode = lists:nth((Id rem length(AvailableNodes)+1), AvailableNodes),
+    TargetNode = lists:nth((Id rem length(Nodes)+1), Nodes),
     ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
     %KeyDict= dict:new(),
-    TypeDict = dict:from_list(Types),
-    {ok, #state{node=TargetNode, time={1,1,1}, worker_id=Id, type_dict=TypeDict}}.
+    {ok, #state{target_node=TargetNode, worker_id=Id, 
+               clock=ignore, num_updates = NumUpdates, num_reads=NumReads}}.
 
 %% @doc Read a key
-run(read, KeyGen, _ValueGen, State=#state{node=Node, type_dict=TypeDict}) ->
-    Key = KeyGen(),
-    Type = get_key_type(Key, TypeDict),
-    Response = rpc:call(Node, antidote, read, [Key, Type]),
+run(read_txn, _KeyGen, _ValueGen, State=#state{worker_id = Id, target_node=Node, num_reads=NumReads, clock=Clock}) ->
+    Keys = k_unique_numes(NumReads, 1000),
+    KeyTypes = [{read, {K, riak_dt_lwwreg}}  ||  K <- Keys],  
+    Response = rpc:call(Node, antidote, clocksi_execute_tx, [Clock, KeyTypes]), %antidotec_pb_socket:get_crdt(Key, Type, Pid),
+    %lager:info("Response is ~w", [Response]),
     case Response of
-        {ok, _Value} ->
-            {ok, State};
+        {ok, {_, CausalClock}} ->
+            {ok, State#state{clock=CausalClock}};
+        {ok, {_, _, CausalClock}} ->
+            {ok, State#state{clock=CausalClock}};
+        {error,timeout} ->
+            lager:info("Timeout on client ~p",[Id]),
+            {error, timeout, State};            
         {error, Reason} ->
+            lager:error("Error: ~p",[Reason]),
             {error, Reason, State};
         {badrpc, Reason} ->
             {error, Reason, State}
     end;
 
-run(multiread, _KeyGen, _ValueGen, State=#state{node=Node, type_dict=TypeDict}) ->
-    Ops = generate_list_of_ops(100, 0, TypeDict, []),
-    Response = rpc:call(Node, antidote, clocksi_execute_tx, [Ops]),
+run(update_txn, _KeyGen, _ValueGen, State=#state{worker_id = Id, target_node=Node, num_updates=NumUpdates,
+        clock=Clock}) ->
+    Keys = k_unique_numes(NumUpdates, 1000),
+    %lager:info("Keys are ~w", [Keys]),
+    Updates = [{update, {Key, riak_dt_lwwreg, {{assign, random_string(10)}, haha}}} || Key <- Keys],
+    %lager:info("Updates are ~w", [Updates]),
+    %lager:info("Deps are ~w", [Deps]),
+    Response = rpc:call(Node, antidote, clocksi_execute_tx, [Clock, Updates]),
     case Response of
-        {ok, _Value} ->
-            {ok, State};
+        {ok, {_, CausalClock}} ->
+            {ok, State#state{clock=CausalClock}};
+        {ok, {_, _, CausalClock}} ->
+            {ok, State#state{clock=CausalClock}};
+        {error,timeout} ->
+            lager:info("Timeout on client ~p",[Id]),
+            {error, timeout, State};            
         {error, Reason} ->
+            lager:error("Error: ~p",[Reason]),
             {error, Reason, State};
-        {badrpc, Reason} ->
-            {error, Reason, State}
-    end;
-
-run(multiupdate, _KeyGen, _ValueGen, State=#state{node=Node, type_dict=TypeDict}) ->
-    Ops = generate_list_of_ops(10, 1, TypeDict, []),
-    Response = rpc:call(Node, antidote, clocksi_execute_tx, [Ops]),
-    case Response of
-        {ok, _Value} ->
-            {ok, State};
-        {error, Reason} ->
-            {error, Reason, State};
-        {badrpc, Reason} ->
-            {error, Reason, State}
-    end;
-
-%% @doc Write to a key
-run(append, KeyGen, ValueGen,
-    State=#state{node=Node, worker_id=Id, type_dict=TypeDict}) ->
-    Key = KeyGen(),
-    Type = get_key_type(Key, TypeDict),
-    {Type, KeyParam} = get_random_param(TypeDict, Type, Id, ValueGen()),
-    Response = rpc:call(Node, antidote, append, [Key, Type, KeyParam]),
-    case Response of
-        {ok, _Result} ->
-            {ok, State};
-        {error, Reason} ->
-            {error, Reason, State};
+        error ->
+            {error, abort, State};
         {badrpc, Reason} ->
             {error, Reason, State}
     end.
 
-%% Private
-ping_each([], Acc) ->
-    Acc;
-ping_each([Node | Rest], Acc) ->
-    case net_adm:ping(Node) of
-        pong ->
-            ?INFO("Finished pinging ~p", [Node]),
-            ping_each(Rest, Acc ++ [Node]);
-        pang ->
-            ?INFO("Failed to ping node ~p\n", [Node]),
-            ping_each(Rest, Acc)
+
+random_string(Len) ->
+    Chrs = list_to_tuple("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"),
+    ChrsSize = size(Chrs),
+    F = fun(_, R) -> [element(random:uniform(ChrsSize), Chrs) | R] end,
+    lists:foldl(F, "", lists:seq(1, Len)).
+
+k_unique_numes(Num, Range) ->
+    Seq = lists:seq(1, Num),
+    S = lists:foldl(fun(_, Set) ->
+                N = uninum(Range, Set),
+                 sets:add_element(N, Set)
+                end, sets:new(), Seq),
+    sets:to_list(S).
+
+uninum(Range, Set) ->
+    R = random:uniform(Range),
+    case sets:is_element(R, Set) of
+        true ->
+            uninum(Range, Set);
+        false ->
+            R
     end.
 
-% Generate NumOps of operations in a list. Mode 0 means
-% read; mode 1 means only update
-generate_list_of_ops(0, _Mode, _Dict, Acc) ->
-    Acc;
-generate_list_of_ops(NumOps, Mode, Dict, Acc) ->
-    case Mode of
-	0 ->
-	    random:seed(now()),
-	    Key = random:uniform(2000),
-	    Type = get_key_type(Key, Dict),
-	    generate_list_of_ops(NumOps-1, Mode, Dict, [{read, Key,Type}|Acc]);
-	1 ->
-	    random:seed(now()),
-	    Key = random:uniform(2000),
-	    Type = get_key_type(Key, Dict),
-	    {Type, Param} = get_random_param(Dict, Type, 5, 10),
-	    generate_list_of_ops(NumOps-1, Mode, Dict, [{update, Key,Type, Param}|Acc])
-    end.
-
-get_key_type(Key, Dict) ->
-    Keys = dict:fetch_keys(Dict),
-    RanNum = Key rem length(Keys),
-    lists:nth(RanNum+1, Keys).
-
-get_random_param(Dict, Type, Actor, Value) ->
-    Params = dict:fetch(Type, Dict),
-    random:seed(now()),
-    Num = random:uniform(length(Params)),
-    case Type of
-        riak_dt_gcounter ->
-           {riak_dt_gcounter, {lists:nth(Num, Params), Actor}};
-        crdt_pncounter ->
-           {crdt_pncounter, {lists:nth(Num, Params), Actor}};
-        riak_dt_gset ->
-           {riak_dt_gset, {{lists:nth(Num, Params), Value}, Actor}};
-        crdt_orset ->
-           {crdt_orset, {{lists:nth(Num, Params), Value}, Actor}}
-        %crdt_pncounter ->
-        %   {crdt_pncounter, {lists:nth(Num, Params), Actor}};
-        %crdt_orset ->
-        %   {crdt_orset, {{lists:nth(Num, Params), Value}, Actor}}
-    end.
