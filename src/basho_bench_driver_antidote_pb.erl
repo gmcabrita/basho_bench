@@ -37,6 +37,9 @@
                 num_reads,
                 key_range,
                 op_type,
+                m_parts,
+                s_parts,
+                c_parts,
                 my_tx_server,
 		        num_partitions,
                 key_gen_mode,
@@ -87,20 +90,30 @@ new(Id) ->
     ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
     Result = net_adm:ping(TargetNode),
     ?INFO("Result of ping is ~p \n", [Result]),
-    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list(Id)),
+    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list(Id div NumPartitions)),
     %{ok, Pid} = antidotec_pb_socket:start_link(TargetNode, PbPort),
     %{ok, PartList} = antidotec_pb_socket:get_hash_fun(Pid),
-    {PartList, _} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), %gen_server:call({global, MyTxServer}, {get_hash_fun}),
+    {PartList, RepList} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), %gen_server:call({global, MyTxServer}, {get_hash_fun}),
+
+    lager:info("My tx server is ~w, part list is ~w, rep list is ~w", [MyTxServer, PartList, RepList]),
+    [ReplicaNodes] = [ Part    ||{N, Part}   <- RepList, TargetNode == N],
+    [MasterParts] =  [ Part    ||{N, Part}   <- PartList, TargetNode == N],
+    %lager:info("~w", [MasterParts]),
+    SlaveParts = get_replicas(TargetNode, ReplicaNodes),
+    %lager:info("~w ~w", [MasterParts, SlaveParts]),
+    CacheParts = get_non_replicas(TargetNode, ReplicaNodes, PartList),
+    %lager:info("~w ~w ~w", [MasterParts, SlaveParts, CacheParts]),
+
     {_, IntPart} = lists:foldl(fun({_, List}, {Num, Acc}) ->  
                             {Num+1, Acc++[{Num, List}]} end, {0, []}, PartList),
-    lager:info("Part list is ~w",[IntPart]),
-    TargetIndex = case TargetNode of
-                    'dev1@127.0.0.1' -> 1;
-                    'dev2@127.0.0.1' -> 2;
-                    'dev3@127.0.0.1' -> 3;
-                    'antidote@127.0.0.1' -> 1
-                  end,
-    timer:sleep(1000),
+    TargetIndex = lists:foldl(fun({I, PartL}, PreviousI) ->
+                           P = [N || {_, N} <- PartL],
+                           case hd(P)  of  TargetNode -> I;
+                                       _ -> PreviousI
+                            end end, 0, IntPart) + 1,
+    lager:info("Target index is ~w",[TargetIndex]),
+    %lager:info("Int PartList is ~w",[IntPart]),
+    timer:sleep(500),
     {ok, #state{time={1,1,1}, worker_id=Id,
                my_tx_server=MyTxServer,
                part_list=IntPart,
@@ -109,6 +122,9 @@ new(Id) ->
                num_reads = NumReads,
                key_range = KeyRange,
                op_type = OpType,
+               m_parts = MasterParts,
+               s_parts = SlaveParts,
+               c_parts = CacheParts,
                key_gen_mode=KeyGenMode,
                target_index=TargetIndex,
                target_node=TargetNode}}.
@@ -192,18 +208,19 @@ run(start_tx, _KeyGen, _ValueGen, State=#state{pb_pid = Pid, worker_id = Id, pb_
             {error, Reason, State}
     end;
 
-run(certify, _KeyGen, _ValueGen, State=#state{my_tx_server=MyTxServer, part_list=PartList, worker_id = Id, num_updates=NumUpdates, target_index=TargetIndex, key_range=Range, num_reads=NumReads}) ->
+run(certify, _KeyGen, _ValueGen, State=#state{my_tx_server=MyTxServer, part_list=PartList, worker_id = Id, num_updates=NumUpdates, target_index=TargetIndex, key_range=Range, num_reads=NumReads, m_parts=MParts, s_parts=SParts, c_parts=CParts, target_node=TargetNode}) ->
     TxId = gen_server:call({global, MyTxServer}, {start_tx}),
     %lager:info("TxId is ~w", [TxId]),
     Keys = generate_read_keys(PartList, NumReads, Range),
-    lists:foreach(fun({Key, Node}) ->
-                _ =  gen_server:call({global, MyTxServer}, {read, Key, TxId, Node})
+    lists:foreach(fun({Key, _}) ->
+                _ = read_from_node(TargetNode, MyTxServer, TxId, Key, MParts, SParts, CParts)    
                     end, Keys),
     case NumUpdates of
         0 ->
             {ok, State};
         _ ->
             AvgUpNum = NumUpdates div length(PartList) +1,
+            %lager:info("Generating local ups are ~w", [lists:nth(TargetIndex, PartList)]),
             LocalUps = generate_ups(lists:nth(TargetIndex, PartList), AvgUpNum, Range),
             RemoteNodes = lists:sublist(PartList, TargetIndex-1) ++ lists:sublist(PartList, TargetIndex+1, length(PartList)),
             %lager:info("TargetIndex is ~w, RemoteNodes are ~w", [TargetIndex, RemoteNodes]),
@@ -217,7 +234,7 @@ run(certify, _KeyGen, _ValueGen, State=#state{my_tx_server=MyTxServer, part_list
                             end,
             
             FRemoteUps = lists:flatten(RemoteUps),
-            lager:info("Local ups are ~p, Remote up ~p", [LocalUps, FRemoteUps]),
+            %lager:info("Local ups are ~p, Remote up ~p", [LocalUps, FRemoteUps]),
             Response =  gen_server:call({global, MyTxServer}, {certify, TxId, LocalUps, FRemoteUps}),
             %lager:info("Got response is ~w", [Response]),
             %Response =  antidotec_pb_socket:certify(Pid, {now_microsec(), self()}, LocalUps, FRemoteUps, Id),
@@ -590,3 +607,34 @@ now_microsec() ->
     (MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs.
 
 
+read_from_node(TargetNode, TxServer, TxId, Key, MParts, SParts, CParts) ->
+    Rand = random:uniform(100),
+    case Rand > 70 of
+        true -> %% Read from my partition
+            R = random:uniform(length(MParts)),
+            tx_cert_sup:read(TxServer, TxId, Key, lists:nth(R, MParts));
+        false ->
+            case Rand > 50 of 
+                true ->  %% Read from my replica
+                    R = random:uniform(length(SParts)),
+                    data_repl_serv:read(lists:nth(R, SParts), Key, TxId);
+                false -> %% Read from cache
+                    R = random:uniform(length(CParts)),
+                    cache_serv:read(TargetNode, Key, TxId, lists:nth(R, CParts))
+            end
+    end.
+
+
+get_replicas(MyNode, RepList) ->
+    [ list_to_atom(atom_to_list(MyNode)++"repl"++atom_to_list(Node))
+            || Node <- RepList].
+
+get_non_replicas(MyNode, RepList, PartList) ->
+    NonMaster = lists:filter(fun({N, _}) -> N =/= MyNode end, PartList),
+    NonRep = lists:filter(fun({N, _}) -> not_contain(N, RepList) end, NonMaster),
+    Final = lists:foldl(fun({_N, P}, Acc) ->
+                    [P|Acc] end, [],  NonRep),
+    lists:flatten(Final).
+ 
+not_contain(N, RepList) ->
+    lists:all(fun(X) -> X =/= N end, RepList).

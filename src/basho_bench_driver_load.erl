@@ -60,8 +60,6 @@ new(Id) ->
     %_PbPorts = basho_bench_config:get(antidote_pb_port),
     MyNode = basho_bench_config:get(antidote_mynode),
     Cookie = basho_bench_config:get(antidote_cookie),
-    NumDCs = basho_bench_config:get(num_dcs), 
-    DcId = basho_bench_config:get(dc_id), 
 
     case net_kernel:start(MyNode) of
         {ok, _} ->
@@ -84,6 +82,10 @@ new(Id) ->
     {PartList, ReplList} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), %gen_server:call({global, MyTxServer}, {get_hash_fun}),
     FullPartList = lists:flatten([L || {_, L} <- PartList]),
     HashLength = length(FullPartList),
+    AllDcs = [N || {N, _} <- PartList],
+    NumDcs = length(AllDcs),
+    DcId = index(TargetNode, AllDcs),
+
     lager:info("Part list is ~w",[PartList]),
     ets:new(load, [named_table, public, set]),
     timer:sleep(1000),
@@ -94,7 +96,7 @@ new(Id) ->
                repl_list = ReplList,
                full_part_list = FullPartList,
                hash_length = HashLength,   
-               num_dcs = NumDCs,
+               num_dcs = NumDcs,
                dc_id = DcId,
                target_node=TargetNode}}.
 
@@ -286,3 +288,13 @@ read_from_node(TxServer, TxId, Key, DcId, PartList) ->
         _ ->
             V
     end.
+
+index(Elem, L) ->
+    index(Elem, L, 1).
+
+index(_, [], _) ->
+    -1;
+index(E, [E|_], N) ->
+    N;
+index(E, [_|L], N) ->
+    index(E, L, N+1).
