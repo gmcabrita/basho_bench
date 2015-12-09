@@ -87,7 +87,11 @@ new(Id) ->
     DcId = index(TargetNode, AllDcs),
 
     lager:info("Part list is ~w",[PartList]),
-    ets:new(load, [named_table, public, set]),
+    case DcId of 1 ->
+                    ets:new(load, [named_table, public, set]);
+                _ ->
+                    ok
+    end,
     timer:sleep(1000),
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
@@ -115,7 +119,6 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
             populate_warehouse(TxServer, DcId, PartList),
             populate_stock(TxServer, DcId, PartList),
             populate_district(TxServer, DcId, PartList),
-            ets:insert(load, {populated, true}),
             {ok, State#state{populated=true}};
         true ->
             lager:error("Already populated!!"),
@@ -258,6 +261,9 @@ init_params(TxServer, FullPartList, HashLength) ->
     Partition1 = get_partition(K1, FullPartList, HashLength),
     Partition2 = get_partition(K2, FullPartList, HashLength),
     Partition3 = get_partition(K3, FullPartList, HashLength),
+    lager:info("Putting CCLAST to ~w", [Partition1]),
+    lager:info("Putting CCID to ~w", [Partition2]),
+    lager:info("Putting COLIID to ~w", [Partition3]),
     single_put(TxServer, Partition1, K1, C_C_LAST),
     single_put(TxServer, Partition2, K2, C_C_ID),
     single_put(TxServer, Partition3, K3, C_OL_I_ID).
@@ -273,7 +279,7 @@ put_to_node(TxServer, DcId, PartList, Key, Value) ->
     single_put(TxServer, Part, Key, Value).
 
 single_put(TxServer, Part, Key, Value) ->
-    %lager:info("Puting [~p, ~p] to ~w", [Key, Value, Part]),
+    %lager:info("Single Puting [~p, ~p] to ~w", [Key, Value, Part]),
     {ok, _} = tx_cert_sup:single_commit(TxServer, Part, Key, Value).
 
 read_from_node(TxServer, TxId, Key, DcId, PartList) ->

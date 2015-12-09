@@ -95,7 +95,7 @@ new(Id) ->
     {PartList, ReplList} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
     lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
 
-    M = [L || {N, L} <- ReplList, N == TargetNode ],
+    [M] = [L || {N, L} <- ReplList, N == TargetNode ],
     AllDcs = [N || {N, _} <- PartList],
     MyRepIds = get_indexes(M, AllDcs),
     MyRepList = [{N, get_rep_name(TargetNode, lists:nth(N, AllDcs))} || N <- MyRepIds],
@@ -363,6 +363,7 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
 				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, TWarehouseId, PartList, MyRepList),
                 case CustomerLookup of
                     error ->
+                        lager:error("Key not found by last name ~w", [CLastName]),
                         error;
                     _ ->
                         Ids = CustomerLookup#customer_lookup.ids,
@@ -382,7 +383,6 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
 				CKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, CustomerID}, customer),
 				read_from_node(TxServer, TxId, CKey, TWarehouseId, PartList, MyRepList)
 		end,
-	
     case CW of
         error ->
             lager:error("Key not found!"),
@@ -508,6 +508,7 @@ add_to_writeset(Key, Value, {_, PartList}, WSet) ->
     dict:append(Part, {Key, Value}, WSet).
 
 get_indexes(PL, List) ->
+    lager:info("Trying to get index: PL ~w, List ~w", [PL, List]),
     [index(X, List) || X <- PL ].
 
 pick_warehouse(MyId, RepIds, NoRepIds, AccessMaster, AccessRep) ->
