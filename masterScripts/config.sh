@@ -2,8 +2,7 @@
 set -e
 
 cd basho_bench
-git stash
-git pull
+./script/command_to_all.sh "$AllNodes" "cd basho_bench && git stash && git pull"
 AllNodes=`cat ./script/allnodes` 
 
 
