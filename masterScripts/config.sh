@@ -2,9 +2,10 @@
 set -e
 
 cd basho_bench
+git stash
+git pull
 AllNodes=`cat ./script/allnodes` 
 
-./script/command_to_all.sh "$AllNodes" "cd basho_bench && git pull"
 
 #Change config for basho_bench
 ReplList="["
