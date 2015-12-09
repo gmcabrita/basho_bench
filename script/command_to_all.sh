@@ -2,8 +2,14 @@
 set -u
 set -e
 FAIL=0
-nodes=$1
-command=$2
+if [ $# -eq 1 ]
+then
+    nodes=`cat ./script/allnodes`
+    command="$1"
+else
+    nodes=$1
+    command=$2
+fi
 echo $command" for nodes:"$nodes 
 for node in $nodes
 do

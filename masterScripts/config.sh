@@ -1,9 +1,10 @@
 #!/bin/bash
 set -e
 
+cd basho_bench
 AllNodes=`cat ./script/allnodes` 
 
-./script/command_to_all.sh "$AllNodes" "cd basho_bench && git stash && git pull"
+./script/command_to_all.sh "$AllNodes" "cd basho_bench && git pull"
 
 #Change config for basho_bench
 ReplList="["
@@ -15,6 +16,10 @@ do
     AntNodeArray[$I]=$CurrentNode
     I=$((I+1))
 done
+Ip=`hostname --ip-address`
+CurrentNode="'antidote@"$Ip"'"
+./localScripts/changeConfig.sh examples/tpcc.config antidote_pb_ips [$CurrentNode]
+./localScripts/changeConfig.sh examples/load.config antidote_pb_ips [$CurrentNode]
 
 I=0
 Length=${#AntNodeArray[@]}
@@ -22,17 +27,15 @@ echo $Length
 for Node in $AllNodes
 do
     CurrentNode="'antidote@"$Node"'"
-    ./masterScripts/changeConfig.sh $Node ./basho_bench/examples/tpcc.config antidote_pb_ips [$CurrentNode]
-    ./masterScripts/changeConfig.sh $Node ./basho_bench/examples/load.config antidote_pb_ips [$CurrentNode]
     NextI=$(((I+1) % Length))
     DNextI=$(((I+2) % Length))
     if [ $I -ne 0 ]; then
-        ReplList=$ReplList",{"$CurrentNode", ["${AntNodeArray[$NextI]}", "${AntNodeArray[$DNextI]}"]}"
+        ReplList=$ReplList",{"$CurrentNode",["${AntNodeArray[$NextI]}","${AntNodeArray[$DNextI]}"]}"
     else
-        ReplList=$ReplList"{"$CurrentNode", ["${AntNodeArray[$NextI]}", "${AntNodeArray[$DNextI]}"]}"
+        ReplList=$ReplList"{"$CurrentNode",["${AntNodeArray[$NextI]}","${AntNodeArray[$DNextI]}"]}"
     fi
     I=$((I+1))
 done
 ReplList=$ReplList"]"
 echo "$ReplList"
-./masterScripts/changeConfig.sh "$AllNodes" ./antidote/rel/antidote/antidote.config to_repl $Repllist 
+./localScripts/changeConfig.sh ../antidote/rel/antidote/antidote.config to_repl "$ReplList"
