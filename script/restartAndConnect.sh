@@ -4,17 +4,16 @@ if [ $# -eq 0 ]; then
 	echo "Usage: all_nodes, cookie, number_of_dcs, nodes_per_dc"
 	exit
 else
-    AllSystemNodes=$1
-    SystemNodesArray=($AllSystemNodes)
+    AllNodes=$1
     Cookie=$2
-    NumberDC=$3
-    NodesPerDC=$4
-    NodesToUse=$((NumberDC * NodesPerDC))
-    AllNodes=${SystemNodesArray[@]:0:$NodesToUse}
-    AllNodes=`echo ${AllNodes[@]}`
-    ConnectDCs=0
-    echo "Using" $AllNodes ", will connect DCs:" $ConnectDCs
+	./script/stopNodes.sh "$AllSystemNodes" 
+	./script/startNodes.sh "$AllNodes"
+
+	NodesList=($1)
+	Length=${#NodesList[@]}
+	First=("${NodesList[@]:0:1}")
+	Others=("${NodesList[@]:1:$((Length-1))}")
+	sudo ./script/joinNodesToRing.sh $First "$Others"
+	./script/waitRingsToFinish.sh $First
 fi
 
-./script/stopNodes.sh "$AllSystemNodes" 
-./script/deployMultiDCs.sh "$AllNodes" $Cookie $ConnectDCs $NodesPerDC
