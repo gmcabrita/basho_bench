@@ -113,7 +113,7 @@ new(Id) ->
     HashLength = length(ExpandPartList),
 
     lager:info("Part list is ~w",[PartList]),
-    timer:sleep(1000),
+    timer:sleep(2000),
     TxId = gen_server:call({global, MyTxServer}, {start_tx}),
     C_C_LAST = read(MyTxServer, TxId, "C_C_LAST", ExpandPartList, HashLength),
     C_C_ID = read(MyTxServer, TxId, "C_C_ID", ExpandPartList, HashLength),

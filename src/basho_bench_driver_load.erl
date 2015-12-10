@@ -88,7 +88,7 @@ new(Id) ->
 
     lager:info("Part list is ~w",[PartList]),
     ets:new(load, [named_table, public, set]),
-    timer:sleep(1000),
+    timer:sleep(2000),
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
                populated=false,
