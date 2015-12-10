@@ -60,6 +60,7 @@ new(Id) ->
     %_PbPorts = basho_bench_config:get(antidote_pb_port),
     MyNode = basho_bench_config:get(antidote_mynode),
     Cookie = basho_bench_config:get(antidote_cookie),
+    ToSleep = basho_bench_config:get(to_sleep),
 
     case net_kernel:start(MyNode) of
         {ok, _} ->
@@ -88,7 +89,7 @@ new(Id) ->
 
     lager:info("Part list is ~w",[PartList]),
     ets:new(load, [named_table, public, set]),
-    timer:sleep(2000),
+    timer:sleep(ToSleep),
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
                populated=false,
