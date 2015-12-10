@@ -87,11 +87,7 @@ new(Id) ->
     DcId = index(TargetNode, AllDcs),
 
     lager:info("Part list is ~w",[PartList]),
-    case DcId of 1 ->
-                    ets:new(load, [named_table, public, set]);
-                _ ->
-                    ok
-    end,
+    ets:new(load, [named_table, public, set]),
     timer:sleep(1000),
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
