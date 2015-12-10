@@ -30,8 +30,15 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 for Node in $AllNodes
 do
-    Result=`./script/command_to_all.sh $Node "./script/getStat.sh"`
-    echo Result is "$Result"
-    echo "$Result" >> $Folder/stat
+    Results=`./script/command_to_all.sh $Node "./basho_bench/localScripts/getStat.sh" | tail -1 `
+    Results=`cut -d ">" -f 2 <<< "$Results"`
+    Results=`cut -d "(" -f 1 <<< "$Results"`
+    Results=(${Results//,/ })
+    HitCache=${Results[0]}
+    ReadAborted=${Results[1]}
+    SpeculaAborted=${Results[2]}
+    Committed=${Results[3]}
+    SpeculaCommitted=${Results[4]}
+    echo $Node ": Hit cache:" $HitCache ", ReadAborted:" $ReadAborted ", SpeculaAborted:" $SpeculaAborted", Committed:"$Committed", speculaCommitted:"$SpeculaCommitted >> $File/stat
 done
 ./script/gatherThroughput.sh $Folder
