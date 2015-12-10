@@ -17,7 +17,7 @@ Tpcc="./basho_bench/examples/tpcc.config"
 Load="./basho_bench/examples/load.config"
 Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc concurrent $1
-./masterScripts/changeConfig.sh "$AllNodes" $Load concurrent $1
+./masterScripts/changeConfig.sh "$AllNodes" $Load concurrent 1
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc accessMaster $2
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc accessSlave $3
 ./masterScripts/changeConfig.sh "$AllNodes" $Ant do_specula $4

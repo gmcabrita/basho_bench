@@ -6,7 +6,8 @@ if [ $# -eq 0 ]; then
 else
     AllNodes=$1
     Cookie=$2
-	./script/stopNodes.sh "$AllSystemNodes" 
+	./script/stopNodes.sh "$AllNodes" 
+	exit
 	./script/startNodes.sh "$AllNodes"
 
 	NodesList=($1)
