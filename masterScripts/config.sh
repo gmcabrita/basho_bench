@@ -17,12 +17,12 @@ do
 done
 Ip=`hostname --ip-address`
 CurrentNode="'antidote@"$Ip"'"
-LoadNode="['load@"$Ip"', longnames]"
-BenchNode="['tpcc@"$Ip"', longnames]"
+LoadNode="['load@"$Ip"',longnames]"
+BenchNode="['tpcc@"$Ip"',longnames]"
 ./localScripts/changeConfig.sh examples/tpcc.config antidote_pb_ips [$CurrentNode]
 ./localScripts/changeConfig.sh examples/load.config antidote_pb_ips [$CurrentNode]
-./localScripts/changeConfig.sh examples/load.config antidote_pb_ips $LoadNode
-./localScripts/changeConfig.sh examples/tpcc.config antidote_pb_ips $BenchNode 
+./localScripts/changeConfig.sh examples/load.config antidote_mynode "$LoadNode"
+./localScripts/changeConfig.sh examples/tpcc.config antidote_mynode "$BenchNode"
 
 I=0
 Length=${#AntNodeArray[@]}
