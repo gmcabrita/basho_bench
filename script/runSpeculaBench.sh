@@ -18,6 +18,8 @@ Load="./basho_bench/examples/load.config"
 Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc concurrent $1
 ./masterScripts/changeConfig.sh "$AllNodes" $Load concurrent 1
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 40000 
+./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 20000
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc accessMaster $2
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc accessSlave $3
 ./masterScripts/changeConfig.sh "$AllNodes" $Ant do_specula $4
@@ -25,6 +27,9 @@ Ant="./antidote/rel/antidote/antidote.config"
 
 ./script/restartAndConnect.sh "$AllNodes"  antidote 
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
+exit
+
+
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 for Node in $Nodes
 do
