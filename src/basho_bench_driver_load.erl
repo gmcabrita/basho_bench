@@ -60,6 +60,7 @@ new(Id) ->
     %_PbPorts = basho_bench_config:get(antidote_pb_port),
     MyNode = basho_bench_config:get(antidote_mynode),
     Cookie = basho_bench_config:get(antidote_cookie),
+    ToSleep = basho_bench_config:get(to_sleep),
 
     case net_kernel:start(MyNode) of
         {ok, _} ->
@@ -87,12 +88,8 @@ new(Id) ->
     DcId = index(TargetNode, AllDcs),
 
     lager:info("Part list is ~w",[PartList]),
-    case DcId of 1 ->
-                    ets:new(load, [named_table, public, set]);
-                _ ->
-                    ok
-    end,
-    timer:sleep(1000),
+    ets:new(load, [named_table, public, set]),
+    timer:sleep(ToSleep),
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
                populated=false,

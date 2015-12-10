@@ -68,6 +68,7 @@ new(Id) ->
     MyNode = basho_bench_config:get(antidote_mynode),
     Cookie = basho_bench_config:get(antidote_cookie),
     IPs = basho_bench_config:get(antidote_pb_ips),
+    ToSleep = basho_bench_config:get(to_sleep),
    
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
@@ -113,7 +114,7 @@ new(Id) ->
     HashLength = length(ExpandPartList),
 
     lager:info("Part list is ~w",[PartList]),
-    timer:sleep(1000),
+    timer:sleep(ToSleep),
     TxId = gen_server:call({global, MyTxServer}, {start_tx}),
     C_C_LAST = read(MyTxServer, TxId, "C_C_LAST", ExpandPartList, HashLength),
     C_C_ID = read(MyTxServer, TxId, "C_C_ID", ExpandPartList, HashLength),
