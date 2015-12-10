@@ -13,7 +13,8 @@ else
 	Length=${#NodesList[@]}
 	First=("${NodesList[@]:0:1}")
 	Others=("${NodesList[@]:1:$((Length-1))}")
-	sudo ./script/joinNodesToRing.sh $First "$Others"
+	OtherList=`echo ${Others[@]}`
+	sudo ./script/joinNodesToRing.sh $First "$OtherList"
 	./script/waitRingsToFinish.sh $First
 fi
 
