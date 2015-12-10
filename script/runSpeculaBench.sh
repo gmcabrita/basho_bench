@@ -31,6 +31,7 @@ Ant="./antidote/rel/antidote/antidote.config"
 for Node in $AllNodes
 do
     Result=`./script/command_to_all.sh $Node "./script/getStat.sh"`
-    echo $Result >> $Folder/stat
+    echo Result is "$Result"
+    echo "$Result" >> $Folder/stat
 done
 ./script/gatherThroughput.sh $Folder
