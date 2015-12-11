@@ -1,0 +1,16 @@
+#!/bin/bash
+
+Folder=$1
+AllNodes=`cat ./script/allnodes`
+Results=`sudo ./localScripts/getStat.sh "$AllNodes"`
+Results=`echo "$Results" | tail -1`
+Results=`cut -d ">" -f 2 <<< "$Results"`
+Results=`cut -d "(" -f 1 <<< "$Results"`
+Results=(${Results//,/ })
+echo "Result is $Results"
+HitCache=${Results[0]}
+ReadAborted=${Results[1]}
+SpeculaAborted=${Results[2]}
+Committed=${Results[3]}
+SpeculaCommitted=${Results[4]}
+echo "Hit cache:" $HitCache ", ReadAborted:" $ReadAborted ", SpeculaAborted:" $SpeculaAborted", Committed:"$Committed", speculaCommitted:"$SpeculaCommitted >> $Folder/stat
