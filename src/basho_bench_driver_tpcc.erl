@@ -107,7 +107,7 @@ new(Id) ->
     NoRepList = ((AllDcs -- MyRepList)) -- [TargetNode],
     NoRepIds = get_indexes(NoRepList, AllDcs),
     lager:info("NoRep list is ~w, no rep ids is ~w", [NoRepList, NoRepIds]),
-    ets:new(dep_table, [private, named_table, bag]),
+    %ets:new(dep_table, [private, named_table, bag]),
 
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     %lager:info("Ex list is ~w", [ExpandPartList]),
