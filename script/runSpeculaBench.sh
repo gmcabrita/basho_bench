@@ -3,9 +3,9 @@ set -u
 set -e
 AllNodes=`cat script/allnodes`
 
-if [ $# -ne 5 ]
+if [ $# -ne 6 ]
 then
-	echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, folder"
+	echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, do_fast_reply, folder"
     exit
 fi
 
@@ -18,8 +18,8 @@ Load="./basho_bench/examples/load.config"
 Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc concurrent $1
 ./masterScripts/changeConfig.sh "$AllNodes" $Load concurrent 1
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 2000 
-./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 2000
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 5000 
+./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 5000
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc accessMaster $2
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc accessSlave $3
 ./masterScripts/changeConfig.sh "$AllNodes" $Ant do_specula $4
