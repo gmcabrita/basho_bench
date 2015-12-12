@@ -21,6 +21,9 @@ LoadNode="['load@"$Ip"',longnames]"
 BenchNode="['tpcc@"$Ip"',longnames]"
 ./localScripts/changeConfig.sh examples/tpcc.config antidote_pb_ips [$CurrentNode]
 ./localScripts/changeConfig.sh examples/load.config antidote_pb_ips [$CurrentNode]
+sudo sed -i -e 's/{code_paths.*/{code_paths, [\x22\x2E\x2E\x2Fantidote\x2Febin\x22]}./' examples/tpcc.config 
+sudo sed -i -e 's/{code_paths.*/{code_paths, [\x22\x2E\x2E\x2Fantidote\x2Febin\x22]}./' examples/load.config 
+
 ./localScripts/changeConfig.sh examples/load.config antidote_mynode "$LoadNode"
 ./localScripts/changeConfig.sh examples/tpcc.config antidote_mynode "$BenchNode"
 

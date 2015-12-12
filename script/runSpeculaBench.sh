@@ -16,8 +16,6 @@ mkdir $Folder
 Tpcc="./basho_bench/examples/tpcc.config"
 Load="./basho_bench/examples/load.config"
 Ant="./antidote/rel/antidote/antidote.config"
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc code_paths [\x22\x2E\x2E\x2Fantidote\x2Febin\x22]
-./masterScripts/changeConfig.sh "$AllNodes" $Load code_paths [\x22\x2E\x2E\x2Fantidote\x2Febin\x22]
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc concurrent $1
 ./masterScripts/changeConfig.sh "$AllNodes" $Load concurrent 1
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 5000 
