@@ -141,7 +141,8 @@ new(Id) ->
                dc_id = DcId,
                target_node=TargetNode}}.
 
-%% @doc Read a key
+%% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
+%% objects. 
 run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
         my_rep_ids=MyRepIds, my_rep_list=MyRepList, 
         no_rep_ids=NoRepIds, dc_id=DcId, 
@@ -250,8 +251,8 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
 %% @doc Payment transaction of TPC-C
 run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
-        my_rep_list=MyRepList,
-        dc_id=DcId, num_dcs=NumDcs,
+        my_rep_list=MyRepList, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds,
+        dc_id=DcId, access_slave=AccessSlave,
         c_c_id=C_C_ID, c_c_last = C_C_LAST, access_master=AccessMaster}) ->
     WS = dict:new(),
     %LocalWS = dict:new(),
@@ -259,17 +260,19 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 	TWarehouseId = DcId,
 	DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
 	
-    %% TODO: Should be 85 in the original impl
-    {CWId, CDId} = case tpcc_tool:random_num(1, 100) =< AccessMaster of
-				        true ->
-				            {TWarehouseId, DistrictId};
-				        false ->
-							RId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
-				    		N = tpcc_tool:random_num(1, NumDcs-1),
-							case N >= TWarehouseId of
-								true -> {N+1, RId};  false -> {N, RId}
-							end
-				  	end,
+    %% TODO: this should be changed. 
+    %{CWId, CDId} = case tpcc_tool:random_num(1, 100) =< AccessMaster of
+	%			        true ->
+	%			            {TWarehouseId, DistrictId};
+	%			        false ->
+	%						RId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
+	%			    		N = tpcc_tool:random_num(1, NumDcs-1),
+	%						case N >= TWarehouseId of
+	%							true -> {N+1, RId};  false -> {N, RId}
+	%						end
+	%			  	end,
+    CWId = pick_warehouse(TWarehouseId, MyRepIds, NoRepIds, AccessMaster, AccessSlave),
+    CDId = DistrictId,
 	PaymentAmount = tpcc_tool:random_num(100, 500000) / 100.0,
 
 	%TxId = {tx_id, tpcc_tool:now_nsec(), self()},	
