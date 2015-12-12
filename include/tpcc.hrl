@@ -4,8 +4,8 @@
 -define(NB_MAX_ITEM, 10000).
 %-define(NB_MAX_CUSTOMER, 100).
 %-define(NB_MAX_ORDER, 100).
--define(NB_MAX_CUSTOMER, 50).
--define(NB_MAX_ORDER, 50).
+-define(NB_MAX_CUSTOMER, 100).
+-define(NB_MAX_ORDER, 100).
 -define(NB_MAX_DISTRICT, 10).
 -define(S_DATA_MINN, 26).
 -define(S_DATA_MAXN, 50).
@@ -17,6 +17,8 @@
 -define(MAX_ITEM, 15).
 -define(NUM_NAMES, 2).
 -define(NAMES, ["BAR","OUGHT"]).
+%% I added that!! (To prevent metadata growing..)
+-define(MAX_NEW_ORDER, 4000).
 
 -record(item, {
     i_id :: non_neg_integer(),

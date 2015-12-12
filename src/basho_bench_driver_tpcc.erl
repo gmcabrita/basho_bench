@@ -91,18 +91,19 @@ new(Id) ->
     Result = net_adm:ping(TargetNode),
     ?INFO("Result of ping is ~p \n", [Result]),
 
-    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list(Id)),
-    lager:info("MyTxServer is ~w", [MyTxServer]),
     {PartList, ReplList} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
-    lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
+    %lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
 
     [M] = [L || {N, L} <- ReplList, N == TargetNode ],
     AllDcs = [N || {N, _} <- PartList],
     MyRepIds = get_indexes(M, AllDcs),
     MyRepList = [{N, get_rep_name(TargetNode, lists:nth(N, AllDcs))} || N <- MyRepIds],
-    lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
+    %lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
     DcId = index(TargetNode, AllDcs),
     NumDcs = length(AllDcs),
+    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list(Id div NumDcs)),
+    lager:info("MyTxServer is ~w", [MyTxServer]),
+
     lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),
     NoRepList = ((AllDcs -- MyRepList)) -- [TargetNode],
     NoRepIds = get_indexes(NoRepList, AllDcs),
@@ -113,7 +114,7 @@ new(Id) ->
     %lager:info("Ex list is ~w", [ExpandPartList]),
     HashLength = length(ExpandPartList),
 
-    lager:info("Part list is ~w",[PartList]),
+    %lager:info("Part list is ~w",[PartList]),
     timer:sleep(ToSleep),
     TxId = gen_server:call({global, MyTxServer}, {start_tx}),
     C_C_LAST = read(MyTxServer, TxId, "C_C_LAST", ExpandPartList, HashLength),
@@ -173,7 +174,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     NewOrderKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, OId}, neworder),
     WS1 = dict:store({WarehouseId, NewOrderKey}, NewOrder, WS), 
     %LocalWS1 = add_to_writeset(NewOrderKey, NewOrder, lists:nth(DcId, PartList), LocalWS),
-    District1 = District#district{d_next_o_id=OId+1},
+    District1 = District#district{d_next_o_id=(OId+1) rem ?MAX_NEW_ORDER},
     %LocalWS2 = add_to_writeset(DistrictKey, District1, lists:nth(DcId, PartList), LocalWS1),
     WS2 = dict:store({WarehouseId, DistrictKey}, District1, WS1), 
 
@@ -295,6 +296,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, CWId, PartList, MyRepList),
                 case CustomerLookup of
                     error ->
+                        lager:error("~p not found", [CustomerLookup]),
                         error;                    
                     _ ->
                         Ids = CustomerLookup#customer_lookup.ids,

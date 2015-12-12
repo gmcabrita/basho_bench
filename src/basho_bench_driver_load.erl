@@ -88,7 +88,7 @@ new(Id) ->
     DcId = index(TargetNode, AllDcs),
 
     lager:info("Part list is ~w",[PartList]),
-    ets:new(load, [named_table, public, set]),
+    ets:new(list_to_atom(integer_to_list(DcId)), [named_table, public, set]),
     timer:sleep(ToSleep),
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
@@ -173,7 +173,7 @@ populate_customers(TxServer, WarehouseId, DistrictId, PartList) ->
                 ?NB_MAX_CUSTOMER]),
     Seq = lists:seq(1, ?NB_MAX_CUSTOMER),
     lists:foreach(fun(CustomerId) ->
-                    CLast = tpcc_tool:c_last(),
+                    CLast = tpcc_tool:c_last(WarehouseId),
                     Customer = tpcc_tool:create_customer(WarehouseId, DistrictId, CustomerId, CLast),
                     CKey = tpcc_tool:get_key(Customer),
                     put_to_node(TxServer, WarehouseId, PartList, CKey, Customer),
