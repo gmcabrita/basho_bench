@@ -10,7 +10,7 @@ then
 fi
 
 #Params: nodes, cookie, num of dcs, num of nodes, if connect dcs, replication or not, branch
-Time=`date +'%Y-%m-%d-%H:%M:%S'`
+Time=`date +'%Y-%m-%d-%H%M%S'`
 Folder=$6/$Time
 mkdir $Folder
 Tpcc="./basho_bench/examples/tpcc.config"
