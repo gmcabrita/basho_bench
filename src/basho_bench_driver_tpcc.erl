@@ -448,7 +448,7 @@ read_from_node(TxServer, TxId, Key, DcId, PartList, MyRepList) ->
                         %gen_server:call({clocksi_vnode_master, Node}, Req, infinity);
                         tx_cert_sup:read(TxServer, TxId, Key, Part);
                     N ->
-                        data_repl_server:read(N, TxId, Key)
+                        data_repl_server:read(N, Key, TxId)
                 end,
     %case Res of
     %    {specula, DepTx} ->
