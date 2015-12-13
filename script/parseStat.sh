@@ -13,4 +13,10 @@ ReadAborted=${Results[1]}
 SpeculaAborted=${Results[2]}
 Committed=${Results[3]}
 SpeculaCommitted=${Results[4]}
+SpeculaReadTxn=${Results[5]}
+PartSpeculaRead=${Results[6]}
+RepSpeculaRead=${Results[7]}
+RepTotalRead=${Results[8]}
+CacheSpeculaRead=${Results[9]}
+CacheTotalRead=${Results[10]}
 echo "Hit cache:" $HitCache ", ReadAborted:" $ReadAborted ", SpeculaAborted:" $SpeculaAborted", Committed:"$Committed", speculaCommitted:"$SpeculaCommitted >> $Folder/stat
