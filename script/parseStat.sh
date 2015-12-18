@@ -3,6 +3,7 @@
 Folder=$1
 AllNodes=`cat ./script/allnodes`
 Results=`sudo ./localScripts/getStat.sh "$AllNodes"`
+echo "Result is " "$Results"
 Results=`echo "$Results" | tail -1`
 Results=`cut -d ">" -f 2 <<< "$Results"`
 Results=`cut -d "(" -f 1 <<< "$Results"`
@@ -19,4 +20,4 @@ RepSpeculaRead=${Results[7]}
 RepTotalRead=${Results[8]}
 CacheSpeculaRead=${Results[9]}
 CacheTotalRead=${Results[10]}
-echo "Hit cache:" $HitCache ", ReadAborted:" $ReadAborted ", SpeculaAborted:" $SpeculaAborted", Committed:"$Committed", speculaCommitted:"$SpeculaCommitted >> $Folder/stat
+echo "Hit cache:" $HitCache ", ReadAborted:" $ReadAborted ", SpeculaAborted:" $SpeculaAborted", Committed:"$Committed", speculaCommitted:"$SpeculaCommitted "$PartSpeculaRead" "$RepSpeculaRead" "$RepTotalRead" "$CacheSpeculaRead" "$CacheTotalRead" >> $Folder/stat
