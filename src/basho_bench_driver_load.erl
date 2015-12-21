@@ -60,6 +60,7 @@ new(Id) ->
     %_PbPorts = basho_bench_config:get(antidote_pb_port),
     MyNode = basho_bench_config:get(antidote_mynode),
     Cookie = basho_bench_config:get(antidote_cookie),
+    ToSleep = basho_bench_config:get(to_sleep),
 
     case net_kernel:start(MyNode) of
         {ok, _} ->
@@ -87,12 +88,8 @@ new(Id) ->
     DcId = index(TargetNode, AllDcs),
 
     lager:info("Part list is ~w",[PartList]),
-    case DcId of 1 ->
-                    ets:new(load, [named_table, public, set]);
-                _ ->
-                    ok
-    end,
-    timer:sleep(1000),
+    ets:new(list_to_atom(integer_to_list(DcId)), [named_table, public, set]),
+    timer:sleep(ToSleep),
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
                populated=false,
@@ -176,14 +173,14 @@ populate_customers(TxServer, WarehouseId, DistrictId, PartList) ->
                 ?NB_MAX_CUSTOMER]),
     Seq = lists:seq(1, ?NB_MAX_CUSTOMER),
     lists:foreach(fun(CustomerId) ->
-                    CLast = tpcc_tool:c_last(),
+                    CLast = tpcc_tool:c_last(WarehouseId),
                     Customer = tpcc_tool:create_customer(WarehouseId, DistrictId, CustomerId, CLast),
                     CKey = tpcc_tool:get_key(Customer),
                     put_to_node(TxServer, WarehouseId, PartList, CKey, Customer),
                     CBalanceKey = CKey++":c_balance",
                     put_to_node(TxServer, WarehouseId, PartList, CBalanceKey, -10),
                     %CustomerLookup = tpcc_tool:create_customer_lookup(WarehouseId, DistrictId, CLast),
-                    TxId = gen_server:call({global, TxServer}, {start_tx}),
+                    TxId = gen_server:call({global, TxServer}, {start_read_tx}),
                     CLKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CLast}, customer_lookup),
                     CustomerLookup = 
                                 case read_from_node(TxServer, TxId, CLKey, WarehouseId, PartList) of

@@ -2,7 +2,7 @@
 
 -include("tpcc.hrl").
 
--export([random_num/2, get_key/1, c_last/0, now_nsec/0, non_uniform_random/4, last_name/1,
+-export([random_num/2, get_key/1, c_last/1, now_nsec/0, non_uniform_random/4, last_name/1,
         create_item/1, create_warehouse/1, create_stock/2, create_district/2,
         create_customer/4, create_customer_lookup/3, create_history/3, create_history/8, 
 		create_order/6, create_order/7, create_orderline/6, create_orderline/9, 
@@ -13,28 +13,28 @@ last_name(Num) ->
 	lists:nth((Num div 10) rem ?NUM_NAMES +1, ?NAMES) ++ 
 	lists:nth(Num rem ?NUM_NAMES +1, ?NAMES).
 
-get_ol_i_id() ->
-    case ets:lookup(load, pop_ol_i_id) of
+get_ol_i_id(DcId) ->
+    case ets:lookup(list_to_atom(integer_to_list(DcId)), pop_ol_i_id) of
         [] ->
             Rand = random_num(0, ?A_OL_I_ID), 
-            ets:insert(load, {pop_ol_i_id, Rand}),
+            ets:insert(list_to_atom(integer_to_list(DcId)), {pop_ol_i_id, Rand}),
             Rand;
         [{pop_ol_i_id, V}] ->
             V
     end.
 
-get_c_last() ->
-    case ets:lookup(load, pop_c_last) of
+get_c_last(DcId) ->
+    case ets:lookup(list_to_atom(integer_to_list(DcId)), pop_c_last) of
         [] ->
             Rand = random_num(?MIN_C_LAST, ?A_C_LAST), 
-            ets:insert(load, {pop_c_last, Rand}),
+            ets:insert(list_to_atom(integer_to_list(DcId)), {pop_c_last, Rand}),
             Rand;
         [{pop_c_last, V}] ->
             V
     end.
 
-c_last() ->
-    Number = non_uniform_random(get_c_last(), ?A_C_LAST, ?MIN_C_LAST, ?MAX_C_LAST),
+c_last(DcId) ->
+    Number = non_uniform_random(get_c_last(DcId), ?A_C_LAST, ?MIN_C_LAST, ?MAX_C_LAST),
 	Alea = integer_to_list(Number),
 	NumZeros = 3 - length(Alea),
 	NewAlea = case NumZeros > 0 of true -> lists:duplicate(NumZeros, 1) ++ Alea;
@@ -147,7 +147,7 @@ create_order(WarehouseId, DistrictId, OrderId, OOlCnt, CustomerId, Time, AllLoca
 
 create_orderline(WarehouseId, DistrictId, OrderId, OrderlineId, DDate, Amount) ->
     #orderline{ol_o_id=OrderId, ol_w_id=WarehouseId, ol_d_id=DistrictId, 
-            ol_number=OrderlineId, ol_i_id=non_uniform_random(get_ol_i_id(), ?A_OL_I_ID, 1, ?NB_MAX_ITEM),
+            ol_number=OrderlineId, ol_i_id=non_uniform_random(get_ol_i_id(WarehouseId), ?A_OL_I_ID, 1, ?NB_MAX_ITEM),
             ol_supply_w_id=WarehouseId, ol_delivery_d=DDate, ol_quantity=5, ol_amount=Amount,ol_dist_info=random_len_string(12,24)
             }.
 
