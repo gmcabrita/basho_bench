@@ -9,15 +9,14 @@ Results=`cut -d ">" -f 2 <<< "$Results"`
 Results=`cut -d "(" -f 1 <<< "$Results"`
 Results=(${Results//,/ })
 echo "Result is $Results"
-HitCache=${Results[0]}
-ReadAborted=${Results[1]}
-SpeculaAborted=${Results[2]}
-Committed=${Results[3]}
-SpeculaCommitted=${Results[4]}
-SpeculaReadTxn=${Results[5]}
-PartSpeculaRead=${Results[6]}
-RepSpeculaRead=${Results[7]}
-RepTotalRead=${Results[8]}
-CacheSpeculaRead=${Results[9]}
-CacheTotalRead=${Results[10]}
-echo "Hit cache:" $HitCache ", ReadAborted:" $ReadAborted ", SpeculaAborted:" $SpeculaAborted", Committed:"$Committed", speculaCommitted:"$SpeculaCommitted  Part "$PartSpeculaRead" RepSpec "$RepSpeculaRead" RepTotal "$RepTotalRead" CacheSpec "$CacheSpeculaRead" CacheTotal "$CacheTotalRead" >> $Folder/stat
+ReadAborted=${Results[0]}
+SpeculaAborted=${Results[1]}
+Committed=${Results[2]}
+SpeculaCommitted=${Results[3]}
+SpeculaReadTxn=${Results[4]}
+PartSpeculaRead=${Results[5]}
+RepSpeculaRead=${Results[6]}
+RepTotalRead=${Results[7]}
+CacheSpeculaRead=${Results[8]}
+CacheTotalRead=${Results[9]}
+echo "Hit cache:" $HitCache ", ReadAborted:" $ReadAborted ", SpeculaAborted:" $SpeculaAborted", Committed:"$Committed", speculaCommitted:"$SpeculaCommitted  PartSpeculaRead "$PartSpeculaRead" RepSpec "$RepSpeculaRead" RepTotal "$RepTotalRead" CacheSpec "$CacheSpeculaRead" CacheTotal "$CacheTotalRead" >> $Folder/stat
