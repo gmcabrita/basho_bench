@@ -4,7 +4,7 @@ FAIL=0
 echo $command" for nodes:"$nodes 
 if [ $# -eq 3 ]
 then
-    nodes=`cat ./scripts/allnodes`
+    nodes=`cat ./script/allnodes`
     file=$1
     path=$2
     folder=$3
