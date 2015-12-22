@@ -151,7 +151,9 @@ handle_info({'EXIT', Pid, Reason}, State) ->
             spawn(fun() -> stop_worker(State#state.sup_id) end),
 	    (catch (State#state.driver):terminate({'EXIT', Reason}, State#state.driver_state)),
             {noreply, State};
-
+	cleanup ->
+	    (catch (State#state.driver):terminate({'EXIT', Reason}, State#state.driver_state)),
+            {noreply, State};
         _ ->
             ?ERROR("Worker ~p exited with ~p~n", [Pid, Reason]),
 	    (catch (State#state.driver):terminate({'EXIT', Reason}, State#state.driver_state)),
