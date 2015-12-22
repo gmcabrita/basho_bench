@@ -524,7 +524,7 @@ terminate(_, _State=#state{new_order_prep=NewOrderPrep, payment_prep=PaymentPrep
     AvgPaymentPrep = lists:sum(PaymentPrep) div length(PaymentPrep),
     File= Folder ++ "/prep",
     lager:info("File is ~p, Value is ~p, ~p", [File, AvgNewOrderPrep, AvgPaymentPrep]),
-    file:write_file(File, io_lib:fwrite("~p, ~p\n", [AvgNewOrderPrep, AvgPaymentPrep])).
+    file:write_file(File, io_lib:fwrite("~p, ~p\n", [AvgNewOrderPrep, AvgPaymentPrep]), [append]).
 
 get_local_remote_writeset(WriteSet, PartList, LocalId) ->
     {LWSD, RWSD} = dict:fold(fun({Id, Key}, Value, {LWS, RWS}) ->
