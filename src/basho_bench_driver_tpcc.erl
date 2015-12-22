@@ -519,7 +519,7 @@ read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
 
 terminate(_, _State=#state{new_order_prep=NewOrderPrep, payment_prep=PaymentPrep,
                 folder=Folder}) ->
-    %lager:info("Trying to clean up!!! State is ~w", [State]),
+    lager:info("Trying to clean up in drive!!!"),
     AvgNewOrderPrep = lists:sum(NewOrderPrep) div length(NewOrderPrep),
     AvgPaymentPrep = lists:sum(PaymentPrep) div length(PaymentPrep),
     File= Folder ++ "/prep",

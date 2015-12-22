@@ -152,14 +152,14 @@ handle_info({'EXIT', Pid, Reason}, State) ->
             {stop, normal, State}
     end.
 
-terminate(_Reason, _State) ->
-    %case basho_bench_config:get(driver) of
-    %    basho_bench_driver_tpcc ->
-    %        lager:info("Trying to termiante in worker!"),
-    %        (State#state.driver):terminate(whatever, State#state.driver_state);
-    %    _ ->
-    %        ok
-    %end,
+terminate(_Reason, State) ->
+    case basho_bench_config:get(driver) of
+        basho_bench_driver_tpcc ->
+            lager:info("Trying to termiante in worker!"),
+            (State#state.driver):terminate(whatever, State#state.driver_state);
+        _ ->
+            ok
+    end,
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
