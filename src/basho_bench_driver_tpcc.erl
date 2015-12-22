@@ -22,6 +22,7 @@
 -module(basho_bench_driver_tpcc).
 
 -export([new/1,
+        terminate/2,
          run/4]).
 
 -include("basho_bench.hrl").
@@ -45,6 +46,9 @@
                 num_dcs,
                 access_master,
                 access_slave,
+                new_order_prep,
+                payment_prep,
+                folder,
                 dc_id,
                 tx_server,
                 target_node}).
@@ -69,6 +73,7 @@ new(Id) ->
     Cookie = basho_bench_config:get(antidote_cookie),
     IPs = basho_bench_config:get(antidote_pb_ips),
     ToSleep = basho_bench_config:get(to_sleep),
+    Folder = basho_bench_config:get(folder),
    
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
@@ -130,6 +135,9 @@ new(Id) ->
                my_rep_list = MyRepList,
                my_rep_ids = MyRepIds,
                no_rep_list = NoRepList,
+               folder = Folder,
+               new_order_prep=[],
+               payment_prep=[], 
                no_rep_ids = NoRepIds,
                item_ranges = ItemRanges,
                expand_part_list = ExpandPartList,
@@ -145,7 +153,7 @@ new(Id) ->
 %% objects. 
 run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
         my_rep_ids=MyRepIds, my_rep_list=MyRepList, 
-        no_rep_ids=NoRepIds, dc_id=DcId, 
+        no_rep_ids=NoRepIds, dc_id=DcId, new_order_prep=NewOrderPrep, 
         item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
     RS = dict:new(),
     WS = dict:new(),
@@ -235,10 +243,12 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %lager:info("Local Write set is ~p", [LocalWriteList]),
     %lager:info("Remote Write set is ~p", [RemoteWriteList]),
     %DepsList = ets:lookup(dep_table, TxId),
+    {_Before1, Before2, Before3} = os:timestamp(),
     Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}),%, length(DepsList)}),
+    {_After1, After2, After3} = os:timestamp(),
     case Response of
         {ok, _Value} ->
-            {ok, State};
+            {ok, State#state{new_order_prep=[(After3-Before3)+(After2-Before2)*1000000|NewOrderPrep]}};
         {error,timeout} ->
             lager:info("Timeout on client ~p",[TxServer]),
             {error, timeout, State};
@@ -252,7 +262,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 %% @doc Payment transaction of TPC-C
 run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
         my_rep_list=MyRepList, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds,
-        dc_id=DcId, access_slave=AccessSlave,
+        dc_id=DcId, access_slave=AccessSlave, payment_prep=PaymentPrep,
         c_c_id=C_C_ID, c_c_last = C_C_LAST, access_master=AccessMaster}) ->
     WS = dict:new(),
     %LocalWS = dict:new(),
@@ -337,10 +347,12 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
             WS4 = dict:store({TWarehouseId, HistoryKey}, History, WS3),
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId),
             %DepsList = ets:lookup(dep_table, TxId),
+            {_Before1, Before2, Before3} = os:timestamp(),
             Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}),%, length(DepsList)}),
+            {_After1, After2, After3} = os:timestamp(),
             case Response of
                 {ok, _Value} ->
-                    {ok, State};
+                    {ok, State#state{payment_prep=[(After3-Before3)+(After2-Before2)*1000000|PaymentPrep]}};
                 {error,timeout} ->
                     lager:info("Timeout on client ~p",[TxServer]),
                     {error, timeout, State};
@@ -504,6 +516,15 @@ read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
             %lager:info("Reading ~p, ~p", [Key, V]),
             V
     end.
+
+terminate(_, _State=#state{new_order_prep=NewOrderPrep, payment_prep=PaymentPrep,
+                folder=Folder}) ->
+    %lager:info("Trying to clean up!!! State is ~w", [State]),
+    AvgNewOrderPrep = lists:sum(NewOrderPrep) div length(NewOrderPrep),
+    AvgPaymentPrep = lists:sum(PaymentPrep) div length(PaymentPrep),
+    File= Folder ++ "/prep",
+    lager:info("File is ~p, Value is ~p, ~p", [File, AvgNewOrderPrep, AvgPaymentPrep]),
+    file:write_file(File, io_lib:fwrite("~p, ~p\n", [AvgNewOrderPrep, AvgPaymentPrep])).
 
 get_local_remote_writeset(WriteSet, PartList, LocalId) ->
     {LWSD, RWSD} = dict:fold(fun({Id, Key}, Value, {LWS, RWS}) ->
