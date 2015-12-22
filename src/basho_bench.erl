@@ -187,9 +187,11 @@ wait_for_stop(Mref, DurationMins) ->
     Duration = timer:minutes(DurationMins) + timer:seconds(1),
     receive
         {'DOWN', Mref, _, _, Info} ->
+            lager:info("Down!!!!"),
             run_post_hook(),
             ?CONSOLE("Test stopped: ~p\n", [Info]);
         {shutdown, Reason, Exit} ->
+	    lager:info("Bench Trying to shut down!!!"),
             run_post_hook(),
             basho_bench_app:stop(),
             ?CONSOLE("Test shutdown: ~s~n", [Reason]),
@@ -197,6 +199,7 @@ wait_for_stop(Mref, DurationMins) ->
 
     after Duration ->
             run_post_hook(),
+	    lager:info("Shut down after durationg"),
             basho_bench_app:stop(),
             ?CONSOLE("Test completed after ~p mins.\n", [DurationMins])
     end.

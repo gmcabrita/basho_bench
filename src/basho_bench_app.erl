@@ -59,12 +59,14 @@ start() ->
     end.
 
 stop() ->
+    ok = basho_bench_worker:cleanup(basho_bench_sup:workers()),
     application:stop(basho_bench).
 
 is_running() ->
     application:get_env(basho_bench_app, is_running) == {ok, true}.
 
 halt_or_kill() ->
+    lager:info("Halt or kill..."),
     %% If running standalone, halt and kill node.  Otherwise, just
     %% kill top supervisor.
     case application:get_env(basho_bench,app_run_mode) of

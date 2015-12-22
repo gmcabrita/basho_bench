@@ -26,6 +26,7 @@
 %% API
 -export([start_link/2,
          run/1,
+         cleanup/1,
          stop/1]).
 
 %% gen_server callbacks
@@ -56,6 +57,11 @@ start_link(SupChild, Id) ->
 
 run(Pids) ->
     [ok = gen_server:call(Pid, run) || Pid <- Pids],
+    ok.
+
+cleanup(Pids) ->
+    lager:info("Sending cleanup to ~w", [Pids]),
+    [Pid ! {'EXIT', self(), cleanup} || Pid <- Pids],
     ok.
 
 stop(Pids) ->
@@ -143,23 +149,18 @@ handle_info({'EXIT', Pid, Reason}, State) ->
             %% Clean shutdown of the worker; spawn a process to terminate this
             %% process via the supervisor API and make sure it doesn't restart.
             spawn(fun() -> stop_worker(State#state.sup_id) end),
+	    (catch (State#state.driver):terminate({'EXIT', Reason}, State#state.driver_state)),
             {noreply, State};
 
         _ ->
             ?ERROR("Worker ~p exited with ~p~n", [Pid, Reason]),
+	    (catch (State#state.driver):terminate({'EXIT', Reason}, State#state.driver_state)),
             %% Worker process exited for some other reason; stop this process
             %% as well so that everything gets restarted by the sup
             {stop, normal, State}
     end.
 
-terminate(_Reason, State) ->
-    case basho_bench_config:get(driver) of
-        basho_bench_driver_tpcc ->
-            lager:info("Trying to terminate in worker!"),
-            basho_bench_driver_tpcc:terminate(whatever, State#state.driver_state);
-        _ ->
-            ok
-    end,
+terminate(_Reason, _State) ->
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -182,6 +183,7 @@ stop_worker(SupChild) ->
     case basho_bench_sup:workers() of
         [] ->
             %% No more workers -- stop the system
+	    lager:info("Worker trying to stop app"),
             basho_bench_app:stop();
         _ ->
             ok
@@ -329,6 +331,7 @@ max_worker_run_loop(State) ->
         {ok, State2} ->
             case needs_shutdown(State2) of
                 true ->
+		    lager:warning("*********Terminating worker now**********"),
                     ok;
                 false ->
                     max_worker_run_loop(State2)
