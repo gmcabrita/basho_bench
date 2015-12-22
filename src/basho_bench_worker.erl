@@ -155,8 +155,8 @@ handle_info({'EXIT', Pid, Reason}, State) ->
 terminate(_Reason, State) ->
     case basho_bench_config:get(driver) of
         basho_bench_driver_tpcc ->
-            lager:info("Trying to termiante in worker!"),
-            (State#state.driver):terminate(whatever, State#state.driver_state);
+            lager:info("Trying to terminate in worker!"),
+            basho_bench_driver_tpcc:terminate(whatever, State#state.driver_state);
         _ ->
             ok
     end,
@@ -307,12 +307,16 @@ needs_shutdown(State) ->
             case Pid of
                 Parent ->
                     %% Give the driver a chance to cleanup
+		    lager:info("Trying to shut down because of message"),
                     (catch (State#state.driver):terminate(normal,
                                                           State#state.driver_state)),
                     true;
                 _Else ->
                     %% catch this so that selective recieve doesn't kill us when running
                     %% the riakclient_driver
+		    lager:info("Still trying to shut down because of message"),
+                    (catch (State#state.driver):terminate(normal,
+                                                          State#state.driver_state)),
                     false
             end
     after 0 ->

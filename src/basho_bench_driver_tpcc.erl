@@ -516,8 +516,15 @@ read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
 
 terminate(_, _State=#state{new_order_prep=NewOrderPrep, payment_prep=PaymentPrep}) ->
     lager:info("Trying to clean up in drive!!!"),
-    AvgNewOrderPrep = lists:sum(NewOrderPrep) div length(NewOrderPrep),
-    AvgPaymentPrep = lists:sum(PaymentPrep) div length(PaymentPrep),
+
+    AvgNewOrderPrep = case length(NewOrderPrep) of
+			0 -> 0;
+			_ -> lists:sum(NewOrderPrep) div length(NewOrderPrep)
+		      end,
+    AvgPaymentPrep = case length(PaymentPrep) of
+			0 -> 0;
+			_ -> lists:sum(PaymentPrep) div length(PaymentPrep)
+		     end,
     File= "prep",
     lager:info("File is ~p, Value is ~p, ~p", [File, AvgNewOrderPrep, AvgPaymentPrep]),
     file:write_file(File, io_lib:fwrite("~p, ~p\n", [AvgNewOrderPrep, AvgPaymentPrep]), [append]).
