@@ -48,7 +48,6 @@
                 access_slave,
                 new_order_prep,
                 payment_prep,
-                folder,
                 dc_id,
                 tx_server,
                 target_node}).
@@ -73,7 +72,6 @@ new(Id) ->
     Cookie = basho_bench_config:get(antidote_cookie),
     IPs = basho_bench_config:get(antidote_pb_ips),
     ToSleep = basho_bench_config:get(to_sleep),
-    Folder = basho_bench_config:get(folder),
    
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
@@ -135,7 +133,6 @@ new(Id) ->
                my_rep_list = MyRepList,
                my_rep_ids = MyRepIds,
                no_rep_list = NoRepList,
-               folder = Folder,
                new_order_prep=[],
                payment_prep=[], 
                no_rep_ids = NoRepIds,
@@ -517,12 +514,11 @@ read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
             V
     end.
 
-terminate(_, _State=#state{new_order_prep=NewOrderPrep, payment_prep=PaymentPrep,
-                folder=Folder}) ->
+terminate(_, _State=#state{new_order_prep=NewOrderPrep, payment_prep=PaymentPrep}) ->
     lager:info("Trying to clean up in drive!!!"),
     AvgNewOrderPrep = lists:sum(NewOrderPrep) div length(NewOrderPrep),
     AvgPaymentPrep = lists:sum(PaymentPrep) div length(PaymentPrep),
-    File= Folder ++ "/prep",
+    File= "prep",
     lager:info("File is ~p, Value is ~p, ~p", [File, AvgNewOrderPrep, AvgPaymentPrep]),
     file:write_file(File, io_lib:fwrite("~p, ~p\n", [AvgNewOrderPrep, AvgPaymentPrep]), [append]).
 
