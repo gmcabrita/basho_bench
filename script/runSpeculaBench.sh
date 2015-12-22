@@ -32,6 +32,6 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 ./script/gatherThroughput.sh $Folder
-./script/parallel_command.sh "sudo ./script/get_last_prep.sh"
+./script/parallel_command.sh "cd basho_bench && sudo ./script/get_last_prep.sh"
 ./script/copyFromAll.sh prep ./tests/ $Folder 
 ./script/parseStat.sh $Folder
