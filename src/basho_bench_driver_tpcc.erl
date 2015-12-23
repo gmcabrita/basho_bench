@@ -545,7 +545,7 @@ terminate(_, _State=#state{new_order_prep=NewOrderPrep, new_order_read=NewOrderR
 		[NewOrderPrep, NewOrderRead, PaymentPrep, PaymentRead]),
 
     {NOPrep, NORead, NOItem} = case NewOrderPrep of
-				{0, 0} -> {0, 0};
+				{0, 0} -> {0, 0, 0};
 				{AccT, AccN} -> {AccRT, AccNI, AccN} = NewOrderRead, 
 					{AccT div AccN, AccRT div AccN, AccNI div AccN}
 			      end,
