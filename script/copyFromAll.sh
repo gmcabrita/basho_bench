@@ -19,7 +19,8 @@ for node in $nodes
 do
     FileName=${file/localhost/$node}
     SafeFileName=$node-$FileName
-    scp -i key $file ubuntu@$node:$path/$FileName $folder/$SafeFileName & 
+    scp -i key $file ubuntu@$node:$path/$FileName $folder
+    mv $folder/$FileName $folder/$SafeFileName
 done
 
 for job in `jobs -p`
