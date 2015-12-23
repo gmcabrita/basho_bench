@@ -374,7 +374,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
             case Response of
                 {ok, _Value} ->
                     {ok, State#state{payment_prep={get_time_diff(T1, T2)+AccT, AccN+1},
-				payment_read={AccRT+get_time_diff(RT1, RT2), AccN+1}}};
+				payment_read={get_time_diff(RT1, RT2)+AccRT, AccN+1}}};
                 {error,timeout} ->
                     lager:info("Timeout on client ~p",[TxServer]),
                     {error, timeout, State};
@@ -541,17 +541,18 @@ read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
 
 terminate(_, _State=#state{new_order_prep=NewOrderPrep, new_order_read=NewOrderRead, 
 		payment_prep=PaymentPrep, payment_read=PaymentRead}) ->
-    lager:info("Trying to clean up in drive!!!"),
+    lager:info("Trying to clean up in drive!!! ~p, ~p, ~p, ~p", 
+		[NewOrderPrep, NewOrderRead, PaymentPrep, PaymentRead]),
 
     {NOPrep, NORead, NOItem} = case NewOrderPrep of
 				{0, 0} -> {0, 0};
 				{AccT, AccN} -> {AccRT, AccNI, AccN} = NewOrderRead, 
-					{AccT/AccN, AccRT/AccN, AccNI/AccN}
+					{AccT div AccN, AccRT div AccN, AccNI div AccN}
 			      end,
     {PPrep, PRead} = case PaymentPrep of
 			{0, 0} -> {0, 0};
 			{AccT1, AccN1} -> {AccRT1, AccN1} = PaymentRead,
-                                        {AccT1/AccN1, AccRT1/AccN1} 
+                                        {AccT1 div AccN1, AccRT1 div AccN1} 
 		     end,
     File= "prep",
     lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead, NOItem, PPrep, PRead]),
@@ -642,4 +643,4 @@ get_rep_name(Target, Rep) ->
 
     
 get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
-    ((A2-A1)*100000+ (B2-B1))*100000+ C2-C1.
+    ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.
