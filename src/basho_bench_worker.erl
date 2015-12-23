@@ -61,7 +61,8 @@ run(Pids) ->
 
 cleanup(Pids) ->
     lager:info("Sending cleanup to ~w", [Pids]),
-    [Pid ! {'EXIT', self(), cleanup} || Pid <- Pids],
+    [Pid ! {'CLEANUP', nothing} || Pid <- Pids],
+    timer:sleep(3000),
     ok.
 
 stop(Pids) ->
@@ -152,6 +153,7 @@ handle_info({'EXIT', Pid, Reason}, State) ->
 	    (catch (State#state.driver):terminate({'EXIT', Reason}, State#state.driver_state)),
             {noreply, State};
 	cleanup ->
+	    lager:info("Cleaning up, driver is ~w, state is ~w", [State#state.driver, State#state.driver_state]),
 	    (catch (State#state.driver):terminate({'EXIT', Reason}, State#state.driver_state)),
             {noreply, State};
         _ ->
@@ -160,6 +162,18 @@ handle_info({'EXIT', Pid, Reason}, State) ->
             %% Worker process exited for some other reason; stop this process
             %% as well so that everything gets restarted by the sup
             {stop, normal, State}
+    end;
+
+handle_info({'CLEANUP', nothing}, State=#state{ worker_pid = WorkerPid }) ->
+    case WorkerPid of
+	undefined ->
+	    lager:info("Cleaning up, driver is ~w, state is ~w", [State#state.driver, State]),
+	    (catch (State#state.driver):terminate(haha, State#state.driver_state)),
+	    {noreply, State};
+	 _ ->
+	    lager:info("Sending to child"),
+	    WorkerPid ! {'CLEANUP', nothing},
+	    {noreply, State}
     end.
 
 terminate(_Reason, _State) ->
@@ -322,7 +336,11 @@ needs_shutdown(State) ->
                     (catch (State#state.driver):terminate(normal,
                                                           State#state.driver_state)),
                     false
-            end
+            end;
+	{'CLEANUP', nothing} ->
+	    (catch (State#state.driver):terminate(normal,
+						  State#state.driver_state)),
+	    true
     after 0 ->
             false
     end.
