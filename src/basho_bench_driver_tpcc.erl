@@ -138,7 +138,7 @@ new(Id) ->
                new_order_prep={0,0},
                new_order_read={0,0,0},
                payment_prep={0,0}, 
-               payment_read={0,0,0}, 
+               payment_read={0,0}, 
                no_rep_ids = NoRepIds,
                item_ranges = ItemRanges,
                expand_part_list = ExpandPartList,
