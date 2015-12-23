@@ -47,7 +47,9 @@
                 access_master,
                 access_slave,
                 new_order_prep,
+		new_order_read,
                 payment_prep,
+		payment_read,
                 dc_id,
                 tx_server,
                 target_node}).
@@ -133,8 +135,10 @@ new(Id) ->
                my_rep_list = MyRepList,
                my_rep_ids = MyRepIds,
                no_rep_list = NoRepList,
-               new_order_prep=[],
-               payment_prep=[], 
+               new_order_prep={0,0},
+               new_order_read={0,0,0},
+               payment_prep={0,0}, 
+               payment_read={0,0,0}, 
                no_rep_ids = NoRepIds,
                item_ranges = ItemRanges,
                expand_part_list = ExpandPartList,
@@ -150,7 +154,7 @@ new(Id) ->
 %% objects. 
 run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
         my_rep_ids=MyRepIds, my_rep_list=MyRepList, 
-        no_rep_ids=NoRepIds, dc_id=DcId, new_order_prep=NewOrderPrep, 
+        no_rep_ids=NoRepIds, dc_id=DcId, new_order_prep=NewOrderPrep, new_order_read=NewOrderRead, 
         item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
     RS = dict:new(),
     WS = dict:new(),
@@ -158,7 +162,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %RemoteWS = dict:new(),
 
 	%% TODO: maybe need to change warehouse
-	WarehouseId = DcId,
+    WarehouseId = DcId,
     DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
     CustomerId = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
     NumItems = tpcc_tool:random_num(?MIN_ITEM, ?MAX_ITEM),
@@ -170,6 +174,11 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     CustomerKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CustomerId}, customer), 
     _Customer = read_from_node(TxServer, TxId, CustomerKey, WarehouseId, DcId, PartList, MyRepList), 
     WarehouseKey = tpcc_tool:get_key_by_param({WarehouseId}, warehouse),
+
+    %% ************ read time *****************
+    RT1 = os:timestamp(),
+    %% ************ read time *****************
+
     _Warehouse = read_from_node(TxServer, TxId, WarehouseKey, WarehouseId, DcId, PartList, MyRepList),
 
     DistrictKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId}, district),
@@ -232,6 +241,10 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
                                 end,
                     {TWS4, TRS3, AL1}
             end, {WS2, RS, 1}, Seq),
+    %% ************ read time *****************
+    RT2 = os:timestamp(),
+    %% ************ read time *****************
+
     Order = tpcc_tool:create_order(WarehouseId, DistrictId, OId, NumItems, CustomerId, tpcc_tool:now_nsec(), AllLocal), 
     OrderKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, OId}, order),
     WS4 = dict:store({WarehouseId, OrderKey}, Order, WS3),
@@ -240,12 +253,15 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %lager:info("Local Write set is ~p", [LocalWriteList]),
     %lager:info("Remote Write set is ~p", [RemoteWriteList]),
     %DepsList = ets:lookup(dep_table, TxId),
-    {_Before1, Before2, Before3} = os:timestamp(),
+    T1 = os:timestamp(),
     Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}),%, length(DepsList)}),
-    {_After1, After2, After3} = os:timestamp(),
+    T2 = os:timestamp(),
+    {AccT, AccN} = NewOrderPrep,
+    {AccRT, AccIN, AccRN} = NewOrderRead,
     case Response of
         {ok, _Value} ->
-            {ok, State#state{new_order_prep=[(After3-Before3)+(After2-Before2)*1000000|NewOrderPrep]}};
+            {ok, State#state{new_order_prep={AccT+get_time_diff(T1, T2), AccN+1},  
+			new_order_read={AccRT+get_time_diff(RT1, RT2), AccIN+NumItems, AccRN+1}}};
         {error,timeout} ->
             lager:info("Timeout on client ~p",[TxServer]),
             {error, timeout, State};
@@ -259,7 +275,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 %% @doc Payment transaction of TPC-C
 run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
         my_rep_list=MyRepList, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds,
-        dc_id=DcId, access_slave=AccessSlave, payment_prep=PaymentPrep,
+        dc_id=DcId, access_slave=AccessSlave, payment_prep=PaymentPrep, payment_read=PaymentRead,
         c_c_id=C_C_ID, c_c_last = C_C_LAST, access_master=AccessMaster}) ->
     WS = dict:new(),
     %LocalWS = dict:new(),
@@ -286,6 +302,9 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 	%TxId = {tx_id, tpcc_tool:now_nsec(), self()},	
     TxId = gen_server:call({global, TxServer}, {start_tx}),
 	WarehouseKey = tpcc_tool:get_key_by_param({TWarehouseId}, warehouse),
+    %% ************ read time *****************
+    RT1 = os:timestamp(),
+    %% ************ read time *****************
     Warehouse = read_from_node(TxServer, TxId, WarehouseKey, TWarehouseId, DcId, PartList, MyRepList),
 	WYtdKey = WarehouseKey++":w_ytd",
 	WYtd = read_from_node(TxServer, TxId, WYtdKey, TWarehouseId, DcId, PartList, MyRepList),
@@ -332,6 +351,9 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
         _ ->
             CWBalanceKey = tpcc_tool:get_key(CW)++":c_balance",
             CWBalance = read_from_node(TxServer, TxId, CWBalanceKey, CWId, DcId, PartList, MyRepList),
+	    %% ************ read time *****************
+	    RT2 = os:timestamp(),
+	    %% ************ read time *****************
             CWBalance1 = CWBalance + PaymentAmount,
             WS3 = dict:store({CWId, CWBalanceKey}, CWBalance1, WS2),
             WName = Warehouse#warehouse.w_name,
@@ -344,12 +366,15 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
             WS4 = dict:store({TWarehouseId, HistoryKey}, History, WS3),
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId),
             %DepsList = ets:lookup(dep_table, TxId),
-            {_Before1, Before2, Before3} = os:timestamp(),
+            T1 = os:timestamp(),
             Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}),%, length(DepsList)}),
-            {_After1, After2, After3} = os:timestamp(),
+            T2 = os:timestamp(),
+	    {AccT, AccN} = PaymentPrep,
+	    {AccRT, AccN} = PaymentRead, 
             case Response of
                 {ok, _Value} ->
-                    {ok, State#state{payment_prep=[(After3-Before3)+(After2-Before2)*1000000|PaymentPrep]}};
+                    {ok, State#state{payment_prep={get_time_diff(T1, T2)+AccT, AccN+1},
+				payment_read={AccRT+get_time_diff(RT1, RT2), AccN+1}}};
                 {error,timeout} ->
                     lager:info("Timeout on client ~p",[TxServer]),
                     {error, timeout, State};
@@ -514,20 +539,23 @@ read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
             V
     end.
 
-terminate(_, _State=#state{new_order_prep=NewOrderPrep, payment_prep=PaymentPrep}) ->
+terminate(_, _State=#state{new_order_prep=NewOrderPrep, new_order_read=NewOrderRead, 
+		payment_prep=PaymentPrep, payment_read=PaymentRead}) ->
     lager:info("Trying to clean up in drive!!!"),
 
-    AvgNewOrderPrep = case length(NewOrderPrep) of
-			0 -> 0;
-			_ -> lists:sum(NewOrderPrep) div length(NewOrderPrep)
-		      end,
-    AvgPaymentPrep = case length(PaymentPrep) of
-			0 -> 0;
-			_ -> lists:sum(PaymentPrep) div length(PaymentPrep)
+    {NOPrep, NORead, NOItem} = case NewOrderPrep of
+				{0, 0} -> {0, 0};
+				{AccT, AccN} -> {AccRT, AccNI, AccN} = NewOrderRead, 
+					{AccT/AccN, AccRT/AccN, AccNI/AccN}
+			      end,
+    {PPrep, PRead} = case PaymentPrep of
+			{0, 0} -> {0, 0};
+			{AccT1, AccN1} -> {AccRT1, AccN1} = PaymentRead,
+                                        {AccT1/AccN1, AccRT1/AccN1} 
 		     end,
     File= "prep",
-    lager:info("File is ~p, Value is ~p, ~p", [File, AvgNewOrderPrep, AvgPaymentPrep]),
-    file:write_file(File, io_lib:fwrite("~p, ~p\n", [AvgNewOrderPrep, AvgPaymentPrep]), [append]).
+    lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead, NOItem, PPrep, PRead]),
+    file:write_file(File, io_lib:fwrite("~p, ~p, ~p, ~p, ~p\n", [NOPrep, NORead, NOItem, PPrep, PRead]), [append]).
 
 get_local_remote_writeset(WriteSet, PartList, LocalId) ->
     {LWSD, RWSD} = dict:fold(fun({Id, Key}, Value, {LWS, RWS}) ->
@@ -612,6 +640,6 @@ get_replica(E, [_|L]) ->
 get_rep_name(Target, Rep) ->
     list_to_atom(atom_to_list(Target)++"repl"++atom_to_list(Rep)).
 
-
-
     
+get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
+    ((A2-A1)*100000+ (B2-B1))*100000+ C2-C1.
