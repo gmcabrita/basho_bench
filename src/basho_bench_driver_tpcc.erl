@@ -552,7 +552,7 @@ terminate(_, _State=#state{new_order_prep=NewOrderPrep, new_order_read=NewOrderR
     lager:info("Trying to clean up in drive!!! ~p, ~p, ~p, ~p", 
 		[NewOrderPrep, NewOrderRead, PaymentPrep, PaymentRead]),
 
-    {NOPrep, NORead1, NORead2, NOItem} = case NewOrderPrep of
+    {NOPrep, NORead1, NORead2, NORead3,  NOItem} = case NewOrderPrep of
 				{0, 0} -> {0, 0, 0, 0, 0};
 				{AccT, AccN} -> {AccRT11, AccRT12, AccRT13, AccNI, AccN} = NewOrderRead, 
 					{AccT div AccN, AccRT11 div AccN, AccRT12 div AccN, AccRT13 div AccN, AccNI div AccN}
