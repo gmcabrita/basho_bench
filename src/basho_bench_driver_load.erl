@@ -87,7 +87,7 @@ new(Id) ->
     NumDcs = length(AllDcs),
     DcId = index(TargetNode, AllDcs),
 
-    lager:info("Part list is ~w",[PartList]),
+    lager:info("Part list is ~w, MyTargetNode is ~p, DcId is ~w",[PartList, TargetNode, DcId]),
     ets:new(list_to_atom(integer_to_list(DcId)), [named_table, public, set]),
     timer:sleep(ToSleep),
     {ok, #state{worker_id=Id,
@@ -191,7 +191,7 @@ populate_customers(TxServer, WarehouseId, DistrictId, PartList) ->
                                         CL
                                 end,  
                     Ids = CustomerLookup#customer_lookup.ids,
-                    lager:info("Adding ~w to ids ~w", [CustomerId, Ids]),
+                    %lager:info("Adding ~w to ids ~w", [CustomerId, Ids]),
                     CustomerLookup1 = CustomerLookup#customer_lookup{ids=[CustomerId|Ids]}, 
                     put_to_node(TxServer, WarehouseId, PartList, CLKey, CustomerLookup1),
                     History = tpcc_tool:create_history(WarehouseId, DistrictId, CustomerId),
