@@ -136,7 +136,7 @@ new(Id) ->
                my_rep_ids = MyRepIds,
                no_rep_list = NoRepList,
                new_order_prep={0,0},
-               new_order_read={0,0,0},
+               new_order_read={0,0,0,0},
                payment_prep={0,0}, 
                payment_read={0,0}, 
                no_rep_ids = NoRepIds,
@@ -193,6 +193,10 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %LocalWS2 = add_to_writeset(DistrictKey, District1, lists:nth(DcId, PartList), LocalWS1),
     WS2 = dict:store({WarehouseId, DistrictKey}, District1, WS1), 
 
+    %% ************ read time *****************
+    RT2 = os:timestamp(),
+    %% ************ read time *****************
+
     Seq = lists:seq(1, NumItems),
     {WS3, _, AllLocal} = lists:foldl(fun(OlNumber, {TWS, TRS, AL}) ->
                     WId = pick_warehouse(WarehouseId, MyRepIds, NoRepIds, AccessMaster, AccessSlave),
@@ -242,7 +246,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
                     {TWS4, TRS3, AL1}
             end, {WS2, RS, 1}, Seq),
     %% ************ read time *****************
-    RT2 = os:timestamp(),
+    RT3 = os:timestamp(),
     %% ************ read time *****************
 
     Order = tpcc_tool:create_order(WarehouseId, DistrictId, OId, NumItems, CustomerId, tpcc_tool:now_nsec(), AllLocal), 
@@ -257,11 +261,12 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}),%, length(DepsList)}),
     T2 = os:timestamp(),
     {AccT, AccN} = NewOrderPrep,
-    {AccRT, AccIN, AccRN} = NewOrderRead,
+    {AccRead1, AccRead2, AccIN, AccRN} = NewOrderRead,
     case Response of
         {ok, _Value} ->
             {ok, State#state{new_order_prep={AccT+get_time_diff(T1, T2), AccN+1},  
-			new_order_read={AccRT+get_time_diff(RT1, RT2), AccIN+NumItems, AccRN+1}}};
+			new_order_read={AccRead1+get_time_diff(RT1, RT2), 
+			AccRead2+get_time_diff(RT2, RT3), AccIN+NumItems, AccRN+1}}};
         {error,timeout} ->
             lager:info("Timeout on client ~p",[TxServer]),
             {error, timeout, State};
@@ -544,10 +549,10 @@ terminate(_, _State=#state{new_order_prep=NewOrderPrep, new_order_read=NewOrderR
     lager:info("Trying to clean up in drive!!! ~p, ~p, ~p, ~p", 
 		[NewOrderPrep, NewOrderRead, PaymentPrep, PaymentRead]),
 
-    {NOPrep, NORead, NOItem} = case NewOrderPrep of
-				{0, 0} -> {0, 0, 0};
-				{AccT, AccN} -> {AccRT, AccNI, AccN} = NewOrderRead, 
-					{AccT div AccN, AccRT div AccN, AccNI div AccN}
+    {NOPrep, NORead1, NORead2, NOItem} = case NewOrderPrep of
+				{0, 0} -> {0, 0, 0, 0};
+				{AccT, AccN} -> {AccRT11, AccRT12, AccNI, AccN} = NewOrderRead, 
+					{AccT div AccN, AccRT11 div AccN, AccRT12 div AccN, AccNI div AccN}
 			      end,
     {PPrep, PRead} = case PaymentPrep of
 			{0, 0} -> {0, 0};
@@ -555,8 +560,8 @@ terminate(_, _State=#state{new_order_prep=NewOrderPrep, new_order_read=NewOrderR
                                         {AccT1 div AccN1, AccRT1 div AccN1} 
 		     end,
     File= "prep",
-    lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead, NOItem, PPrep, PRead]),
-    file:write_file(File, io_lib:fwrite("~p, ~p, ~p, ~p, ~p\n", [NOPrep, NORead, NOItem, PPrep, PRead]), [append]).
+    lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead1, NORead2, NOItem, PPrep, PRead]),
+    file:write_file(File, io_lib:fwrite("~p, ~p, ~p, ~p, ~p, ~p\n", [NOPrep, NORead1, NORead2, NOItem, PPrep, PRead]), [append]).
 
 get_local_remote_writeset(WriteSet, PartList, LocalId) ->
     {LWSD, RWSD} = dict:fold(fun({Id, Key}, Value, {LWS, RWS}) ->
