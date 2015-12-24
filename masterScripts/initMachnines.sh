@@ -11,7 +11,6 @@ fi
 if [ "$Clean" == true ]
 then
 ./script/makeRel.sh local_specula_read
-./script/makeRel.sh local_specula_read
 fi
 
 ./script/copy_to_all.sh ./script/allnodes ./basho_bench/script 
