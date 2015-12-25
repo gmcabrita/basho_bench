@@ -2,8 +2,8 @@
 
 ## Only update slave 
 ./script/runSpeculaBench.sh 1 100 0 false true 1 specula_tests
-./script/runSpeculaBench.sh 1 100 0 false false 1 specula_tests
 exit
+./script/runSpeculaBench.sh 1 100 0 false false 1 specula_tests
 
 
 exit
