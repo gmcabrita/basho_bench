@@ -180,7 +180,7 @@ populate_customers(TxServer, WarehouseId, DistrictId, PartList) ->
                     CBalanceKey = CKey++":c_balance",
                     put_to_node(TxServer, WarehouseId, PartList, CBalanceKey, -10),
                     %CustomerLookup = tpcc_tool:create_customer_lookup(WarehouseId, DistrictId, CLast),
-                    TxId = gen_server:call({global, TxServer}, {start_read_tx}),
+                    TxId = gen_server:call({global, TxServer}, {start_read_tx}, infinity),
                     CLKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CLast}, customer_lookup),
                     CustomerLookup = 
                                 case read_from_node(TxServer, TxId, CLKey, WarehouseId, PartList) of
