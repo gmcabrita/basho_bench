@@ -1,5 +1,8 @@
 #!/bin/bash
 
+
+sudo ./script/preciseTime.sh
+
 if [ $# -eq 1 ]; then
     Clean=$1
 else
