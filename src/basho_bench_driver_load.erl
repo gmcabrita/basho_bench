@@ -39,6 +39,7 @@
                 num_dcs,
                 dc_id,
                 my_tx_server,
+		district_id,
                 target_node}).
 
 %% ====================================================================
@@ -102,7 +103,7 @@ new(Id) ->
                target_node=TargetNode}}.
 
 %% @doc Read a key
-run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer,
+run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId,
         stage=Stage, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId}) ->
     case Stage of
         init ->
@@ -120,10 +121,15 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
 		   {ok, State#state{stage=to_stock}};
 	to_stock ->
 		   populate_stock(TxServer, DcId, PartList),
-		   {ok, State#state{stage=to_district}};
+		   {ok, State#state{stage=to_district, district_id=1}};
 	to_district ->
-		   populate_district(TxServer, DcId, PartList),
-		   {ok, State#state{stage=finished}};
+		case DistrictId =< ?NB_MAX_DISTRICT of
+		    true ->
+		        populate_district(TxServer, DcId, DistrictId, PartList),
+		        {ok, State#state{stage=to_district, district_id=DistrictId+1}};
+		    false ->
+		        {ok, State#state{stage=finished}}
+		end;
         finished ->
             lager:error("Already populated!!"),
             timer:sleep(5000),
@@ -161,19 +167,16 @@ populate_stock(TxServer, WarehouseId, PartList) ->
                       put_to_node(TxServer, WarehouseId, PartList, Key, Stock)
                       end, Seq).
 
-populate_district(TxServer, WarehouseId, PartList) ->
-    Seq = lists:seq(1, ?NB_MAX_DISTRICT),
-    lager:info("Warehouse ~w: Populating districts from 1 to ~w", [WarehouseId, ?NB_MAX_DISTRICT]),
-    lists:foreach(fun(DistrictId) ->
-                District = tpcc_tool:create_district(DistrictId, WarehouseId),
-                DKey = tpcc_tool:get_key(District),
-                put_to_node(TxServer, WarehouseId, PartList, DKey, District),
-                DYtd = ?WAREHOUSE_YTD,
-                YtdKey = DKey++":d_ytd",
-                put_to_node(TxServer, WarehouseId, PartList, YtdKey, DYtd),
-                populate_customers(TxServer, WarehouseId, DistrictId, PartList),
-                populate_orders(TxServer, WarehouseId, DistrictId, PartList)
-                end, Seq).
+populate_district(TxServer, WarehouseId, DistrictId, PartList) ->
+    lager:info("Warehouse ~w: Populating district ~w", [WarehouseId, DistrictId]),
+    District = tpcc_tool:create_district(DistrictId, WarehouseId),
+    DKey = tpcc_tool:get_key(District),
+    put_to_node(TxServer, WarehouseId, PartList, DKey, District),
+    DYtd = ?WAREHOUSE_YTD,
+    YtdKey = DKey++":d_ytd",
+    put_to_node(TxServer, WarehouseId, PartList, YtdKey, DYtd),
+    populate_customers(TxServer, WarehouseId, DistrictId, PartList),
+    populate_orders(TxServer, WarehouseId, DistrictId, PartList).
 
 populate_customers(TxServer, WarehouseId, DistrictId, PartList) ->
     lager:info("Warehouse ~w, district ~w: Populating customers from 1 to ~w", [WarehouseId, DistrictId, 
