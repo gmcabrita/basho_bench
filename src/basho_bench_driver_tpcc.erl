@@ -511,7 +511,7 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, MyRepList) ->
     %end,
     case V of
         [] ->
-            lager:error("Key ~p not found!!!!", [Key]),
+            lager:error("Key ~p not found!!!! Should read from dc ~w, my dc is ~w", [Key, DcId, MyDcId]),
             error;
         _ ->
             V
