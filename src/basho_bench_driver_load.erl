@@ -113,7 +113,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
                 _ ->
                     ok
            end,
-	   {ok, State#state{stage=init}};
+	   {ok, State#state{stage=to_item}};
 	to_item -> populate_items(TxServer, NumDCs, DcId, PartList),
 		   {ok, State#state{stage=to_warehouse}};
 	to_warehouse ->	
