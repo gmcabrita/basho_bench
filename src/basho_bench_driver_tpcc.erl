@@ -487,7 +487,7 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, MyRepList) ->
                     {_, L} = lists:nth(DcId, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
-                    %lager:info("Reading local data ~w from ~w of ~w", [Part, DcId, MyDcId]),
+                    lager:info("Reading local data ~w from ~w of ~w", [Part, DcId, MyDcId]),
                     tx_cert_sup:read(TxServer, TxId, Key, Part);
                 _ ->
                     case get_replica(DcId, MyRepList) of
@@ -496,10 +496,10 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, MyRepList) ->
                             Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                             Part = lists:nth(Index, L),
                             {CacheServName, _} = lists:nth(MyDcId, PartList),
-                            %lager:info("Reading from cache ~w of ~w for ~w", [CacheServName, Part, Key]),
+                            lager:info("Reading from cache ~w of ~w for ~w", [CacheServName, Part, Key]),
                             cache_serv:read(CacheServName, Key, TxId, Part);
                         N ->
-                            %lager:info("Reading from data_repl ~w for ~w", [N, Key]),
+                            lager:info("Reading from data_repl ~w for ~w", [N, Key]),
                             data_repl_serv:read(N, Key, TxId)
                     end
               end,
