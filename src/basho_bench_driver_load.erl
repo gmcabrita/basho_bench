@@ -195,7 +195,7 @@ populate_customers(TxServer, WarehouseId, DistrictId, PartList) ->
                     CustomerLookup = 
                                 case read_from_node(TxServer, TxId, CLKey, WarehouseId, PartList) of
                                     error ->
-                                        lager:info("Loading for the first time"),
+                                        %lager:info("Loading for the first time"),
                                         tpcc_tool:create_customer_lookup(WarehouseId, DistrictId, CLast);
                                     CL ->
                                         CL
