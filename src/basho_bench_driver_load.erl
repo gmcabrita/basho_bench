@@ -35,9 +35,9 @@
                 hash_length,
                 repl_list,
                 non_repl_list,
+		stage,
                 num_dcs,
                 dc_id,
-                populated,
                 my_tx_server,
                 target_node}).
 
@@ -92,32 +92,39 @@ new(Id) ->
     timer:sleep(ToSleep),
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
-               populated=false,
                part_list = PartList,
                repl_list = ReplList,
                full_part_list = FullPartList,
                hash_length = HashLength,   
                num_dcs = NumDcs,
                dc_id = DcId,
+	       stage=init,
                target_node=TargetNode}}.
 
 %% @doc Read a key
-run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, populated=Populated, 
-        full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId}) ->
-    case Populated of
-        false ->
-            case DcId of
+run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer,
+        stage=Stage, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId}) ->
+    case Stage of
+        init ->
+           case DcId of
                 1 ->
                     init_params(TxServer, FullPartList, HashLength);
                 _ ->
                     ok
-            end,
-            populate_items(TxServer, NumDCs, DcId, PartList),
-            populate_warehouse(TxServer, DcId, PartList),
-            populate_stock(TxServer, DcId, PartList),
-            populate_district(TxServer, DcId, PartList),
-            {ok, State#state{populated=true}};
-        true ->
+           end,
+	   {ok, State#state{stage=init}};
+	to_item -> populate_items(TxServer, NumDCs, DcId, PartList),
+		   {ok, State#state{stage=to_warehouse}};
+	to_warehouse ->	
+		   populate_warehouse(TxServer, DcId, PartList),
+		   {ok, State#state{stage=to_stock}};
+	to_stock ->
+		   populate_stock(TxServer, DcId, PartList),
+		   {ok, State#state{stage=to_district}};
+	to_district ->
+		   populate_district(TxServer, DcId, PartList),
+		   {ok, State#state{stage=finished}};
+        finished ->
             lager:error("Already populated!!"),
             timer:sleep(5000),
             {error, aborted, State}
