@@ -129,16 +129,34 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
 	to_district ->
 		case DistrictId =< ?NB_MAX_DISTRICT of
 		    true ->
-                lager:info("Populating districts"),
+                lager:info("Populating districts ~w", [DistrictId]),
 		        populate_district(TxServer, DcId, DistrictId, PartList),
-		        {ok, State#state{stage=to_district, district_id=DistrictId+1}};
+		        {ok, State#state{district_id=DistrictId+1}};
 		    false ->
-		        {ok, State#state{stage=finished}}
+		        {ok, State#state{stage=to_customer, district_id=1}}
 		end;
-        finished ->
-            lager:error("Already populated!!"),
-            timer:sleep(5000),
-            {error, aborted, State}
+    to_customer ->
+		case DistrictId =< ?NB_MAX_DISTRICT of
+		    true ->
+                lager:info("Populating customers for ~w", [DistrictId]),
+                populate_customers(TxServer, DcId, DistrictId, PartList),
+		        {ok, State#state{district_id=DistrictId+1}};
+            false ->
+		        {ok, State#state{stage=to_order, district_id=1}}
+        end;
+    to_order ->
+		case DistrictId =< ?NB_MAX_DISTRICT of
+		    true ->
+                lager:info("Populating orders for ~w", [DistrictId]),
+                populate_orders(TxServer, DcId, DistrictId, PartList),
+		        {ok, State#state{district_id=DistrictId+1}};
+            false ->
+		        {ok, State#state{stage=finished}}
+        end;
+    finished ->
+        lager:error("Already populated!!"),
+        timer:sleep(5000),
+        {error, aborted, State}
     end.
 
 populate_items(TxServer, NumDCs, DcId, PartList) ->
@@ -179,9 +197,7 @@ populate_district(TxServer, WarehouseId, DistrictId, PartList) ->
     put_to_node(TxServer, WarehouseId, PartList, DKey, District),
     DYtd = ?WAREHOUSE_YTD,
     YtdKey = DKey++":d_ytd",
-    put_to_node(TxServer, WarehouseId, PartList, YtdKey, DYtd),
-    populate_customers(TxServer, WarehouseId, DistrictId, PartList),
-    populate_orders(TxServer, WarehouseId, DistrictId, PartList).
+    put_to_node(TxServer, WarehouseId, PartList, YtdKey, DYtd).
 
 populate_customers(TxServer, WarehouseId, DistrictId, PartList) ->
     lager:info("Warehouse ~w, district ~w: Populating customers from 1 to ~w", [WarehouseId, DistrictId, 
