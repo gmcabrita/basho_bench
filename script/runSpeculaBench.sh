@@ -18,6 +18,7 @@ Load="./basho_bench/examples/load.config"
 Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc concurrent $1
 ./masterScripts/changeConfig.sh "$AllNodes" $Load concurrent 1
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 2 
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 5000 
 ./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 5000
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc access_master $2
