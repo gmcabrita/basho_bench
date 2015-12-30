@@ -114,17 +114,22 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
                     ok
            end,
 	   {ok, State#state{stage=to_item}};
-	to_item -> populate_items(TxServer, NumDCs, DcId, PartList),
+	to_item -> 
+           lager:info("Populating items"),
+           populate_items(TxServer, NumDCs, DcId, PartList),
 		   {ok, State#state{stage=to_warehouse}};
 	to_warehouse ->	
+           lager:info("Populating warehouse"),
 		   populate_warehouse(TxServer, DcId, PartList),
 		   {ok, State#state{stage=to_stock}};
 	to_stock ->
+           lager:info("Populating stocks"),
 		   populate_stock(TxServer, DcId, PartList),
 		   {ok, State#state{stage=to_district, district_id=1}};
 	to_district ->
 		case DistrictId =< ?NB_MAX_DISTRICT of
 		    true ->
+                lager:info("Populating districts"),
 		        populate_district(TxServer, DcId, DistrictId, PartList),
 		        {ok, State#state{stage=to_district, district_id=DistrictId+1}};
 		    false ->
