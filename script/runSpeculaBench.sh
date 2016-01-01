@@ -31,6 +31,7 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./script/restartAndConnect.sh "$AllNodes"  antidote 
 ./script/parallel_command.sh "cd basho_bench && rm prep"  
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
+exit
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 ./script/gatherThroughput.sh $Folder
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder 
