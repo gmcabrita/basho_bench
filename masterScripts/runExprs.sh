@@ -3,7 +3,6 @@
 ## Only update slave 
 
 ./script/runSpeculaBench.sh 5 0 100 true false 1 specula_tests
-exit
 ./script/runSpeculaBench.sh 5 0 100 true false 10 specula_tests
 ./script/runSpeculaBench.sh 5 0 100 true true 1 specula_tests
 ./script/runSpeculaBench.sh 5 0 100 true true 10 specula_tests
