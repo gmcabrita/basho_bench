@@ -28,7 +28,7 @@
 -include("basho_bench.hrl").
 -include("tpcc.hrl").
 
--define(TIMEOUT, 20000).
+-define(TIMEOUT, 15000).
 
 -record(state, {worker_id,
                 time,
@@ -261,7 +261,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %lager:info("Remote Write set is ~p", [RemoteWriteList]),
     %DepsList = ets:lookup(dep_table, TxId),
     T1 = os:timestamp(),
-    Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}),%, length(DepsList)}),
+    Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
     T2 = os:timestamp(),
     {AccT, AccN} = NewOrderPrep,
     {AccRead1, AccRead2, AccRead3, AccIN, AccRN} = NewOrderRead,
@@ -375,7 +375,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId),
             %DepsList = ets:lookup(dep_table, TxId),
             T1 = os:timestamp(),
-            Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}),%, length(DepsList)}),
+            Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
             T2 = os:timestamp(),
 	    {AccT, AccN} = PaymentPrep,
 	    {AccRT, AccN} = PaymentRead, 
