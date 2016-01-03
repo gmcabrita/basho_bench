@@ -13,6 +13,7 @@ then
 echo "Only cleaning antidote"
 ./script/makeRel.sh local_specula_read
 elif [ $Clean == 2 ]
+then
 echo "Only cleaning basho_bench"
 ./script/parallel_command.sh "cd basho_bench && git stash && git pull && sudo make"
 ./script/command_to_all.sh "./basho_bench/masterScripts/config.sh" 
