@@ -15,8 +15,8 @@ do
     AntNodeArray[$I]=$CurrentNode
     I=$((I+1))
 done
-#Ip=`GET http://169.254.169.254/2014-11-05/meta-data/public-ipv4`
-Ip=`GET http://169.254.169.254/2014-11-05/meta-data/local-ipv4`
+Ip=`GET http://169.254.169.254/2014-11-05/meta-data/public-ipv4`
+LocalIp=`GET http://169.254.169.254/2014-11-05/meta-data/local-ipv4`
 CurrentNode="'antidote@"$Ip"'"
 LoadNode="['load@"$Ip"',longnames]"
 BenchNode="['tpcc@"$Ip"',longnames]"
@@ -46,4 +46,6 @@ done
 ReplList=$ReplList"]"
 echo "$ReplList"
 ./localScripts/changeConfig.sh ../antidote/rel/antidote/antidote.config to_repl "$ReplList"
+./localScripts/changeConfig.sh ../antidote/rel/antidote/etc/app.config pb_ip "\x22$LocalIp\x22"
+./localScripts/changeConfig.sh ../antidote/rel/files/app.config pb_ip "\x22$LocalIp\x22"
 ./localScripts/changeConfig.sh ../antidote/rel/files/antidote.config to_repl "$ReplList"
