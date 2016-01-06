@@ -11,7 +11,9 @@ fi
 if [ $Clean == 1 ]
 then
 echo "Only cleaning antidote"
-./script/makeRel.sh local_specula_read
+./script/makeRel.sh local_specula_read 
+#./script/makeRel.sh improve_commit 
+#./script/makeRel.sh integrate_repl 
 elif [ $Clean == 2 ]
 then
 echo "Only cleaning basho_bench"
