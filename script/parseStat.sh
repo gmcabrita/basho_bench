@@ -19,4 +19,4 @@ RepSpeculaRead=${Results[6]}
 RepTotalRead=${Results[7]}
 CacheSpeculaRead=${Results[8]}
 CacheTotalRead=${Results[9]}
-echo "ReadAborted:" $ReadAborted ", SpeculaAborted:" $SpeculaAborted", Committed:"$Committed", speculaCommitted:"$SpeculaCommitted  PartSpeculaRead "$PartSpeculaRead" RepSpec "$RepSpeculaRead" RepTotal "$RepTotalRead" CacheSpec "$CacheSpeculaRead" CacheTotal "$CacheTotalRead" >> $Folder/stat
+echo "ReadAborted" $ReadAborted " SpeculaAborted" $SpeculaAborted" Committed"$Committed" speculaCommitted"$SpeculaCommitted  PartSpeculaRead "$PartSpeculaRead" RepSpec "$RepSpeculaRead" RepTotal "$RepTotalRead" CacheSpec "$CacheSpeculaRead" CacheTotal "$CacheTotalRead" >> $Folder/stat

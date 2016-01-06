@@ -18,9 +18,9 @@ Load="./basho_bench/examples/load.config"
 Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc concurrent $1
 ./masterScripts/changeConfig.sh "$AllNodes" $Load concurrent 1
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 2 
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1 
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 1000 
-./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 1000
+./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 2000
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc access_master $2
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc access_slave $3
 ./masterScripts/changeConfig.sh "$AllNodes" $Ant do_specula $4
@@ -35,3 +35,4 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./script/gatherThroughput.sh $Folder
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder 
 ./script/parseStat.sh $Folder
+echo $1 $2 $3 $4 $5 $6 > $Folder/config
