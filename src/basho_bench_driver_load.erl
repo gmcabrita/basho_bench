@@ -22,6 +22,7 @@
 -module(basho_bench_driver_load).
 
 -export([new/1,
+         get_my_range/4,
          run/4]).
 
 -include("basho_bench.hrl").
@@ -30,11 +31,13 @@
 -define(TIMEOUT, 20000).
 
 -record(state, {worker_id,
+                num_workers,
                 part_list,
                 full_part_list,
                 hash_length,
                 repl_list,
                 non_repl_list,
+                my_max_district,
 		stage,
                 num_dcs,
                 dc_id,
@@ -61,6 +64,7 @@ new(Id) ->
     %_PbPorts = basho_bench_config:get(antidote_pb_port),
     MyNode = basho_bench_config:get(antidote_mynode),
     Cookie = basho_bench_config:get(antidote_cookie),
+    NumWorkers = basho_bench_config:get(concurrent),
     ToSleep = basho_bench_config:get(to_sleep),
 
     case net_kernel:start(MyNode) of
@@ -75,12 +79,13 @@ new(Id) ->
 
     %% Choose the node using our ID as a modulus
     TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
+    LocalDCNum = length(IPs),
     true = erlang:set_cookie(node(), Cookie),
 
     ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
     Result = net_adm:ping(TargetNode),
     ?INFO("Result of ping is ~p \n", [Result]),
-    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list(Id)),
+    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list(trunc((Id-1)/LocalDCNum +1))),
     {PartList, ReplList} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), %gen_server:call({global, MyTxServer}, {get_hash_fun}),
     FullPartList = lists:flatten([L || {_, L} <- PartList]),
     HashLength = length(FullPartList),
@@ -88,66 +93,81 @@ new(Id) ->
     NumDcs = length(AllDcs),
     DcId = index(TargetNode, AllDcs),
 
-    lager:info("Part list is ~w, MyTargetNode is ~p, DcId is ~w",[PartList, TargetNode, DcId]),
-    ets:new(list_to_atom(integer_to_list(DcId)), [named_table, public, set]),
+    DcWorkers = trunc(NumWorkers / LocalDCNum),
+    DcWorkerId = trunc((Id-1) / LocalDCNum + 1), 
+    lager:info("Part list is ~w, MyTargetNode is ~p, DcId is ~w, this dc has ~w workers, my dc worker id is ~w",[PartList, TargetNode, DcId, DcWorkers, DcWorkerId]),
+    case DcWorkerId of
+        1 ->
+            ets:new(list_to_atom(integer_to_list(DcId)), [named_table, public, set]);
+        _ -> ok
+    end,
     timer:sleep(ToSleep),
-    {ok, #state{worker_id=Id,
-               my_tx_server=MyTxServer,
+    {ok, #state{worker_id= DcWorkerId,
+                num_workers= DcWorkers,
+                my_tx_server=MyTxServer,
                part_list = PartList,
                repl_list = ReplList,
                full_part_list = FullPartList,
                hash_length = HashLength,   
                num_dcs = NumDcs,
                dc_id = DcId,
-	       stage=init,
+	           stage=init,
                target_node=TargetNode}}.
 
 %% @doc Read a key
-run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId,
-        stage=Stage, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId}) ->
+run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId, 
+        my_max_district=MyMaxDistrict, worker_id=WorkerId,
+        stage=Stage, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId, num_workers=NumWorkers}) ->
     case Stage of
         init ->
-           case DcId of
-                1 ->
+           case (DcId == 1) and (WorkerId == 1) of
+                true ->
                     init_params(TxServer, FullPartList, HashLength);
-                _ ->
+                false ->
                     ok
            end,
 	   {ok, State#state{stage=to_item}};
 	to_item -> 
            lager:info("Populating items"),
-           populate_items(TxServer, NumDCs, DcId, PartList),
+           populate_items(TxServer, NumDCs, DcId, PartList, NumWorkers, WorkerId),
 		   {ok, State#state{stage=to_warehouse}};
 	to_warehouse ->	
            lager:info("Populating warehouse"),
-		   populate_warehouse(TxServer, DcId, PartList),
+           case WorkerId of
+               1 ->
+		           populate_warehouse(TxServer, DcId, PartList);
+               _ -> ok
+           end,
 		   {ok, State#state{stage=to_stock}};
 	to_stock ->
            lager:info("Populating stocks"),
-		   populate_stock(TxServer, DcId, PartList),
-		   {ok, State#state{stage=to_district, district_id=1}};
+		   populate_stock(TxServer, DcId, PartList, NumWorkers, WorkerId),
+           {DistrictFirst, DistrictLast} = get_my_range(?NB_MAX_DISTRICT, 1, NumWorkers, WorkerId),
+		   {ok, State#state{stage=to_district, district_id=DistrictFirst, my_max_district=DistrictLast}};
 	to_district ->
-		case DistrictId =< ?NB_MAX_DISTRICT of
+		case DistrictId =< MyMaxDistrict of
 		    true ->
-                lager:info("Populating districts ~w", [DistrictId]),
+                lager:info("Worker ~w of Warehouse ~w: Populating districts ~w", [WorkerId, DcId, DistrictId]),
 		        populate_district(TxServer, DcId, DistrictId, PartList),
 		        {ok, State#state{district_id=DistrictId+1}};
 		    false ->
-		        {ok, State#state{stage=to_customer, district_id=1}}
+                {DistrictFirst, DistrictLast} = get_my_range(?NB_MAX_DISTRICT, 1, NumWorkers, WorkerId),
+		        {ok, State#state{stage=to_customer, district_id=DistrictFirst, my_max_district=DistrictLast}}
 		end;
     to_customer ->
-		case DistrictId =< ?NB_MAX_DISTRICT of
+		case DistrictId =< MyMaxDistrict of
 		    true ->
-                lager:info("Populating customers for ~w", [DistrictId]),
+                lager:info("Worker ~w of Warehouse ~w: Populating customers ~w", [WorkerId, DcId, DistrictId]),
                 populate_customers(TxServer, DcId, DistrictId, PartList),
 		        {ok, State#state{district_id=DistrictId+1}};
             false ->
-		        {ok, State#state{stage=to_order, district_id=1}}
+                {DistrictFirst, DistrictLast} = get_my_range(?NB_MAX_DISTRICT, 1, NumWorkers, WorkerId),
+		        {ok, State#state{stage=to_order, district_id=DistrictFirst, my_max_district=DistrictLast}}
         end;
     to_order ->
-		case DistrictId =< ?NB_MAX_DISTRICT of
+		case DistrictId =< MyMaxDistrict of
 		    true ->
-                lager:info("Populating orders for ~w", [DistrictId]),
+                lager:info("Worker ~w of Warehouse ~w: Populating orders ~w", [WorkerId, DcId, DistrictId]),
                 populate_orders(TxServer, DcId, DistrictId, PartList),
 		        {ok, State#state{district_id=DistrictId+1}};
             false ->
@@ -159,17 +179,11 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
         {error, aborted, State}
     end.
 
-populate_items(TxServer, NumDCs, DcId, PartList) ->
-    Remainder = ?NB_MAX_ITEM rem NumDCs,
-    DivItems = (?NB_MAX_ITEM-Remainder)/NumDCs,
-    FirstItem = ((DcId-1) * DivItems) + 1,
-    LastItem = case DcId of
-                    NumDCs ->
-                        DivItems + Remainder + FirstItem - 1;
-                    _ ->
-                        DivItems + FirstItem -1
-                   end,
-    put_range_items(TxServer, trunc(FirstItem), trunc(LastItem), DcId, PartList).
+populate_items(TxServer, NumDCs, DcId, PartList, NumWorkers, WorkerId) ->
+    {DcFirst, DcLast} = get_my_range(?NB_MAX_ITEM, 1, NumDCs, DcId),
+    {WorkerFirst, WorkerLast} = get_my_range(DcLast-DcFirst+1, DcFirst, NumWorkers, WorkerId),
+    lager:info("Worker ~w of Dc ~w populating items from ~w to ~w", [WorkerId, DcId, WorkerFirst, WorkerLast]),
+    put_range_items(TxServer, trunc(WorkerFirst), trunc(WorkerLast), DcId, PartList).
 
 populate_warehouse(TxServer, DcId, PartList)->
     Warehouse = tpcc_tool:create_warehouse(DcId),
@@ -181,9 +195,10 @@ populate_warehouse(TxServer, DcId, PartList)->
     put_to_node(TxServer, DcId, PartList, WYtdKey, WYtd),
     put_to_node(TxServer, DcId, PartList, WKey, Warehouse).
 
-populate_stock(TxServer, WarehouseId, PartList) ->
-    Seq = lists:seq(1, ?NB_MAX_ITEM),
-    lager:info("Warehouse ~w: Populating stocks from 1 to ~w", [WarehouseId, ?NB_MAX_ITEM]),
+populate_stock(TxServer, WarehouseId, PartList, NumWorkers, WorkerId) ->
+    {FirstWorkerItem, LastWorkerItem} = get_my_range(?NB_MAX_ITEM, 1, NumWorkers, WorkerId),
+    Seq = lists:seq(FirstWorkerItem, LastWorkerItem),
+    lager:info("Worker ~w of Warehouse ~w: Populating stocks from ~w to ~w", [WorkerId, WarehouseId, FirstWorkerItem, LastWorkerItem]),
     lists:foreach(fun(StockId) ->
                       Stock = tpcc_tool:create_stock(StockId, WarehouseId),
                       Key = tpcc_tool:get_key(Stock),
@@ -332,3 +347,16 @@ index(E, [E|_], N) ->
     N;
 index(E, [_|L], N) ->
     index(E, L, N+1).
+
+get_my_range(Total, Start, NumIds, MyId) ->
+    lager:info("Total is ~w, Start is ~w, num workers is ~w, my id is ~w", [Total, Start, NumIds, MyId]),
+    Remainder = Total rem NumIds,
+    Div = (Total-Remainder)/NumIds,
+    First = ((MyId-1) * Div) + Start,
+    Last = case MyId of
+                NumIds ->
+                  Div + Remainder + First - 1;
+                _ ->
+                  Div + First -1
+               end,
+    {trunc(First), trunc(Last)}.
