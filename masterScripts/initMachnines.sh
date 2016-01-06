@@ -3,6 +3,8 @@
 
 sudo ./script/preciseTime.sh
 sudo ./script/parallel_command.sh "sudo apt-get -y install libwww-perl"
+sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.email 'mars.leezm@gmail.com'"
+sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.name 'marsleezm'"
 
 if [ $# -eq 1 ]; then
     Clean=$1
