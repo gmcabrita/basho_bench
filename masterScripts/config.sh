@@ -15,7 +15,8 @@ do
     AntNodeArray[$I]=$CurrentNode
     I=$((I+1))
 done
-Ip=`GET http://169.254.169.254/2014-11-05/meta-data/public-ipv4`
+#Ip=`GET http://169.254.169.254/2014-11-05/meta-data/public-ipv4`
+Ip=`hostname --ip`
 CurrentNode="'antidote@"$Ip"'"
 LoadNode="['load@"$Ip"',longnames]"
 BenchNode="['tpcc@"$Ip"',longnames]"
