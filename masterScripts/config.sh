@@ -46,6 +46,6 @@ done
 ReplList=$ReplList"]"
 echo "$ReplList"
 ./localScripts/changeConfig.sh ../antidote/rel/antidote/antidote.config to_repl "$ReplList"
-./localScripts/changeConfig.sh ../antidote/rel/antidote/etc/app.config pb_ip "\x22$LocalIp\x22"
-./localScripts/changeConfig.sh ../antidote/rel/files/app.config pb_ip "\x22$LocalIp\x22"
+./localScripts/changeConfig.sh ../antidote/rel/antidote/etc/app.config pb_ip "\x22$LocalIp\x22" 1
+./localScripts/changeConfig.sh ../antidote/rel/files/app.config pb_ip "\x22$LocalIp\x22" 1
 ./localScripts/changeConfig.sh ../antidote/rel/files/antidote.config to_repl "$ReplList"
