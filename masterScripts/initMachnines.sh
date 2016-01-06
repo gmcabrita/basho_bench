@@ -2,7 +2,7 @@
 
 
 sudo ./script/preciseTime.sh
-sduo ./script/parallel_command.sh "sudo apt-get -y install libwww-perl"
+sudo ./script/parallel_command.sh "sudo apt-get -y install libwww-perl"
 
 if [ $# -eq 1 ]; then
     Clean=$1
