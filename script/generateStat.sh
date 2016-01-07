@@ -11,6 +11,7 @@ do
     ReadAborted=`cat $F/stat | awk -F ',' '{print $2}'`
     SpeculaAborted=`cat $F/stat | awk -F ',' '{print $4}'`
     CascadeAborted=`cat $F/stat | awk -F ',' '{print $6}'`
+    echo $ReadAborted 
     RealCommitted=$((Committed - ReadAborted - SpeculaAborted - CascadeAborted))
     echo "$Config" $RealCommitted $SpeculaAborted $ReadAborted $CascadeAborted $Aborted >> $Output
 done
