@@ -94,7 +94,9 @@ new(Id) ->
     DcId = index(TargetNode, AllDcs),
 
     lager:info("TargetNode is ~p, DcId is ~w, My Replica Ids are ~w",[TargetNode, DcId, MyReps]),
-    ets:new(list_to_atom(integer_to_list(DcId)), [named_table, public, set]),
+    case Id of 1 -> ets:new(meta_info, [named_table, public, set]);
+         _ -> ok
+    end,
     timer:sleep(ToSleep),
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
@@ -122,7 +124,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
        %% Sleep to make sure that COMMIT_TIME is written to a partition
        timer:sleep(3000),
        COMMIT_TIME = read(TxServer, "COMMIT_TIME", FullPartList, HashLength),
-       ets:insert(list_to_atom(integer_to_list(DcId)), {"COMMIT_TIME", COMMIT_TIME}),
+       ets:insert(meta_info, {"COMMIT_TIME", COMMIT_TIME}),
        lager:info("CommitTime is ~w", [COMMIT_TIME]),
        {ok, State#state{stage=to_item}};
     to_item -> 
@@ -230,7 +232,7 @@ populate_customers(TxServer, WarehouseId, DistrictId, PartList) ->
     lager:info("Warehouse ~w, district ~w: Populating customers from 1 to ~w", [WarehouseId, DistrictId, 
                 ?NB_MAX_CUSTOMER]),
     Seq = lists:seq(1, ?NB_MAX_CUSTOMER),
-    [{"COMMIT_TIME", COMMIT_TIME}] = ets:lookup(list_to_atom(integer_to_list(WarehouseId)), "COMMIT_TIME"),
+    [{"COMMIT_TIME", COMMIT_TIME}] = ets:lookup(meta_info, "COMMIT_TIME"),
     HistoryTime = COMMIT_TIME - 123,
     CustomerTime = COMMIT_TIME - 13,
     lists:foreach(fun(CustomerId) ->
@@ -267,7 +269,7 @@ populate_orders(TxServer, WarehouseId, DistrictId, PartList) ->
     L = lists:seq(1, ?NB_MAX_CUSTOMER),
     random:seed({WarehouseId, DistrictId, 1111}),
     NL = [X||{_,X} <- lists:sort([ {random:uniform(), N} || N <- L])],
-    [{"COMMIT_TIME", CommitTime}] = ets:lookup(list_to_atom(integer_to_list(WarehouseId)), "COMMIT_TIME"),
+    [{"COMMIT_TIME", CommitTime}] = ets:lookup(meta_info, "COMMIT_TIME"),
     %% Magic number, assume that the order is created 1 sec ago.
     Date = CommitTime - 1000,
     lists:foreach(fun(OrderId) ->
@@ -346,7 +348,7 @@ put_to_node(TxServer, DcId, PartList, Key, Value) ->
     {_, L} = lists:nth(DcId, PartList),
     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
     Part = lists:nth(Index, L),    
-    [{"COMMIT_TIME", CommitTime}] = ets:lookup(list_to_atom(integer_to_list(DcId)), "COMMIT_TIME"),
+    [{"COMMIT_TIME", CommitTime}] = ets:lookup(meta_info, "COMMIT_TIME"),
     single_put(TxServer, Part, Key, Value, CommitTime).
 
 single_put(TxServer, Part, Key, Value, CommitTime) ->
