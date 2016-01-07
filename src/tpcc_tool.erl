@@ -27,7 +27,7 @@ get_c_last(DcId) ->
     case ets:lookup(meta_info, {DcId, pop_c_last}) of
         [] ->
             Rand = random_num(?MIN_C_LAST, ?A_C_LAST), 
-            ets:insert(list_to_atom(integer_to_list(DcId)), {pop_c_last, Rand}),
+            ets:insert(meta_info, {{DcId, pop_c_last}, Rand}),
             Rand;
         [{{DcId, pop_c_last}, V}] ->
             V
