@@ -1,16 +1,11 @@
 #!/bin/bash
 
 
-sudo ./script/parallel_command.sh 'echo 127.0.0.1 `hostname` | sudo tee --append /etc/hosts'
-sudo ./script/preciseTime.sh
-sudo ./script/parallel_command.sh "sudo apt-get update && sudo apt-get -y install libwww-perl"
-sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.email 'mars.leezm@gmail.com'"
-sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.name 'marsleezm'"
 
 if [ $# -eq 1 ]; then
     Clean=$1
 else
-    Clean=3
+    Clean=4
 fi
 if [ $Clean == 1 ]
 then
@@ -25,7 +20,21 @@ echo "Only cleaning basho_bench"
 ./script/command_to_all.sh "./basho_bench/masterScripts/config.sh" 
 ./script/command_to_all.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"
 else
-echo "Cleaning both"
+elif [ $Clean == 3 ]
+then
+echo "Only initing"
+sudo ./script/parallel_command.sh 'echo 127.0.0.1 `hostname` | sudo tee --append /etc/hosts'
+sudo ./script/preciseTime.sh
+sudo ./script/parallel_command.sh "sudo apt-get update && sudo apt-get -y install libwww-perl"
+sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.email 'mars.leezm@gmail.com'"
+sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.name 'marsleezm'"
+else
+echo "Cleaning all"
+sudo ./script/parallel_command.sh 'echo 127.0.0.1 `hostname` | sudo tee --append /etc/hosts'
+sudo ./script/preciseTime.sh
+sudo ./script/parallel_command.sh "sudo apt-get update && sudo apt-get -y install libwww-perl"
+sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.email 'mars.leezm@gmail.com'"
+sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.name 'marsleezm'"
 ./script/makeRel.sh local_specula_read
 ./script/parallel_command.sh "cd basho_bench && git stash && git pull && sudo make"
 ./script/command_to_all.sh "./basho_bench/masterScripts/config.sh" 
