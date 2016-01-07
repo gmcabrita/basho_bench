@@ -14,22 +14,22 @@ last_name(Num) ->
 	lists:nth(Num rem ?NUM_NAMES +1, ?NAMES).
 
 get_ol_i_id(DcId) ->
-    case ets:lookup(list_to_atom(integer_to_list(DcId)), pop_ol_i_id) of
+    case ets:lookup(meta_info, {DcId, pop_ol_i_id}) of
         [] ->
             Rand = random_num(0, ?A_OL_I_ID), 
-            ets:insert(list_to_atom(integer_to_list(DcId)), {pop_ol_i_id, Rand}),
+            ets:insert(meta_info, {{DcId, pop_ol_i_id}, Rand}),
             Rand;
-        [{pop_ol_i_id, V}] ->
+        [{{DcId, pop_ol_i_id}, V}] ->
             V
     end.
 
 get_c_last(DcId) ->
-    case ets:lookup(list_to_atom(integer_to_list(DcId)), pop_c_last) of
+    case ets:lookup(meta_info, {DcId, pop_c_last}) of
         [] ->
             Rand = random_num(?MIN_C_LAST, ?A_C_LAST), 
             ets:insert(list_to_atom(integer_to_list(DcId)), {pop_c_last, Rand}),
             Rand;
-        [{pop_c_last, V}] ->
+        [{{DcId, pop_c_last}, V}] ->
             V
     end.
 
