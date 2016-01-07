@@ -106,7 +106,7 @@ new(Id) ->
     %lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
     DcId = index(TargetNode, AllDcs),
     NumDcs = length(AllDcs),
-    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list(Id div length(IPs))),
+    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)),
     lager:info("MyTxServer is ~w", [MyTxServer]),
 
     lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),

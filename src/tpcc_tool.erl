@@ -4,7 +4,7 @@
 
 -export([random_num/2, get_key/1, c_last/1, now_nsec/0, non_uniform_random/4, last_name/1,
         create_item/1, create_warehouse/1, create_stock/2, create_district/2,
-        create_customer/4, create_customer_lookup/3, create_history/3, create_history/8, 
+        create_customer/5, create_customer_lookup/3, create_history/4, create_history/8, 
 		create_order/6, create_order/7, create_orderline/6, create_orderline/9, 
 		create_neworder/3, get_key_by_param/2]).
 
@@ -103,7 +103,7 @@ create_district(DistrictId, WarehouseId) ->
                 d_street2=random_len_string(10,20), d_city=random_len_string(10,20), d_state=random_string(2),
                 d_zip=random_string(4) ++ "11111", d_tax=random_float(0.0, 0.2, 4), d_next_o_id=3001}.
 
-create_customer(WarehouseId, DistrictId, CustomerId, CLast) ->
+create_customer(WarehouseId, DistrictId, CustomerId, CLast, Since) ->
     #customer{
     c_d_id=DistrictId,
     c_w_id=WarehouseId,
@@ -117,7 +117,7 @@ create_customer(WarehouseId, DistrictId, CustomerId, CLast) ->
     c_state=random_string(2),
     c_zip=random_string(4)++"11111",
     c_phone=random_string(16),
-    c_since=now_nsec(),
+    c_since=Since,
     c_credit=set_credit(),
     c_credit_lim =500000.0,
     c_discount=random_float(0.0, 0.5, 4),
@@ -129,8 +129,8 @@ create_customer(WarehouseId, DistrictId, CustomerId, CLast) ->
 create_customer_lookup(WarehouseId, DistrictId, CLast) ->
     #customer_lookup{c_w_id=WarehouseId, c_d_id=DistrictId, c_last=CLast, ids=[]}.
 
-create_history(WarehouseId, DistrictId, CustomerId) ->
-    #history{h_c_id=CustomerId, h_c_d_id=DistrictId, h_c_w_id=WarehouseId, h_d_id=DistrictId, h_w_id=WarehouseId, h_date=now_nsec(),
+create_history(WarehouseId, DistrictId, CustomerId, Time) ->
+    #history{h_c_id=CustomerId, h_c_d_id=DistrictId, h_c_w_id=WarehouseId, h_d_id=DistrictId, h_w_id=WarehouseId, h_date=Time,
         h_amount=10, h_data=random_len_string(12, 24)}.
 
 create_history(TWId, TDId, CWId, CDId, CId, Date, Payment, HData) ->
