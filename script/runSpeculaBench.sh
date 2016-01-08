@@ -3,10 +3,18 @@ set -u
 set -e
 AllNodes=`cat script/allnodes`
 
-if [ $# -ne 7 ]
+if [ $# -ne 7 ] && [ $# -ne 10 ]
 then
-	echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, do_fast_reply, specula_length, folder"
+    echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, do_fast_reply, specula_length, folder, [num_district, num_item, num_customers]"
     exit
+elif [ $# -eq 7 ]
+    NumDistrict=10
+    NumItem=10000
+    NumCustomer=100
+else
+    NumDistrict=$8
+    NumItem=$9
+    NumCustomer=$10
 fi
 
 #Params: nodes, cookie, num of dcs, num of nodes, if connect dcs, replication or not, branch
@@ -18,6 +26,15 @@ Load="./basho_bench/examples/load.config"
 Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc concurrent $1
 ./masterScripts/changeConfig.sh "$AllNodes" $Load concurrent 1
+#Change Tpcc params
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc num_district $NumDistrict 
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc num_item $NumItem 
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc num_customer $NumCustomer 
+#Change Load params
+./masterScripts/changeConfig.sh "$AllNodes" $Load num_district $NumDistrict 
+./masterScripts/changeConfig.sh "$AllNodes" $Load num_item $NumItem 
+./masterScripts/changeConfig.sh "$AllNodes" $Load num_customer $NumCustomer 
+###
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1 
 ./masterScripts/changeConfig.sh "$AllNodes" $Load duration 1 
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 10000 
