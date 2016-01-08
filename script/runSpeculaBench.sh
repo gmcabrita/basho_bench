@@ -3,19 +3,21 @@ set -u
 set -e
 AllNodes=`cat script/allnodes`
 
-if [ $# -ne 7 ] && [ $# -ne 10 ]
+if [ $# == 7 ]
 then
+    echo "Use default num for district, item and customer"
+    MaxDistrict=10
+    MaxItem=10000
+    MaxCustomer=100
+elif [ $# == 10 ]
+then
+    echo "MaxDistrict is" $8 ", MaxItem is "$9 ", MaxCustomer is "$10
+    MaxDistrict=$8
+    MaxItem=$9
+    MaxCustomer=$10
+else
     echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, do_fast_reply, specula_length, folder, [num_district, num_item, num_customers]"
     exit
-elif [ $# -eq 7 ]
-then
-    NumDistrict=10
-    NumItem=10000
-    NumCustomer=100
-else
-    NumDistrict=$8
-    NumItem=$9
-    NumCustomer=$10
 fi
 
 #Params: nodes, cookie, num of dcs, num of nodes, if connect dcs, replication or not, branch
@@ -28,13 +30,13 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc concurrent $1
 ./masterScripts/changeConfig.sh "$AllNodes" $Load concurrent 1
 #Change Tpcc params
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc num_district $NumDistrict 
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc num_item $NumItem 
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc num_customer $NumCustomer 
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc max_district $MaxDistrict 
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc max_item $MaxItem 
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc max_customer $MaxCustomer 
 #Change Load params
-./masterScripts/changeConfig.sh "$AllNodes" $Load num_district $NumDistrict 
-./masterScripts/changeConfig.sh "$AllNodes" $Load num_item $NumItem 
-./masterScripts/changeConfig.sh "$AllNodes" $Load num_customer $NumCustomer 
+./masterScripts/changeConfig.sh "$AllNodes" $Load max_district $MaxDistrict 
+./masterScripts/changeConfig.sh "$AllNodes" $Load max_item $MaxItem 
+./masterScripts/changeConfig.sh "$AllNodes" $Load max_customer $MaxCustomer 
 ###
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1 
 ./masterScripts/changeConfig.sh "$AllNodes" $Load duration 1 
