@@ -8,10 +8,9 @@ do
     Config=`cat $F/config`
     Committed=`cat $F/specula_out | awk -F ',' '{print $4}' | awk '{S+=$1}END{print S}'`
     Aborted=`cat $F/specula_out | awk -F ',' '{print $5}' | awk '{S+=$1}END{print S}'`
-    ReadAborted=`cat $F/stat | awk -F ',' '{print $2}'`
-    SpeculaAborted=`cat $F/stat | awk -F ',' '{print $4}'`
-    CascadeAborted=`cat $F/stat | awk -F ',' '{print $6}'`
-    echo $ReadAborted 
+    ReadAborted=`cat $F/stat | awk -F ' ' '{print $2}'`
+    SpeculaAborted=`cat $F/stat | awk -F ' ' '{print $4}'`
+    CascadeAborted=`cat $F/stat | awk -F ' ' '{print $6}'`
     RealCommitted=$((Committed - ReadAborted - SpeculaAborted - CascadeAborted))
     echo "$Config" $RealCommitted $SpeculaAborted $ReadAborted $CascadeAborted $Aborted >> $Output
 done
