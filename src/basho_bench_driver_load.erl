@@ -30,6 +30,9 @@
 -define(TIMEOUT, 20000).
 
 -record(state, {worker_id,
+		max_item,
+		max_customer,
+		max_distrcit,
                 part_list,
                 full_part_list,
                 hash_length,
@@ -64,6 +67,9 @@ new(Id) ->
     MyNode = basho_bench_config:get(antidote_mynode),
     Cookie = basho_bench_config:get(antidote_cookie),
     ToSleep = basho_bench_config:get(to_sleep),
+    MaxItem = basho_bench_config:get(max_item),
+    MaxCustomer = basho_bench_config:get(max_customer),
+    MaxDistrict = basho_bench_config:get(max_district),
 
     case net_kernel:start(MyNode) of
         {ok, _} ->
@@ -101,6 +107,9 @@ new(Id) ->
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
                replicas=MyReps,
+	       max_item=MaxItem,
+	       max_customer=MaxCustomer,
+		max_district=MaxDistrict,
                part_list = PartList,
                repl_list = ReplList,
                full_part_list = FullPartList,
@@ -112,7 +121,7 @@ new(Id) ->
 
 %% @doc Read a key
 run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId, replicas=RepIds,
-        stage=Stage, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId}) ->
+        stage=Stage, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId, max_item=MaxItem}) ->
     case Stage of
         init ->
            case DcId of
@@ -129,8 +138,8 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
        {ok, State#state{stage=to_item}};
     to_item -> 
         lager:info("Populating items"),
-        populate_items(TxServer, NumDCs, DcId, PartList),
-        lists:foreach(fun({RepDcId, Replica}) -> populate_items(Replica, NumDCs, RepDcId, PartList) end, 
+        populate_items(TxServer, NumDCs, DcId, PartList, MaxItem),
+        lists:foreach(fun({RepDcId, Replica}) -> populate_items(Replica, NumDCs, RepDcId, PartList, MaxItem) end, 
                   RepIds),
         {ok, State#state{stage=to_warehouse}};
     to_warehouse -> 
@@ -184,10 +193,10 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
         {error, aborted, State}
     end.
 
-populate_items(TxServer, NumDCs, DcId, PartList) ->
+populate_items(TxServer, NumDCs, DcId, PartList, MaxItem) ->
     random:seed({DcId, 122,32}),
-    Remainder = ?NB_MAX_ITEM rem NumDCs,
-    DivItems = (?NB_MAX_ITEM-Remainder)/NumDCs,
+    Remainder = MaxItem rem NumDCs,
+    DivItems = (MaxItem-Remainder)/NumDCs,
     FirstItem = ((DcId-1) * DivItems) + 1,
     LastItem = case DcId of
                     NumDCs ->
@@ -208,10 +217,10 @@ populate_warehouse(TxServer, DcId, PartList)->
     put_to_node(TxServer, DcId, PartList, WYtdKey, WYtd),
     put_to_node(TxServer, DcId, PartList, WKey, Warehouse).
 
-populate_stock(TxServer, WarehouseId, PartList) ->
+populate_stock(TxServer, WarehouseId, PartList, MaxItem) ->
     random:seed({WarehouseId, 2,222}),
-    Seq = lists:seq(1, ?NB_MAX_ITEM),
-    lager:info("Warehouse ~w: Populating stocks from 1 to ~w", [WarehouseId, ?NB_MAX_ITEM]),
+    Seq = lists:seq(1, MaxItem),
+    lager:info("Warehouse ~w: Populating stocks from 1 to ~w", [WarehouseId, MaxItem]),
     lists:foreach(fun(StockId) ->
                       Stock = tpcc_tool:create_stock(StockId, WarehouseId),
                       Key = tpcc_tool:get_key(Stock),

@@ -20,7 +20,7 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Load concurrent 1
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1 
 ./masterScripts/changeConfig.sh "$AllNodes" $Load duration 1 
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 3000 
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 10000 
 ./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 8000
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc access_master $2
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc access_slave $3
@@ -35,5 +35,6 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 ./script/gatherThroughput.sh $Folder
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder 
+./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder 
 ./script/parseStat.sh $Folder
 echo $1 $2 $3 $4 $5 $6 > $Folder/config

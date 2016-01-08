@@ -1,9 +1,15 @@
 #!/bin/bash
 
+./script/runSpeculaBench.sh 4 80 4 true false 0 specula_tests
+./script/runSpeculaBench.sh 4 80 4 false false 0 specula_tests
+exit
+./script/runSpeculaBench.sh 4 80 4 true true 1 specula_tests
+./script/runSpeculaBench.sh 4 80 4 true true 2 specula_tests
+exit
 ## Only update slave 
-./script/runSpeculaBench.sh 1 0 40 true false 1 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true false 2 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true false 4 specula_tests
+#./script/runSpeculaBench.sh 1 0 40 true false 1 specula_tests
+#./script/runSpeculaBench.sh 1 0 40 true false 2 specula_tests
+#./script/runSpeculaBench.sh 1 0 40 true false 4 specula_tests
 ./script/runSpeculaBench.sh 1 0 40 true true 0 specula_tests
 ./script/runSpeculaBench.sh 1 0 40 true true 1 specula_tests
 ./script/runSpeculaBench.sh 1 0 40 true true 2 specula_tests

@@ -32,6 +32,8 @@
 
 -record(state, {worker_id,
                 time,
+		max_item,
+		max_customer,
                 part_list,
                 expand_part_list,
                 hash_length,
@@ -74,6 +76,8 @@ new(Id) ->
     Cookie = basho_bench_config:get(antidote_cookie),
     IPs = basho_bench_config:get(antidote_pb_ips),
     ToSleep = basho_bench_config:get(to_sleep),
+    MaxItem = basho_bench_config:get(max_item),
+    MaxCustomer = basho_bench_config:get(max_customer),
    
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
@@ -131,6 +135,8 @@ new(Id) ->
     lager:info("Cclast ~w, ccid ~w, coliid ~w", [C_C_LAST, C_C_ID, C_OL_I_ID]),
     {ok, #state{time={1,1,1}, worker_id=Id,
                tx_server=MyTxServer,
+	       max_item=MaxItem,
+               max_customer=MaxCustomer,
                access_master=AccessMaster,
                access_slave=AccessSlave,
                part_list = PartList,
