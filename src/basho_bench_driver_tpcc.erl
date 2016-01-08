@@ -32,8 +32,9 @@
 
 -record(state, {worker_id,
                 time,
-		max_item,
-		max_customer,
+		        max_item,
+		        max_customer,
+                max_district,
                 part_list,
                 expand_part_list,
                 hash_length,
@@ -78,6 +79,7 @@ new(Id) ->
     ToSleep = basho_bench_config:get(to_sleep),
     MaxItem = basho_bench_config:get(max_item),
     MaxCustomer = basho_bench_config:get(max_customer),
+    MaxDistrict = basho_bench_config:get(max_district),
    
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
@@ -131,12 +133,13 @@ new(Id) ->
     C_C_LAST = read(MyTxServer, TxId, "C_C_LAST", ExpandPartList, HashLength),
     C_C_ID = read(MyTxServer, TxId, "C_C_ID", ExpandPartList, HashLength),
     C_OL_I_ID = read(MyTxServer, TxId, "C_OL_I_ID", ExpandPartList, HashLength),
-    ItemRanges = init_item_ranges(NumDcs, ?NB_MAX_ITEM),
+    ItemRanges = init_item_ranges(NumDcs, MaxItem),
     lager:info("Cclast ~w, ccid ~w, coliid ~w", [C_C_LAST, C_C_ID, C_OL_I_ID]),
     {ok, #state{time={1,1,1}, worker_id=Id,
                tx_server=MyTxServer,
-	       max_item=MaxItem,
+	           max_item=MaxItem,
                max_customer=MaxCustomer,
+               max_district=MaxDistrict,
                access_master=AccessMaster,
                access_slave=AccessSlave,
                part_list = PartList,
@@ -161,7 +164,7 @@ new(Id) ->
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
 run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
-        my_rep_ids=MyRepIds, my_rep_list=MyRepList, 
+        my_rep_ids=MyRepIds, my_rep_list=MyRepList, max_district=MaxDistrict, max_customer=MaxCustomer, max_item=MaxItem,
         no_rep_ids=NoRepIds, dc_id=DcId, new_order_prep=NewOrderPrep, new_order_read=NewOrderRead, 
         item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
     RS = dict:new(),
@@ -171,9 +174,9 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
 	%% TODO: maybe need to change warehouse
     WarehouseId = DcId,
-    DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
-    CustomerId = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
-    NumItems = tpcc_tool:random_num(?MIN_ITEM, ?MAX_ITEM),
+    DistrictId = tpcc_tool:random_num(1, MaxDistrict),
+    CustomerId = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, MaxCustomer),
+    NumItems = tpcc_tool:random_num(?MIN_ITEM, MaxItem),
     %lager:info("DistrictId is ~w, Customer Id is ~w, NumItems is ~w", [DistrictId, CustomerId, NumItems]),
 
     %TxId = {tx_id, tpcc_tool:now_nsec(), self()}, %,gen_server:call({global, TxServer}, {start_tx}),
@@ -218,7 +221,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
                     %            _ ->
                     ItemId = tpcc_tool:non_uniform_random(C_OL_I_ID, ?A_OL_I_ID, Min, Max),
                              %end,
-                    Quantity = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
+                    Quantity = tpcc_tool:random_num(1, MaxDistrict),
                     ItemKey = tpcc_tool:get_key_by_param({ItemId}, item),
                     %Item = read_from_node(TxServer, TxId, ItemKey, WId, PartList, MyRepList),
                     {Item, TRS1} = read_from_cache_or_node(TRS, TxServer, TxId, ItemKey, WId, DcId, PartList, MyRepList),
@@ -290,14 +293,14 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
 %% @doc Payment transaction of TPC-C
 run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
-        my_rep_list=MyRepList, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds,
+        my_rep_list=MyRepList, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds, max_district=MaxDistrict,
         dc_id=DcId, access_slave=AccessSlave, payment_prep=PaymentPrep, payment_read=PaymentRead,
-        c_c_id=C_C_ID, c_c_last = C_C_LAST, access_master=AccessMaster}) ->
+        c_c_id=C_C_ID, c_c_last = C_C_LAST, access_master=AccessMaster, max_customer=MaxCustomer}) ->
     WS = dict:new(),
     %LocalWS = dict:new(),
     %RemoteWS = dict:new(),
 	TWarehouseId = DcId,
-	DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
+	DistrictId = tpcc_tool:random_num(1, MaxDistrict),
 	
     %% TODO: this should be changed. 
     %{CWId, CDId} = case tpcc_tool:random_num(1, 100) =< AccessMaster of
@@ -357,7 +360,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
                         lists:nth(Middle, SortedCustomers)
                 end;
 	       	false ->
-	         	CustomerID = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
+	         	CustomerID = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, MaxCustomer),
 				CKey = tpcc_tool:get_key_by_param({CWId, CDId, CustomerID}, customer),
 				read_from_node(TxServer, TxId, CKey, CWId, DcId, PartList, MyRepList)
 		end,
@@ -404,12 +407,12 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 
 %% @doc Payment transaction of TPC-C
 run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
-        my_rep_list=MyRepList,
-        dc_id=DcId,
+        my_rep_list=MyRepList, max_customer=MaxCustomer,
+        dc_id=DcId, max_district=MaxDistrict,
         c_c_id=C_C_ID, c_c_last = C_C_LAST}) ->
 
 	TWarehouseId = DcId,
-	DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
+	DistrictId = tpcc_tool:random_num(1, MaxDistrict),
 	
 	%TxId = {tx_id, tpcc_tool:now_nsec(), self()},
     TxId = gen_server:call({global, TxServer}, {start_tx}),
@@ -437,7 +440,7 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
                         lists:nth(Middle, SortedCustomers)
                 end;
 	       	false ->
-	         	CustomerID = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
+	         	CustomerID = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, MaxCustomer),
 				CKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, CustomerID}, customer),
 				read_from_node(TxServer, TxId, CKey, TWarehouseId, DcId, PartList, MyRepList)
 		end,
