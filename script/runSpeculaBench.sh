@@ -8,6 +8,7 @@ then
     echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, do_fast_reply, specula_length, folder, [num_district, num_item, num_customers]"
     exit
 elif [ $# -eq 7 ]
+then
     NumDistrict=10
     NumItem=10000
     NumCustomer=100
