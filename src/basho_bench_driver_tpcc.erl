@@ -164,7 +164,7 @@ new(Id) ->
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
 run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
-        my_rep_ids=MyRepIds, my_rep_list=MyRepList, max_district=MaxDistrict, max_customer=MaxCustomer, max_item=MaxItem,
+        my_rep_ids=MyRepIds, my_rep_list=MyRepList, max_district=MaxDistrict, max_customer=MaxCustomer, 
         no_rep_ids=NoRepIds, dc_id=DcId, new_order_prep=NewOrderPrep, new_order_read=NewOrderRead, 
         item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
     RS = dict:new(),
@@ -176,7 +176,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     WarehouseId = DcId,
     DistrictId = tpcc_tool:random_num(1, MaxDistrict),
     CustomerId = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, MaxCustomer),
-    NumItems = tpcc_tool:random_num(?MIN_ITEM, MaxItem),
+    NumItems = tpcc_tool:random_num(?MIN_ITEM, ?MAX_ITEM),
     %lager:info("DistrictId is ~w, Customer Id is ~w, NumItems is ~w", [DistrictId, CustomerId, NumItems]),
 
     %TxId = {tx_id, tpcc_tool:now_nsec(), self()}, %,gen_server:call({global, TxServer}, {start_tx}),
