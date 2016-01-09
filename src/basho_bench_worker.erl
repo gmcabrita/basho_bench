@@ -62,7 +62,7 @@ run(Pids) ->
 cleanup(Pids) ->
     lager:info("Sending cleanup to ~w", [Pids]),
     [Pid ! {'CLEANUP', nothing} || Pid <- Pids],
-    timer:sleep(3000),
+    %timer:sleep(3000),
     ok.
 
 stop(Pids) ->

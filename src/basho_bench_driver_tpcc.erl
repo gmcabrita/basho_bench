@@ -28,7 +28,7 @@
 -include("basho_bench.hrl").
 -include("tpcc.hrl").
 
--define(TIMEOUT, 30000).
+-define(TIMEOUT, 10000).
 
 -record(state, {worker_id,
                 time,
@@ -49,10 +49,15 @@
                 num_dcs,
                 access_master,
                 access_slave,
-                new_order_prep,
-		new_order_read,
+		        no_specula,
+                no_local,
+                no_remote,
+                no_local_abort,
+                no_remote_abort,
+		        no_read,
+                new_order_committed,
                 payment_prep,
-		payment_read,
+		        payment_read,
                 dc_id,
                 tx_server,
                 target_node}).
@@ -146,8 +151,12 @@ new(Id) ->
                my_rep_list = MyRepList,
                my_rep_ids = MyRepIds,
                no_rep_list = NoRepList,
-               new_order_prep={0,0},
-               new_order_read={0,0,0,0,0},
+               no_specula={0,0},
+               no_local={0,0},
+               no_remote={0,0},
+               no_local_abort={0,0},
+               no_remote_abort={0,0},
+               no_read=0,
                payment_prep={0,0}, 
                payment_read={0,0}, 
                no_rep_ids = NoRepIds,
@@ -165,7 +174,8 @@ new(Id) ->
 %% objects. 
 run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
         my_rep_ids=MyRepIds, my_rep_list=MyRepList, max_district=MaxDistrict, max_customer=MaxCustomer, 
-        no_rep_ids=NoRepIds, dc_id=DcId, new_order_prep=NewOrderPrep, new_order_read=NewOrderRead, 
+        no_rep_ids=NoRepIds, dc_id=DcId, no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, 
+        no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, 
         item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
     RS = dict:new(),
     WS = dict:new(),
@@ -191,15 +201,9 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %% ************ read time *****************
 
     _Warehouse = read_from_node(TxServer, TxId, WarehouseKey, WarehouseId, DcId, PartList, MyRepList),
-    %% ************ read time *****************
-    RT2 = os:timestamp(),
-    %% ************ read time *****************
 
     DistrictKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId}, district),
     District = read_from_node(TxServer, TxId, DistrictKey, WarehouseId, DcId, PartList, MyRepList),
-    %% ************ read time *****************
-    RT3 = os:timestamp(),
-    %% ************ read time *****************
     OId = District#district.d_next_o_id,
 
     NewOrder = tpcc_tool:create_neworder(WarehouseId, DistrictId, OId),
@@ -209,7 +213,6 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     District1 = District#district{d_next_o_id=(OId+1) rem ?MAX_NEW_ORDER},
     %LocalWS2 = add_to_writeset(DistrictKey, District1, lists:nth(DcId, PartList), LocalWS1),
     WS2 = dict:store({WarehouseId, DistrictKey}, District1, WS1), 
-
 
     Seq = lists:seq(1, NumItems),
     {WS3, _, AllLocal} = lists:foldl(fun(OlNumber, {TWS, TRS, AL}) ->
@@ -259,9 +262,6 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
                                 end,
                     {TWS4, TRS3, AL1}
             end, {WS2, RS, 1}, Seq),
-    %% ************ read time *****************
-    RT4 = os:timestamp(),
-    %% ************ read time *****************
 
     Order = tpcc_tool:create_order(WarehouseId, DistrictId, OId, NumItems, CustomerId, tpcc_tool:now_nsec(), AllLocal), 
     OrderKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, OId}, order),
@@ -271,21 +271,39 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %lager:info("Local Write set is ~p", [LocalWriteList]),
     %lager:info("Remote Write set is ~p", [RemoteWriteList]),
     %DepsList = ets:lookup(dep_table, TxId),
-    T1 = os:timestamp(),
+    %% ************ read time *****************
+    RT2 = os:timestamp(),
+    %% ************ read time *****************
     Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
-    T2 = os:timestamp(),
-    {AccT, AccN} = NewOrderPrep,
-    {AccRead1, AccRead2, AccRead3, AccIN, AccRN} = NewOrderRead,
+    RT3 = os:timestamp(),
     case Response of
-        {ok, _Value} ->
-            {ok, State#state{new_order_prep={AccT+get_time_diff(T1, T2), AccN+1},  
-			new_order_read={AccRead1+get_time_diff(RT1, RT2), 
-			AccRead2+get_time_diff(RT2, RT3), AccRead3+get_time_diff(RT3, RT4), AccIN+NumItems, AccRN+1}}};
+        {ok, {committed, _}} ->
+            case RemoteWriteList of
+                [] ->
+                    {NOLTime, NOLCount} = NOLocal,
+                    {ok, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_local={NOLTime+get_time_diff(RT2, RT3), 
+                            NOLCount+1}}};
+                _ ->
+                    {NORTime, NORCount} = NORemote,
+                    {ok, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_remote={NORTime+get_time_diff(RT2, RT3), 
+                            NORCount+1}}}
+            end;
+        {ok, {specula_commit, _}} ->
+            {NOSTime, NOSCount} = NOSpecula,
+            {ok, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_specula={NOSTime+get_time_diff(RT2, RT3), 
+                    NOSCount+1}}};
         {error,timeout} ->
             lager:info("Timeout on client ~p",[TxServer]),
             {error, timeout, State};
+        {aborted, local} ->
+            {NOLTime, NOLCount} = NOLAbort,
+            {error, aborted, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_local_abort={NOLTime+get_time_diff(RT2, RT3), 
+                    NOLCount+1}}};
+        {aborted, remote} ->
+            {NORTime, NORCount} = NORAbort,
+            {error, aborted, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_remote_abort={NORTime+get_time_diff(RT2, RT3), 
+                    NORCount+1}}};
         {aborted, _} ->
-            %lager:error("Aborted"),
             {error, aborted, State};
         {badrpc, Reason} ->
             {error, Reason, State}
@@ -572,24 +590,28 @@ read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
             V
     end.
 
-terminate(_, _State=#state{new_order_prep=NewOrderPrep, new_order_read=NewOrderRead, 
-		payment_prep=PaymentPrep, payment_read=PaymentRead}) ->
-    lager:info("Trying to clean up in drive!!! ~p, ~p, ~p, ~p", 
-		[NewOrderPrep, NewOrderRead, PaymentPrep, PaymentRead]),
-
-    {NOPrep, NORead1, NORead2, NORead3,  NOItem} = case NewOrderPrep of
-				{0, 0} -> {0, 0, 0, 0, 0};
-				{AccT, AccN} -> {AccRT11, AccRT12, AccRT13, AccNI, AccN} = NewOrderRead, 
-					{AccT div AccN, AccRT11 div AccN, AccRT12 div AccN, AccRT13 div AccN, AccNI div AccN}
-			      end,
+terminate(_, _State=#state{no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, no_remote_abort=NORAbort, 
+            no_specula=NOSpecula, no_read=NORead, payment_prep=PaymentPrep, payment_read=PaymentRead}) ->
+    {T1, C1} = NOLocal,
+    {T2, C2} = NORemote,
+    {T3, C3} = NOLAbort,
+    {T4, C4} = NORAbort,
+    {T5, C5} = NOSpecula,
+    LCT = T1 div max(1, C1),
+    RCT = T2 div max(1, C2),
+    LA = T3 div max(1, C3),
+    RA = T4 div max(1, C4),
+    SCT = T5 div max(1, C5),
+    NOR = NORead div max(1, C1+C2+C3+C4+C5),
     {PPrep, PRead} = case PaymentPrep of
 			{0, 0} -> {0, 0};
 			{AccT1, AccN1} -> {AccRT1, AccN1} = PaymentRead,
                                         {AccT1 div AccN1, AccRT1 div AccN1} 
 		     end,
     File= "prep",
-    lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead1, NORead2, NORead3, NOItem, PPrep, PRead]),
-    file:write_file(File, io_lib:fwrite("~p, ~p, ~p, ~p, ~p, ~p, ~p\n", [NOPrep, NORead1, NORead2, NORead3, NOItem, PPrep, PRead]), [append]).
+    %lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead1, NORead2, NORead3, NOItem, PPrep, PRead]),
+    file:write_file(File, io_lib:fwrite("~p, {~p,~p}, {~p,~p}, {~p,~p}, {~p,~p}, {~p, ~p}, ~p, ~p\n", 
+            [NOR, LA, C3, RA, C4, LCT, C1, RCT, C2, SCT, C5, PRead, PPrep]), [append]).
 
 get_local_remote_writeset(WriteSet, PartList, LocalId) ->
     {LWSD, RWSD} = dict:fold(fun({Id, Key}, Value, {LWS, RWS}) ->
