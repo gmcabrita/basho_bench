@@ -50,6 +50,7 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Ant specula_length $6 
 
 ./script/restartAndConnect.sh "$AllNodes"  antidote 
+sleep 10
 ./script/parallel_command.sh "cd basho_bench && rm prep"  
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
