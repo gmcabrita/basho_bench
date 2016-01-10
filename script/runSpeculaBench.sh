@@ -41,7 +41,7 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1 
 ./masterScripts/changeConfig.sh "$AllNodes" $Load duration 1 
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 10000 
-./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 8000
+./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 10000
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc access_master $2
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc access_slave $3
 ./masterScripts/changeConfig.sh "$AllNodes" $Ant do_specula $4
@@ -50,13 +50,14 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Ant specula_length $6 
 
 ./script/restartAndConnect.sh "$AllNodes"  antidote 
+sleep 10
 ./script/parallel_command.sh "cd basho_bench && rm prep"  
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 ./script/gatherThroughput.sh $Folder
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder 
 ./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder 
-for $N in $AllNodes
+for N in $AllNodes
 do
 ./script/parseStat.sh $N $Folder
 done
