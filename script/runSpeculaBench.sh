@@ -41,7 +41,7 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1 
 ./masterScripts/changeConfig.sh "$AllNodes" $Load duration 1 
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 10000 
-./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 8000
+./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 10000
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc access_master $2
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc access_slave $3
 ./masterScripts/changeConfig.sh "$AllNodes" $Ant do_specula $4
@@ -57,7 +57,7 @@ sleep 10
 ./script/gatherThroughput.sh $Folder
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder 
 ./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder 
-for $N in $AllNodes
+for N in $AllNodes
 do
 ./script/parseStat.sh $N $Folder
 done

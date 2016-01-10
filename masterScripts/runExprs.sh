@@ -1,7 +1,8 @@
 #!/bin/bash
 
-./script/runSpeculaBench.sh 4 0 70 false false 0 specula_tests
 ./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests
+./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests
+exit
 ./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests 2 10000 100
 ./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests 20 10000 100
 ./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests 10 1000 100
