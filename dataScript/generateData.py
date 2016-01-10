@@ -79,10 +79,11 @@ def add_latency(nodes, dict, folder):
         (lines, num_elem) = data.shape
         lat_sum = data.sum(axis=0)
         lat_avg = [x/lines for x in lat_sum]
-        dict[node].append(lat_avg)
+        dict[node].append(lat_avg[3:10])
 
-def write_to_file(file_name, dict, nodes):
+def write_to_file(file_name, dict, nodes, title):
     file = open(file_name, 'w')
+    file.write(title+'\n')
     for node in nodes:
         data_list = dict[node]
         data_array = np.array(data_list).astype(np.float)
@@ -92,7 +93,7 @@ def write_to_file(file_name, dict, nodes):
             data_avg = [x/lines for x in data_sum]
         else:
             data_avg = list(data_avg)
-        file.write(node+':'+str(data_avg))
+        file.write(node+' '+' '.join(map(str, data_avg))+'\n')
     file.close()
             
 root = sys.argv[1]
@@ -133,7 +134,7 @@ for config in dict:
     throughput = os.path.join(config_folder, 'throughput')
     duration = os.path.join(config_folder, 'duration')
     latency = os.path.join(config_folder, 'latency')
-    write_to_file(throughput, entry['throughput'], nodes)
-    write_to_file(duration, entry['duration'], nodes)
-    write_to_file(latency, entry['latency'], nodes)
+    write_to_file(throughput, entry['throughput'], nodes, 'committed read_aborted specula_aborted cascade_abort normal_aborted total_aborted') 
+    write_to_file(duration, entry['duration'], nodes, 'ip read local_a remote_a local_c remote_c specula_c s_final_a s_final_c')
+    write_to_file(latency, entry['latency'], nodes, 'min mean median 95th 99th 99_9th max')
 
