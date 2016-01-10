@@ -56,5 +56,9 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./script/gatherThroughput.sh $Folder
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder 
 ./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder 
-./script/parseStat.sh $Folder
+for $N in $AllNodes
+do
+./script/parseStat.sh $N $Folder
+done
+./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 echo $1 $2 $3 $4 $5 $6 > $Folder/config
