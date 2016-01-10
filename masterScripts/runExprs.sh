@@ -1,16 +1,16 @@
 #!/bin/bash
 
-./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests
-./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests
+./script/runSpeculaBench.sh 4 0 70 false 0 specula_tests
+./script/runSpeculaBench.sh 4 0 70 false 0 specula_tests
 exit
-./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests 2 10000 100
-./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests 20 10000 100
-./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests 10 1000 100
-./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests 10 20000 100
-./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests 10 30000 100
-./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests 10 10000 50
-./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests 10 10000 200
-./script/runSpeculaBench.sh 4 0 70 false true 0 specula_tests 10 10000 300
+./script/runSpeculaBench.sh 4 0 70 false 0 specula_tests 2 10000 100
+./script/runSpeculaBench.sh 4 0 70 false 0 specula_tests 20 10000 100
+./script/runSpeculaBench.sh 4 0 70 false 0 specula_tests 10 1000 100
+./script/runSpeculaBench.sh 4 0 70 false 0 specula_tests 10 20000 100
+./script/runSpeculaBench.sh 4 0 70 false 0 specula_tests 10 30000 100
+./script/runSpeculaBench.sh 4 0 70 false 0 specula_tests 10 10000 50
+./script/runSpeculaBench.sh 4 0 70 false 0 specula_tests 10 10000 200
+./script/runSpeculaBench.sh 4 0 70 false 0 specula_tests 10 10000 300
 exit
 ./script/runSpeculaBench.sh 4 80 4 true true 1 specula_tests
 ./script/runSpeculaBench.sh 4 80 4 true true 2 specula_tests
