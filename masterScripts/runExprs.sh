@@ -1,38 +1,40 @@
 #!/bin/bash
 
-## Only update slave 
-./script/runSpeculaBench.sh 1 0 40 false 0 specula_tests
-./script/runSpeculaBench.sh 1 0 40 false 0 specula_tests
-./script/runSpeculaBench.sh 1 0 40 false 0 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true 0 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true 0 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true 0 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true 1 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true 1 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true 1 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true 2 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true 2 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true 2 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true 4 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true 4 specula_tests
-./script/runSpeculaBench.sh 1 0 40 true 4 specula_tests
+## Just to test.. 
+./script/runSpeculaBench.sh 1 100 0 false 0 specula_tests
+./script/runSpeculaBench.sh 1 100 0 false 0 specula_tests
+./script/runSpeculaBench.sh 1 100 0 true 0 specula_tests
+./script/runSpeculaBench.sh 1 100 0 true 0 specula_tests
+./script/runSpeculaBench.sh 1 100 0 true 1 specula_tests
+./script/runSpeculaBench.sh 1 100 0 true 1 specula_tests
+
+
+./script/runSpeculaBench.sh 1 70 25 false 0 specula_tests
+./script/runSpeculaBench.sh 1 70 25 false 0 specula_tests
+./script/runSpeculaBench.sh 1 70 25 false 0 specula_tests
+./script/runSpeculaBench.sh 1 70 25 false 1 specula_tests
+./script/runSpeculaBench.sh 1 70 25 false 1 specula_tests
+./script/runSpeculaBench.sh 1 70 25 false 1 specula_tests
+./script/runSpeculaBench.sh 1 70 25 false 2 specula_tests
+./script/runSpeculaBench.sh 1 70 25 false 2 specula_tests
+./script/runSpeculaBench.sh 1 70 25 false 2 specula_tests
 
 # Only update master
-./script/runSpeculaBench.sh 1 40 0 true 0 specula_tests
-./script/runSpeculaBench.sh 1 40 0 true 0 specula_tests
-./script/runSpeculaBench.sh 1 40 0 true 0 specula_tests
-./script/runSpeculaBench.sh 1 40 0 true 1 specula_tests
-./script/runSpeculaBench.sh 1 40 0 true 1 specula_tests
-./script/runSpeculaBench.sh 1 40 0 true 1 specula_tests
-./script/runSpeculaBench.sh 1 40 0 true 2 specula_tests
-./script/runSpeculaBench.sh 1 40 0 true 2 specula_tests
-./script/runSpeculaBench.sh 1 40 0 true 2 specula_tests
-./script/runSpeculaBench.sh 1 40 0 true 4 specula_tests
-./script/runSpeculaBench.sh 1 40 0 true 4 specula_tests
-./script/runSpeculaBench.sh 1 40 0 true 4 specula_tests
-./script/runSpeculaBench.sh 1 40 0 false 1 specula_tests
-./script/runSpeculaBench.sh 1 40 0 false 1 specula_tests
-./script/runSpeculaBench.sh 1 40 0 false 1 specula_tests
+./script/runSpeculaBench.sh 1 0 100 true 0 specula_tests
+./script/runSpeculaBench.sh 1 0 100 true 0 specula_tests
+./script/runSpeculaBench.sh 1 0 100 true 0 specula_tests
+./script/runSpeculaBench.sh 1 0 100 true 1 specula_tests
+./script/runSpeculaBench.sh 1 0 100 true 1 specula_tests
+./script/runSpeculaBench.sh 1 0 100 true 1 specula_tests
+./script/runSpeculaBench.sh 1 0 100 true 2 specula_tests
+./script/runSpeculaBench.sh 1 0 100 true 2 specula_tests
+./script/runSpeculaBench.sh 1 0 100 true 2 specula_tests
+./script/runSpeculaBench.sh 1 0 100 true 4 specula_tests
+./script/runSpeculaBench.sh 1 0 100 true 4 specula_tests
+./script/runSpeculaBench.sh 1 0 100 true 4 specula_tests
+./script/runSpeculaBench.sh 1 0 100 false 1 specula_tests
+./script/runSpeculaBench.sh 1 0 100 false 1 specula_tests
+./script/runSpeculaBench.sh 1 0 100 false 1 specula_tests
 
 #Only update other 
 #./script/runSpeculaBench.sh 1 0 0 true 1 specula_tests
