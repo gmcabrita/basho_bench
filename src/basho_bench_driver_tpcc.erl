@@ -610,8 +610,8 @@ terminate(_, _State=#state{no_local=NOLocal, no_remote=NORemote, no_local_abort=
 		     end,
     File= "prep",
     %lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead1, NORead2, NORead3, NOItem, PPrep, PRead]),
-    file:write_file(File, io_lib:fwrite("~p, {~p,~p}, {~p,~p}, {~p,~p}, {~p,~p}, {~p, ~p}, ~p, ~p\n", 
-            [NOR, LA, C3, RA, C4, LCT, C1, RCT, C2, SCT, C5, PRead, PPrep]), [append]).
+    file:write_file(File, io_lib:fwrite("~p ~p ~p  ~p  ~p ~p ~p ~p\n", 
+            [NOR, LA,  RA, LCT, RCT, SCT, PRead, PPrep]), [append]).
 
 get_local_remote_writeset(WriteSet, PartList, LocalId) ->
     {LWSD, RWSD} = dict:fold(fun({Id, Key}, Value, {LWS, RWS}) ->
