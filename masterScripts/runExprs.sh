@@ -1,15 +1,6 @@
 #!/bin/bash
 
 ## Just to test.. 
-./script/runSpeculaBench.sh 1 100 0 false 0 specula_tests
-./script/runSpeculaBench.sh 1 100 0 false 0 specula_tests
-./script/runSpeculaBench.sh 1 100 0 true 0 specula_tests
-./script/runSpeculaBench.sh 1 100 0 true 0 specula_tests
-./script/runSpeculaBench.sh 1 100 0 true 1 specula_tests
-./script/runSpeculaBench.sh 1 100 0 true 1 specula_tests
-exit
-
-
 ./script/runSpeculaBench.sh 1 70 25 false 0 specula_tests
 ./script/runSpeculaBench.sh 1 70 25 false 0 specula_tests
 ./script/runSpeculaBench.sh 1 70 25 false 0 specula_tests
@@ -20,7 +11,7 @@ exit
 ./script/runSpeculaBench.sh 1 70 25 false 2 specula_tests
 ./script/runSpeculaBench.sh 1 70 25 false 2 specula_tests
 
-# Only update master
+# Only update replica 
 ./script/runSpeculaBench.sh 1 0 100 true 0 specula_tests
 ./script/runSpeculaBench.sh 1 0 100 true 0 specula_tests
 ./script/runSpeculaBench.sh 1 0 100 true 0 specula_tests

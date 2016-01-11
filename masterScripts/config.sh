@@ -17,11 +17,15 @@ do
 done
 Ip=`GET http://169.254.169.254/2014-11-05/meta-data/public-ipv4`
 LocalIp=`GET http://169.254.169.254/2014-11-05/meta-data/local-ipv4`
+echo $Ip
+echo $LocalIp
 CurrentNode="'antidote@"$Ip"'"
 LoadNode="['load@"$Ip"',longnames]"
 BenchNode="['tpcc@"$Ip"',longnames]"
-./localScripts/changeConfig.sh examples/tpcc.config antidote_pb_ips [$CurrentNode]
-./localScripts/changeConfig.sh examples/load.config antidote_pb_ips [$CurrentNode]
+echo $CurrentNode
+echo "$CurrentNode"
+sudo sed -i -e "s/{antidote_pb_ips.*/{antidote_pb_ips, [$CurrentNode]}./" examples/tpcc.config 
+sudo sed -i -e "s/{antidote_pb_ips.*/{antidote_pb_ips, [$CurrentNode]}./" examples/load.config 
 sudo sed -i -e 's/{code_paths.*/{code_paths, [\x22\x2E\x2E\x2Fantidote\x2Febin\x22]}./' examples/tpcc.config 
 sudo sed -i -e 's/{code_paths.*/{code_paths, [\x22\x2E\x2E\x2Fantidote\x2Febin\x22]}./' examples/load.config 
 

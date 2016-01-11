@@ -50,6 +50,7 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Ant specula_length $5 
 
 ./script/restartAndConnect.sh "$AllNodes"  antidote 
+sleep 5
 ./script/parallel_command.sh "cd basho_bench && rm prep"  
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
@@ -61,4 +62,4 @@ do
 ./script/parseStat.sh $N $Folder
 done
 ./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
-echo $1 $2 $3 $4 $5 $6 > $Folder/config
+echo $1 $2 $3 $4 $5 $MaxDistrict $MaxItem $MaxCustomer > $Folder/config

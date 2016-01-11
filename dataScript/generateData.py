@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 import os
+import glob
 import numpy as np
 from os import rename, listdir
 from time import gmtime, strftime
@@ -145,9 +146,9 @@ time = strftime("%Y-%m-%d-%H%M%S", gmtime())
 output_fold = os.path.join(output, time)
 os.mkdir(output_fold)
 dict={}
-sub_folders = os.listdir(root)
+sub_folders = glob.glob(root+'/20*') 
 for f in sub_folders:
-    input_folder = os.path.join(root, f)
+    input_folder = f #os.path.join(root, f)
     if os.path.isdir(input_folder):
         files = os.listdir(input_folder)
         nodes = get_nodes(files)
