@@ -63,7 +63,7 @@ def add_throughput(nodes, dict, total_dict, folder):
 	all_abort += aborted
 	all_t_abort += total_abort
 
-    total_dict.append([all_committed, all_r_abort, all_s_abort, all_abort, all_t_abort])
+    total_dict.append([all_committed, all_r_abort, all_s_abort, all_c_abort, all_abort, all_t_abort])
     
 
 def update_counter(folder, length, key):
@@ -124,6 +124,8 @@ def write_to_file(file_name, dict, keys, title):
 	    data_avg = list(np.average(data_array, axis=0))
         else:
             data_avg = list(data_avg)
+	if keys == ['total_throughput']:
+	    data_avg = [x/60 for x in data_avg]
         file.write(key+' '+' '.join(map(str, data_avg))+'\n')
     file.close()
 

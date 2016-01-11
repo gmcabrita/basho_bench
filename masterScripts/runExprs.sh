@@ -7,6 +7,7 @@
 ./script/runSpeculaBench.sh 1 100 0 true 0 specula_tests
 ./script/runSpeculaBench.sh 1 100 0 true 1 specula_tests
 ./script/runSpeculaBench.sh 1 100 0 true 1 specula_tests
+exit
 
 
 ./script/runSpeculaBench.sh 1 70 25 false 0 specula_tests
