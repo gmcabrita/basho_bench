@@ -603,15 +603,15 @@ terminate(_, _State=#state{no_local=NOLocal, no_remote=NORemote, no_local_abort=
     RA = T4 div max(1, C4),
     SCT = T5 div max(1, C5),
     NOR = NORead div max(1, C1+C2+C3+C4+C5),
-    {PPrep, PRead} = case PaymentPrep of
+    {_PPrep, _PRead} = case PaymentPrep of
 			{0, 0} -> {0, 0};
 			{AccT1, AccN1} -> {AccRT1, AccN1} = PaymentRead,
                                         {AccT1 div AccN1, AccRT1 div AccN1} 
 		     end,
     File= "prep",
     %lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead1, NORead2, NORead3, NOItem, PPrep, PRead]),
-    file:write_file(File, io_lib:fwrite("~p ~p ~p  ~p  ~p ~p ~p ~p\n", 
-            [NOR, LA,  RA, LCT, RCT, SCT, PRead, PPrep]), [append]).
+    file:write_file(File, io_lib:fwrite("~p ~p ~p  ~p  ~p ~p\n", 
+            [NOR, LA,  RA, LCT, RCT, SCT]), [append]).
 
 get_local_remote_writeset(WriteSet, PartList, LocalId) ->
     {LWSD, RWSD} = dict:fold(fun({Id, Key}, Value, {LWS, RWS}) ->

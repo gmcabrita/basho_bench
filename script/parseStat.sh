@@ -5,8 +5,8 @@ AllNodes=$1
 Results=`sudo ./localScripts/getStat.sh "$1"`
 echo "Result is " "$Results"
 Results=`echo "$Results" | tail -1`
-Results=`cut -d ">" -f 2 <<< "$Results"`
-Results=`cut -d "(" -f 1 <<< "$Results"`
+Results=`cut -d "{" -f 2 <<< "$Results"`
+Results=`cut -d "}" -f 1 <<< "$Results"`
 Results=(${Results//,/ })
 echo "Result is $Results"
 ReadAborted=${Results[0]}
@@ -22,4 +22,4 @@ CacheSpeculaRead=${Results[9]}
 CacheTotalRead=${Results[10]}
 AvgSpeculaAbort=${Results[11]}
 AvgSpeculaCommit=${Results[12]}
-echo $AllNodes ":ReadAborted" $ReadAborted " SpeculaAborted" $SpeculaAborted " CascadeAborted" $CascadeAborted" Committed" $Committed" speculaCommitted" $SpeculaCommitted  PartSpeculaRead "$PartSpeculaRead" RepSpec "$RepSpeculaRead" RepTotal "$RepTotalRead" CacheSpec "$CacheSpeculaRead" CacheTotal "$CacheTotalRead" SpeculaAbort "$AvgSpeculaAbort" SpeculaCommit "$AvgSpeculaCommit" >> $Folder/stat
+echo $AllNodes":ReadAborted" $ReadAborted " SpeculaAborted" $SpeculaAborted " CascadeAborted" $CascadeAborted" Committed" $Committed" speculaCommitted" $SpeculaCommitted  PartSpeculaRead "$PartSpeculaRead" RepSpec "$RepSpeculaRead" RepTotal "$RepTotalRead" CacheSpec "$CacheSpeculaRead" CacheTotal "$CacheTotalRead" SpeculaAbort "$AvgSpeculaAbort" SpeculaCommit "$AvgSpeculaCommit" >> $Folder/stat

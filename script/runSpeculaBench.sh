@@ -3,26 +3,26 @@ set -u
 set -e
 AllNodes=`cat script/allnodes`
 
-if [ $# == 7 ]
+if [ $# == 6 ]
 then
     echo "Use default num for district, item and customer"
     MaxDistrict=10
     MaxItem=10000
     MaxCustomer=100
-elif [ $# == 10 ]
+elif [ $# == 9 ]
 then
-    echo "MaxDistrict is" $8 ", MaxItem is "$9 ", MaxCustomer is "$10
-    MaxDistrict=$8
-    MaxItem=$9
-    MaxCustomer=$10
+    echo "MaxDistrict is" $7 ", MaxItem is "$8 ", MaxCustomer is "$9
+    MaxDistrict=$7
+    MaxItem=$8
+    MaxCustomer=$9
 else
-    echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, do_fast_reply, specula_length, folder, [num_district, num_item, num_customers]"
+    echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, specula_length, folder, [num_district, num_item, num_customers]"
     exit
 fi
 
 #Params: nodes, cookie, num of dcs, num of nodes, if connect dcs, replication or not, branch
 Time=`date +'%Y-%m-%d-%H%M%S'`
-Folder=$7/$Time
+Folder=$6/$Time
 mkdir $Folder
 Tpcc="./basho_bench/examples/tpcc.config"
 Load="./basho_bench/examples/load.config"
@@ -46,11 +46,11 @@ Ant="./antidote/rel/antidote/antidote.config"
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc access_slave $3
 ./masterScripts/changeConfig.sh "$AllNodes" $Ant do_specula $4
 ./masterScripts/changeConfig.sh "$AllNodes" $Ant do_repl true
-./masterScripts/changeConfig.sh "$AllNodes" $Ant fast_reply $5
-./masterScripts/changeConfig.sh "$AllNodes" $Ant specula_length $6 
+./masterScripts/changeConfig.sh "$AllNodes" $Ant fast_reply true 
+./masterScripts/changeConfig.sh "$AllNodes" $Ant specula_length $5 
 
 ./script/restartAndConnect.sh "$AllNodes"  antidote 
-sleep 10
+sleep 5
 ./script/parallel_command.sh "cd basho_bench && rm prep"  
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
@@ -62,4 +62,4 @@ do
 ./script/parseStat.sh $N $Folder
 done
 ./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
-echo $1 $2 $3 $4 $5 $6 > $Folder/config
+echo $1 $2 $3 $4 $5 $MaxDistrict $MaxItem $MaxCustomer > $Folder/config
