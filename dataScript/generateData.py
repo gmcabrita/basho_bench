@@ -51,20 +51,23 @@ def add_throughput(nodes, dict, total_dict, folder):
         [stat_line] = [x for x in stat_lines if x.startswith(node)]
         stat_data = stat_line.split()
         read_abort = int(stat_data[1])
-        specula_abort = int(stat_data[3])
+        cert_abort = int(stat_data[3])
         cascade_abort = int(stat_data[5])
-        total_abort = aborted + int(read_abort) + int(specula_abort) + int(cascade_abort)
+        
         #print str(committed)+' '+str(aborted) +' '+str(read_abort)+' '+str(specula_abort)+' '+str(cascade_abort) 
-        real_committed = committed - read_abort - specula_abort - cascade_abort
-        dict[node].append([real_committed, read_abort, specula_abort, cascade_abort, aborted, total_abort])
+        if int(stat_data[7]) == 0:
+            # This is specula!
+            real_committed = committed
+            cert_abort = aborted
+        else:
+            real_committed = int(stat_data[7])
+        dict[node].append([real_committed, cert_abort, read_abort, cascade_abort, total_abort])
         all_committed += real_committed
+        all_cert_abort += cert_abort
         all_r_abort += read_abort
-        all_s_abort += specula_abort
         all_c_abort += cascade_abort
-        all_abort += aborted
-        all_t_abort += total_abort
 
-    total_dict.append([all_committed/60, all_r_abort/60, all_s_abort/60, all_c_abort/60, all_abort/60, all_t_abort/60])
+    total_dict.append([all_committed/60, all_cert_abort/60, all_r_abort/60, all_c_abort/60])
     
 
 def update_counter(folder, length, key):
