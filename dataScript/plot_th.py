@@ -1,58 +1,35 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import matplotlib.pyplot as plt
+import sys
+import os
 import numpy as np
 
-print haha
-
-# fake up some data
-spread = np.random.rand(50) * 100
-center = np.ones(25) * 50
-flier_high = np.random.rand(10) * 100 + 100
-flier_low = np.random.rand(10) * -100
-data = np.concatenate((spread, center, flier_high, flier_low), 0)
-
-print haha
-
-# basic plot
-plt.boxplot(data)
-
-# notched plot
+# input data
+input_folder = sys.argv[1]
+output_folder = sys.argv[2]
+length = (len(sys.argv) -3) // 2 
+print(length)
+firstlist = sys.argv[3:3+length]
+secondlist = sys.argv[3+length:3+2*length]
+tc = []
+ta = []
+sc = []
+sa = []
+for f in firstlist:
+    path = os.path.join(input_folder, f+'/total_throughput')
+    data = np.loadtxt(path, skiprows=1, usecols=range(1,7))
+    print(data)
+    tc.append(data[0, 0])
+    ta.append(data[0, 5])
+    sc.append(data[1, 0])
+    sa.append(data[1, 5])
+print(tc)
+print(sc)
 plt.figure()
-plt.boxplot(data, 1)
-
-# change outlier point symbols
-plt.figure()
-plt.boxplot(data, 0, 'gD')
-
-# don't show outlier points
-plt.figure()
-plt.boxplot(data, 0, '')
-
-# horizontal boxes
-plt.figure()
-plt.boxplot(data, 0, 'rs', 0)
-
-# change whisker length
-plt.figure()
-plt.boxplot(data, 0, 'rs', 0, 0.75)
-
-# fake up some more data
-spread = np.random.rand(50) * 100
-center = np.ones(25) * 40
-flier_high = np.random.rand(10) * 100 + 100
-flier_low = np.random.rand(10) * -100
-d2 = np.concatenate((spread, center, flier_high, flier_low), 0)
-data.shape = (-1, 1)
-d2.shape = (-1, 1)
-# data = concatenate( (data, d2), 1 )
-# Making a 2-D array only works if all the columns are the
-# same length.  If they are not, then use a list instead.
-# This is actually more efficient because boxplot converts
-# a 2-D array into a list of vectors internally anyway.
-data = [data, d2, d2[::2, 0]]
-# multiple box plots on one figure
-plt.figure()
-plt.boxplot(data)
-
-plt.show()
+plt.errorbar(range(1, length+1),tc, sc)
+plt.errorbar(range(1, length+1),ta, sa)
+plt.ylim([0,20])
+plt.grid(True)
+plt.savefig(output_folder+'/haha.png')
+exit()

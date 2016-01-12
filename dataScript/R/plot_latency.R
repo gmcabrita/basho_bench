@@ -4,7 +4,7 @@ plot_latency <- function(input, output, non_specula_list, specula_list)
   ta <- list()
   sc <- list()
   sa <- list()
-  len <- length(first_list)
+  len <- length(non_specula_list)
   seq <- 1:len
   for(i in 1:len){
     print(first_list[i]) 
