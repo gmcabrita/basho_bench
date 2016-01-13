@@ -51,7 +51,8 @@ for f in data_list:
     read_lat = data[0,0]
     read_err = data[1,0]
     inter_ind = ind
-    xlabel.append(f[:15])
+    f = f.replace('true','t').replace('false','f').replace('0000','0k')
+    xlabel.append(f)
     cla = ['#D3E54E', '#EC5B56']
     clc = ['#D3E54E', '#79E026']
     cra = ['#D3E54E', ('#EC5B56', '//')]
@@ -83,11 +84,13 @@ for f in data_list:
         (inter_ind, specula_commit) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,5], data[1,5]), (data[0,7], data[1,7])], csc, inter_ind, specula_commit)
     ind += 1
 
+max = data.max()
+ylim = max * 1.44
 plt.ylabel('Latency')
 plt.title('Latency decomposition')
-plt.ylim([1,800])
-plt.xlim([-0.5,4])
-plt.xticks([x+2*width for x in np.arange(len(xlabel))], xlabel, fontsize=10)
+plt.ylim([1,ylim])
+plt.xlim([-0.5,len(data_list)])
+plt.xticks([x+2*width for x in np.arange(len(xlabel))], xlabel, fontsize=7)
 #plt.yticks(list(plt.yticks()[0]) + [10])
 plt.legend((local_abort, local_commit, remote_abort, remote_commit, specula_abort, specula_commit), ('local_abort', 'local_commit', 'remote_abort', 'remote_commit', 'remote_specula_abort', 'remote_specula_commit'), fontsize=10)
 #plt.legend(('local_abort', 'local_commit', 'remote_abort', 'remote_commit', 'remote_specula_abort', 'remote_specula_commit'))

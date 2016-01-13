@@ -57,10 +57,14 @@ for row in data:
     max_lat = plt.bar(index+width*4, row[5]/1000, width, color='#877A30')
     index += 1
 
+max = data.max() 
+ylim = max * 1.44/1000
+(nrows, whatever) = data.shape
+
 plt.ylabel('Latency (in ms)')
 plt.title('Latency per node')
-plt.ylim([1,1100])
-plt.xlim([-0.5,4])
+plt.ylim([1,ylim])
+plt.xlim([-0.5, nrows])
 plt.xticks([x+3*width for x in np.arange(len(xlabel))], xlabel, fontsize=10)
 plt.legend((min_lat, med_lat, p95_lat, p99_lat, max_lat), ('Min', 'Meidum', '95%', '99%', 'Max'), fontsize=10)
 #plt.legend(('local_abort', 'local_commit', 'remote_abort', 'remote_commit', 'remote_specula_abort', 'remote_specula_commit'))
