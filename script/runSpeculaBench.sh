@@ -69,4 +69,4 @@ for N in $AllNodes
 do
 ./script/parseStat.sh $N $Folder
 done
-echo $1 $2 $3 $4 $5 $MaxDistrict $MaxItem $MaxCustomer > $Folder/config
+echo $1 $2 $3 $4 $5 $6 $MaxDistrict $MaxItem $MaxCustomer > $Folder/config
