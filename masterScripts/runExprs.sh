@@ -1,28 +1,45 @@
 #!/bin/bash
 
 ## Just to test.. 
-./script/runSpeculaBench.sh 4 70 20 true true 1 specula_tests
-./script/runSpeculaBench.sh 4 70 20 true true 2 specula_tests
-./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
-./script/runSpeculaBench.sh 4 70 20 true false 1 specula_tests
-./script/runSpeculaBench.sh 4 70 20 true false 2 specula_tests
-./script/runSpeculaBench.sh 4 70 20 true false 4 specula_tests
-./script/runSpeculaBench.sh 1 70 20 false false 0 specula_tests
-./script/runSpeculaBench.sh 2 70 20 false false 0 specula_tests
-./script/runSpeculaBench.sh 4 70 20 false false 0 specula_tests
-./script/runSpeculaBench.sh 1 70 20 true false 0 specula_tests
-./script/runSpeculaBench.sh 1 70 20 true false 1 specula_tests
-./script/runSpeculaBench.sh 1 70 20 true false 2 specula_tests
-./script/runSpeculaBench.sh 1 70 20 true false 4 specula_tests
-./script/runSpeculaBench.sh 1 70 20 true true 1 specula_tests
-./script/runSpeculaBench.sh 1 70 20 true true 2 specula_tests
-./script/runSpeculaBench.sh 1 70 20 true true 4 specula_tests
-./script/runSpeculaBench.sh 2 70 20 true false 1 specula_tests
-./script/runSpeculaBench.sh 2 70 20 true false 2 specula_tests
-./script/runSpeculaBench.sh 2 70 20 true false 4 specula_tests
-./script/runSpeculaBench.sh 2 70 20 true true 1 specula_tests
-./script/runSpeculaBench.sh 2 70 20 true true 2 specula_tests
-./script/runSpeculaBench.sh 2 70 20 true true 4 specula_tests
+#./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
+
+
+AccessMaster="50 80 100"
+for AM in $AccessMaster
+do
+    AS=$((100-AM))
+    echo "Access master is " $AM ", Access slave is "$AS
+    ./script/runSpeculaBench.sh 1 $AM $AS false false 0 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS false false 0 specula_tests
+    ./script/runSpeculaBench.sh 2 $AM $AS false false 0 specula_tests
+    ./script/runSpeculaBench.sh 2 $AM $AS false false 0 specula_tests
+    ./script/runSpeculaBench.sh 4 $AM $AS false false 0 specula_tests
+    ./script/runSpeculaBench.sh 4 $AM $AS false false 0 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true false 1 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true false 1 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true false 2 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true false 2 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true false 4 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true false 4 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true false 8 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true false 8 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true true 1 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true true 1 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true true 2 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true true 2 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true true 4 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true true 4 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true true 8 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true true 8 specula_tests
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 1 specula_tests
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 1 specula_tests
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 2 specula_tests
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 2 specula_tests
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 4 specula_tests
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 4 specula_tests
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 8 specula_tests
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 8 specula_tests
+done 
 exit
 #./script/runSpeculaBench.sh 1 100 0 false false 0 specula_tests
 #./script/runSpeculaBench.sh 1 100 0 false false 0 specula_tests
