@@ -47,8 +47,8 @@ AllNodes=`cat ./script/allnodes`
 ./masterScripts/changeConfig.sh "$AllNodes" $Load concurrent 1
 ./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1
 ./masterScripts/changeConfig.sh "$AllNodes" $Load duration 1
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 8000
-./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 7000
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 10000
+./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 10000
 ./masterScripts/changeConfig.sh "$AllNodes" $Ant do_repl true
 ./script/copy_to_all.sh ./script/allnodes ./basho_bench/script 
 ./script/command_to_all.sh "./basho_bench/masterScripts/config.sh" 
