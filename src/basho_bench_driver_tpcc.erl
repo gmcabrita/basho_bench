@@ -102,6 +102,9 @@ new(Id) ->
     %% Choose the node using our ID as a modulus
     TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
     true = erlang:set_cookie(node(), Cookie),
+    case Id of 1 -> timer:sleep(ToSleep);
+	      _ ->  timer:sleep(1000)
+    end,
 
     ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
     Result = net_adm:ping(TargetNode),
@@ -131,9 +134,6 @@ new(Id) ->
     HashLength = length(ExpandPartList),
 
     %lager:info("Part list is ~w",[PartList]),
-    case Id of 1 -> timer:sleep(ToSleep);
-	      _ ->  timer:sleep(1000)
-    end,
     TxId = gen_server:call({global, MyTxServer}, {start_tx}),
     C_C_LAST = read(MyTxServer, TxId, "C_C_LAST", ExpandPartList, HashLength),
     C_C_ID = read(MyTxServer, TxId, "C_C_ID", ExpandPartList, HashLength),

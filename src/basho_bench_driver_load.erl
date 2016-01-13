@@ -85,6 +85,8 @@ new(Id) ->
     TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
     true = erlang:set_cookie(node(), Cookie),
 
+    timer:sleep(ToSleep),
+
     ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
     Result = net_adm:ping(TargetNode),
     ?INFO("Result of ping is ~p \n", [Result]),
@@ -103,7 +105,6 @@ new(Id) ->
     case Id of 1 -> ets:new(meta_info, [named_table, public, set]);
          _ -> ok
     end,
-    timer:sleep(ToSleep),
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
                replicas=MyReps,
