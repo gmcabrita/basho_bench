@@ -1,7 +1,29 @@
 #!/bin/bash
 
 ## Just to test.. 
-#./script/runSpeculaBench.sh 1 100 0 false false 0 specula_tests
+./script/runSpeculaBench.sh 4 70 20 true true 1 specula_tests
+./script/runSpeculaBench.sh 4 70 20 true true 2 specula_tests
+./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
+./script/runSpeculaBench.sh 4 70 20 true false 1 specula_tests
+./script/runSpeculaBench.sh 4 70 20 true false 2 specula_tests
+./script/runSpeculaBench.sh 4 70 20 true false 4 specula_tests
+./script/runSpeculaBench.sh 1 70 20 false false 0 specula_tests
+./script/runSpeculaBench.sh 2 70 20 false false 0 specula_tests
+./script/runSpeculaBench.sh 4 70 20 false false 0 specula_tests
+./script/runSpeculaBench.sh 1 70 20 true false 0 specula_tests
+./script/runSpeculaBench.sh 1 70 20 true false 1 specula_tests
+./script/runSpeculaBench.sh 1 70 20 true false 2 specula_tests
+./script/runSpeculaBench.sh 1 70 20 true false 4 specula_tests
+./script/runSpeculaBench.sh 1 70 20 true true 1 specula_tests
+./script/runSpeculaBench.sh 1 70 20 true true 2 specula_tests
+./script/runSpeculaBench.sh 1 70 20 true true 4 specula_tests
+./script/runSpeculaBench.sh 2 70 20 true false 1 specula_tests
+./script/runSpeculaBench.sh 2 70 20 true false 2 specula_tests
+./script/runSpeculaBench.sh 2 70 20 true false 4 specula_tests
+./script/runSpeculaBench.sh 2 70 20 true true 1 specula_tests
+./script/runSpeculaBench.sh 2 70 20 true true 2 specula_tests
+./script/runSpeculaBench.sh 2 70 20 true true 4 specula_tests
+exit
 #./script/runSpeculaBench.sh 1 100 0 false false 0 specula_tests
 #./script/runSpeculaBench.sh 1 100 0 false false 0 specula_tests
 #./script/runSpeculaBench.sh 1 100 0 true false 0 specula_tests
@@ -32,11 +54,6 @@
 #./script/runSpeculaBench.sh 1 100 0 true false 8 specula_tests
 #./script/runSpeculaBench.sh 1 100 0 true false 8 specula_tests
 #./script/runSpeculaBench.sh 1 100 0 true true 8 specula_tests
-./script/runSpeculaBench.sh 1 100 0 true true 8 specula_tests
-./script/runSpeculaBench.sh 1 100 0 true true 8 specula_tests
-./script/runSpeculaBench.sh 1 100 0 true true 4 specula_tests
-./script/runSpeculaBench.sh 1 100 0 true true 4 specula_tests
-./script/runSpeculaBench.sh 1 100 0 true true 4 specula_tests
 
 exit
 
