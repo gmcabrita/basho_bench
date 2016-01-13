@@ -133,7 +133,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
                     ok
            end,
        %% Sleep to make sure that COMMIT_TIME is written to a partition
-       timer:sleep(3000),
+       timer:sleep(5000),
        COMMIT_TIME = read(TxServer, "COMMIT_TIME", FullPartList, HashLength),
        ets:insert(meta_info, {"COMMIT_TIME", COMMIT_TIME}),
        lager:info("CommitTime is ~w", [COMMIT_TIME]),
