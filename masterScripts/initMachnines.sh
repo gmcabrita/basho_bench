@@ -40,5 +40,15 @@ sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.na
 ./script/command_to_all.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"
 fi
 
+Tpcc="./basho_bench/examples/tpcc.config"
+Load="./basho_bench/examples/load.config"
+Ant="./antidote/rel/antidote/antidote.config"
+AllNodes=`cat ./script/allnodes`
+./masterScripts/changeConfig.sh "$AllNodes" $Load concurrent 1
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1
+./masterScripts/changeConfig.sh "$AllNodes" $Load duration 1
+./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 8000
+./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 7000
+./masterScripts/changeConfig.sh "$AllNodes" $Ant do_repl true
 ./script/copy_to_all.sh ./script/allnodes ./basho_bench/script 
 ./script/command_to_all.sh "./basho_bench/masterScripts/config.sh" 

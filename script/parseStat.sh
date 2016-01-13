@@ -4,7 +4,7 @@ Folder=$2
 AllNodes=$1
 Results=`sudo ./localScripts/getStat.sh "$1"`
 echo "Result is " "$Results"
-Results=`echo "$Results" | tail -1`
+Results=`echo "$Results" | tr '\n' ' ' `
 Results=`cut -d "{" -f 2 <<< "$Results"`
 Results=`cut -d "}" -f 1 <<< "$Results"`
 Results=(${Results//,/ })
