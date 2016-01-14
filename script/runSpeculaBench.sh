@@ -27,23 +27,21 @@ mkdir $Folder
 Tpcc="./basho_bench/examples/tpcc.config"
 Load="./basho_bench/examples/load.config"
 Ant="./antidote/rel/antidote/antidote.config"
-rm config
+sudo rm config
 echo tpcc concurrent $1 >> config 
 echo tpcc access_master $2  >> config
 echo tpcc access_slave $3 >> config
-echo ant  do_specula $4  >> config
 echo tpcc max_district $MaxDistrict >> config 
-echo load max_district $MaxDistrict  >> config
-echo ant fast_reply $5   >> config
-echo tpcc max_item $MaxItem   >> config
-echo load max_item $MaxItem  >> config
-echo ant specula_length $6  >> config
 echo tpcc max_customer $MaxCustomer  >> config
+echo tpcc max_item $MaxItem   >> config
+echo load max_district $MaxDistrict  >> config
 echo load max_customer $MaxCustomer  >> config
+echo load max_item $MaxItem  >> config
+echo ant  do_specula $4  >> config
+echo ant fast_reply $5   >> config
+echo ant specula_length $6  >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
-exit
-
 
 #Change Load params
 #./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1 
@@ -69,8 +67,8 @@ done
 wait
 for N in $AllNodes
 do
-echo $N-stat >> prep
-rm $N-stat
+echo $Folder/$N-stat >> $Folder/prep
+rm $Folder/$N-stat
 done
 
 echo $1 $2 $3 $4 $5 $6 $MaxDistrict $MaxItem $MaxCustomer > $Folder/config

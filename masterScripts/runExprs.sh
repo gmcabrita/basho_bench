@@ -2,9 +2,6 @@
 
 ## Just to test.. 
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
-    ./script/runSpeculaBench.sh 12 $AM $AS false true 8 specula_tests
-exit
-
 
 AccessMaster="50 80 100"
 for AM in $AccessMaster
