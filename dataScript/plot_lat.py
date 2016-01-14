@@ -84,8 +84,8 @@ for f in data_list:
         (inter_ind, specula_commit) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,5], data[1,5]), (data[0,7], data[1,7])], csc, inter_ind, specula_commit)
     ind += 1
 
-max = data.max()
-ylim = max * 1.44
+ymax = data.max()
+ylim = 900 
 plt.ylabel('Latency')
 plt.title('Latency decomposition')
 plt.ylim([1,ylim])

@@ -85,11 +85,13 @@ new(Id) ->
     TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
     true = erlang:set_cookie(node(), Cookie),
 
+
     ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
     Result = net_adm:ping(TargetNode),
     ?INFO("Result of ping is ~p \n", [Result]),
     MyTxServer = {server, list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list(Id))},
     {PartList, ReplList} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), %gen_server:call({global, MyTxServer}, {get_hash_fun}),
+    lager:info("Part list is ~w, Replist is ~w", [PartList, ReplList]),
     FullPartList = lists:flatten([L || {_, L} <- PartList]),
     HashLength = length(FullPartList),
     AllDcs = [N || {N, _} <- PartList],
@@ -98,12 +100,12 @@ new(Id) ->
     MyReps = lists:map(fun(Index) ->  Name = lists:nth(Index, AllDcs),  {Index, {rep, get_rep_name(TargetNode, Name)}} end, MyRepIds),
     NumDcs = length(AllDcs),
     DcId = index(TargetNode, AllDcs),
+    timer:sleep(ToSleep),
 
     lager:info("TargetNode is ~p, DcId is ~w, My Replica Ids are ~w",[TargetNode, DcId, MyReps]),
     case Id of 1 -> ets:new(meta_info, [named_table, public, set]);
          _ -> ok
     end,
-    timer:sleep(ToSleep),
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
                replicas=MyReps,
@@ -132,7 +134,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
                     ok
            end,
        %% Sleep to make sure that COMMIT_TIME is written to a partition
-       timer:sleep(3000),
+       timer:sleep(5000),
        COMMIT_TIME = read(TxServer, "COMMIT_TIME", FullPartList, HashLength),
        ets:insert(meta_info, {"COMMIT_TIME", COMMIT_TIME}),
        lager:info("CommitTime is ~w", [COMMIT_TIME]),
