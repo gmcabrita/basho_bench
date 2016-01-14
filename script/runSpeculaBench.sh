@@ -40,6 +40,12 @@ echo load max_item $MaxItem  >> config
 echo ant  do_specula $4  >> config
 echo ant fast_reply $5   >> config
 echo ant specula_length $6  >> config
+echo load concurrent 1 >> config
+echo tpcc duration 1 >> config
+echo load duration 1 >> config
+echo tpcc to_sleep 9000 >> config
+echo load to_sleep 9000 >> config
+echo ant do_repl true >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
@@ -54,7 +60,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 sleep 10 
 Time=`date +%s`
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
-NewTime=`data +%s`
+NewTime=`date +%s`
 Duration=$((NewTime-Time))
 if [ "$Duration" -lt 60 ]
 then
