@@ -51,8 +51,17 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #./masterScripts/changeConfig.sh "$AllNodes" $Ant do_repl true
 
 ./script/restartAndConnect.sh "$AllNodes"  antidote 
+sleep 10 
+Time=`date +%s`
+./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
+NewTime=`data +%s`
+Duration=$((NewTime-Time))
+if [ "$Duration" -lt 60 ]
+then
+echo "Load failed... Trying again!"
 sleep 5
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
+fi
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 ./script/gatherThroughput.sh $Folder &
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
@@ -62,12 +71,11 @@ wait
 
 for N in $AllNodes
 do
-./script/parseStat.sh $N $Folder &
+./script/parseStat.sh $N $Folder
 done
-wait
 for N in $AllNodes
 do
-echo $Folder/$N-stat >> $Folder/prep
+cat $Folder/$N-stat >> $Folder/stat
 rm $Folder/$N-stat
 done
 

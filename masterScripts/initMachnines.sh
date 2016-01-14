@@ -35,6 +35,7 @@ echo "Cleaning all"
 sudo ./script/parallel_command.sh 'echo 127.0.0.1 `hostname` | sudo tee --append /etc/hosts'
 sudo ./script/preciseTime.sh
 sudo ./script/parallel_command.sh "sudo apt-get update && sudo apt-get -y install libwww-perl"
+sudo ./script/parallel_command.sh "sudo apt-get -y install sshpass"
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.email 'mars.leezm@gmail.com'"
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.name 'marsleezm'"
 ./script/makeRel.sh local_specula_read
