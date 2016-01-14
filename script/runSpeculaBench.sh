@@ -27,27 +27,23 @@ mkdir $Folder
 Tpcc="./basho_bench/examples/tpcc.config"
 Load="./basho_bench/examples/load.config"
 Ant="./antidote/rel/antidote/antidote.config"
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc concurrent $1 &
-./masterScripts/changeConfig.sh "$AllNodes" $Ant do_specula $4 &
-wait
+rm config
+echo tpcc concurrent $1 >> config 
+echo tpcc access_master $2  >> config
+echo tpcc access_slave $3 >> config
+echo ant  do_specula $4  >> config
+echo tpcc max_district $MaxDistrict >> config 
+echo load max_district $MaxDistrict  >> config
+echo ant fast_reply $5   >> config
+echo tpcc max_item $MaxItem   >> config
+echo load max_item $MaxItem  >> config
+echo ant specula_length $6  >> config
+echo tpcc max_customer $MaxCustomer  >> config
+echo load max_customer $MaxCustomer  >> config
+sudo ./script/copy_to_all.sh ./config ./basho_bench/
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+exit
 
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc access_master $2
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc access_slave $3
-
-#Change Tpcc params
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc max_district $MaxDistrict &
-./masterScripts/changeConfig.sh "$AllNodes" $Load max_district $MaxDistrict &
-./masterScripts/changeConfig.sh "$AllNodes" $Ant fast_reply $5 & 
-wait
-
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc max_item $MaxItem & 
-./masterScripts/changeConfig.sh "$AllNodes" $Load max_item $MaxItem &
-./masterScripts/changeConfig.sh "$AllNodes" $Ant specula_length $6 &
-wait
-
-./masterScripts/changeConfig.sh "$AllNodes" $Tpcc max_customer $MaxCustomer & 
-./masterScripts/changeConfig.sh "$AllNodes" $Load max_customer $MaxCustomer &
-wait
 
 #Change Load params
 #./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1 
@@ -65,8 +61,16 @@ sleep 5
 ./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 
 ./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder & 
 wait
+
 for N in $AllNodes
 do
-./script/parseStat.sh $N $Folder
+./script/parseStat.sh $N $Folder &
 done
+wait
+for N in $AllNodes
+do
+echo $N-stat >> prep
+rm $N-stat
+done
+
 echo $1 $2 $3 $4 $5 $6 $MaxDistrict $MaxItem $MaxCustomer > $Folder/config
