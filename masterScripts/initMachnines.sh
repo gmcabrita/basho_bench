@@ -5,7 +5,7 @@
 if [ $# -eq 1 ]; then
     Clean=$1
 else
-    Clean=4
+    Clean=100
 fi
 if [ $Clean == 1 ]
 then
