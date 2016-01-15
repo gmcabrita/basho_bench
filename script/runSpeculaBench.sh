@@ -23,6 +23,7 @@ fi
 #Params: nodes, cookie, num of dcs, num of nodes, if connect dcs, replication or not, branch
 Time=`date +'%Y-%m-%d-%H%M%S'`
 Folder=$7/$Time
+echo "Folder to make is" $Folder
 mkdir $Folder
 Tpcc="./basho_bench/examples/tpcc.config"
 Load="./basho_bench/examples/load.config"
@@ -72,8 +73,8 @@ fi
 ./script/gatherThroughput.sh $Folder &
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
 ./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 
-./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder & 
 wait
+./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
 for N in $AllNodes
 do
