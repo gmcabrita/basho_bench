@@ -76,7 +76,6 @@ new(Id) ->
             ok
     end,
 
-    random:seed(now()),
     %_PbPorts = basho_bench_config:get(antidote_pb_port),
     MyNode = basho_bench_config:get(antidote_mynode),
     Cookie = basho_bench_config:get(antidote_cookie),
@@ -131,9 +130,13 @@ new(Id) ->
     HashLength = length(ExpandPartList),
 
     %lager:info("Part list is ~w",[PartList]),
-    case Id of 1 -> timer:sleep(ToSleep);
+    case Id of 1 -> 
+                ets:new(meta_info, [named_table, set, public, {read_concurrency, true}, {write_concurrency, true}]),
+                timer:sleep(ToSleep);
 	      _ ->  timer:sleep(1000)
     end,
+    ets:insert(meta_info, {{rand_state, self()}, random:seed(to_timestamp(tpcc_tool:now_nsec()*31))}),
+    ets:insert(meta_info, {{nurand_state, self()}, random:seed(to_timestamp(tpcc_tool:now_nsec()*31*17))}),
     TxId = gen_server:call({global, MyTxServer}, {start_tx}),
     C_C_LAST = read(MyTxServer, TxId, "C_C_LAST", ExpandPartList, HashLength),
     C_C_ID = read(MyTxServer, TxId, "C_C_ID", ExpandPartList, HashLength),
@@ -234,7 +237,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
                     NewSQuantity = case Stock#stock.s_quantity - Quantity >= 10 of
                                         true -> Stock#stock.s_quantity - Quantity;
                                         false -> Stock#stock.s_quantity - Quantity + 91
-                                    end,
+                                   end,
                     SRemote = case WId of 
                                     WarehouseId -> Stock#stock.s_remote_cnt;
                                     _ -> Stock#stock.s_remote_cnt+1
@@ -699,3 +702,8 @@ get_rep_name(Target, Rep) ->
     
 get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
     ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.
+
+to_timestamp(Timestamp) ->
+    {Timestamp div 1000000000000, 
+                    Timestamp div 1000000 rem 1000000,
+                    Timestamp rem 1000000}.

@@ -44,31 +44,52 @@ c_last(DcId) ->
 				Acc ++ lists:nth(N rem ?NUM_NAMES +1, ?NAMES)
 				end, [],  NewAlea).
 
+nu_random_num(Start, End) ->
+    Self = self(),
+    [{K, S}] = ets:lookup(meta_info, {nurand_state, Self}),
+    {N, S1} = random:uniform_s(End-Start+1, S),
+    ets:insert(meta_info, {K, S1}),
+    N + Start - 1.
 
 non_uniform_random(Type, X, Min, Max) ->
-    A = random_num(0, X),
-    B = random_num(Min, Max),
+    A = nu_random_num(0, X),
+    B = nu_random_num(Min, Max),
     Bor = A bor B,
     (( Bor + Type) rem (Max - Min + 1)) + Min.
 
 random_num(Start, End) ->
-    random:uniform(End-Start+1) + Start - 1.
+    Self = self(),
+    [{K, S}] = ets:lookup(meta_info, {rand_state, Self}),
+    {N, S1} = random:uniform_s(End-Start+1, S),
+    ets:insert(meta_info, {K, S1}),
+    N + Start - 1.
+
+random_alea_num(Start, End) ->
+    Self = self(),
+    [{K, S}] = ets:lookup(meta_info, {rand_alea_state, Self}),
+    {N, S1} = random:uniform_s(End-Start+1, S),
+    ets:insert(meta_info, {K, S1}),
+    N + Start - 1.
 
 random_len_string(Min, Max) ->
-    Len = random_num(Min, Max),
+    Len = random_alea_num(Min, Max),
     random_string(Len).
 
 random_string(Len) ->
     Chrs = list_to_tuple("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"),
     ChrsSize = size(Chrs),
-    F = fun(_, R) -> [element(random:uniform(ChrsSize), Chrs) | R] end,
+    F = fun(_, R) -> [element(random_alea_num(1, ChrsSize), Chrs) | R] end,
     lists:foldl(F, "", lists:seq(1, Len)).
 
-random_float(Min, Max, P) ->
+random_alea_float(Min, Max, P) ->
     Pow = math:pow(10, P),
     AMin = Pow*Min,
     AMax = Pow*Max,
-    R = random:uniform()*(AMax-AMin)+AMin,
+    Self = self(),
+    [{K, S}] = ets:lookup(meta_info, {rand_alea_state, Self}),
+    {F, S1} = random:uniform_s(S),
+    ets:insert(meta_info, {K, S1}),
+    R = F*(AMax-AMin)+AMin,
     R / Pow.
 
 random_data() ->
@@ -76,23 +97,23 @@ random_data() ->
     case random_num(1, 10) of
         1 ->
             L = length(Alea),
-            Number = random_num(0, L - 8),
+            Number = random_alea_num(0, L - 8),
             lists:sublist(Alea, 1, Number+1) ++ "ORIGINAL" ++ lists:sublist(Alea, Number + 9, L);
         _ ->
             Alea
     end.
 
 create_item(ItemId) ->
-    #item{i_id=ItemId, i_im_id=random_num(1, 10000), i_name=random_len_string(14,24), 
-            i_price=random_float(1, 100, 2), i_data=random_data()}.
+    #item{i_id=ItemId, i_im_id=random_alea_num(1, 10000), i_name=random_len_string(14,24), 
+            i_price=random_alea_float(1, 100, 2), i_data=random_data()}.
 
 create_warehouse(WarehouseId) ->
     #warehouse{w_id=WarehouseId, w_name=random_len_string(6, 10), w_street1=random_len_string(10, 20),
     w_street2=random_len_string(10, 20), w_city=random_len_string(10, 20), w_state=random_string(2),
-    w_zip = random_string(4) ++ "11111", w_tax=random_float(0.0, 0.2, 4)}. 
+    w_zip = random_string(4) ++ "11111", w_tax=random_alea_float(0.0, 0.2, 4)}. 
 
 create_stock(StockId, WarehouseId) ->
-    #stock{s_i_id=StockId, s_w_id=WarehouseId, s_quantity=random_num(10,100),
+    #stock{s_i_id=StockId, s_w_id=WarehouseId, s_quantity=random_alea_num(10,100),
            s_dist_01=random_string(24), s_dist_02=random_string(24), s_dist_03=random_string(24),
            s_dist_04=random_string(24), s_dist_05=random_string(24), s_dist_06=random_string(24),
            s_dist_07=random_string(24), s_dist_08=random_string(24), s_dist_09=random_string(24),
@@ -101,7 +122,7 @@ create_stock(StockId, WarehouseId) ->
 create_district(DistrictId, WarehouseId) ->
     #district{d_id=DistrictId, d_w_id=WarehouseId, d_name=random_len_string(6, 10), d_street1=random_len_string(10,20),
                 d_street2=random_len_string(10,20), d_city=random_len_string(10,20), d_state=random_string(2),
-                d_zip=random_string(4) ++ "11111", d_tax=random_float(0.0, 0.2, 4), d_next_o_id=3001}.
+                d_zip=random_string(4) ++ "11111", d_tax=random_alea_float(0.0, 0.2, 4), d_next_o_id=3001}.
 
 create_customer(WarehouseId, DistrictId, CustomerId, CLast, Since) ->
     #customer{
@@ -120,7 +141,7 @@ create_customer(WarehouseId, DistrictId, CustomerId, CLast, Since) ->
     c_since=Since,
     c_credit=set_credit(),
     c_credit_lim =500000.0,
-    c_discount=random_float(0.0, 0.5, 4),
+    c_discount=random_alea_float(0.0, 0.5, 4),
     c_ytd_payment=10.0,
     c_payment_cnt=1,
     c_delivery_cnt=0,
@@ -228,7 +249,7 @@ get_key(Obj) ->
 %%%%%% private funs %%%%%%%%%%%
 
 set_credit() ->
-    case random_num(1, 10) of
+    case random_alea_num(1, 10) of
         1 ->
             "BC";
         _ ->
@@ -236,13 +257,13 @@ set_credit() ->
     end.
 
 now_nsec() ->
-    {MegaSecs, Secs, MicroSecs} = now(),
+    {MegaSecs, Secs, MicroSecs} = os:timestamp(),
     (MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs.
 
 get_carrier_id(OrderId) ->
     case OrderId < ?LIMIT_ORDER of
         true ->
-            random_num(1,10);
+            random_alea_num(1,10);
         false ->
             0
     end.

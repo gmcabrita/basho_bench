@@ -52,7 +52,8 @@ for f in data_list:
     read_err = data[1,0]
     inter_ind = ind
     f = f.replace('true','t').replace('false','f').replace('0000','0k')
-    xlabel.append(f)
+    #xlabel.append(f)
+    xlabel.append(f[:15])
     cla = ['#D3E54E', '#EC5B56']
     clc = ['#D3E54E', '#79E026']
     cra = ['#D3E54E', ('#EC5B56', '//')]

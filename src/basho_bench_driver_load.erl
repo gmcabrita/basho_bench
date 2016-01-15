@@ -61,7 +61,6 @@ new(Id) ->
             ok
     end,
 
-    random:seed(now()), %now()),
     IPs = basho_bench_config:get(antidote_pb_ips),
     %_PbPorts = basho_bench_config:get(antidote_pb_port),
     MyNode = basho_bench_config:get(antidote_mynode),
@@ -104,8 +103,9 @@ new(Id) ->
 
     lager:info("TargetNode is ~p, DcId is ~w, My Replica Ids are ~w",[TargetNode, DcId, MyReps]),
     case Id of 1 -> ets:new(meta_info, [named_table, public, set]);
-         _ -> ok
+         _ -> timer:sleep(3), ok
     end,
+    ets:insert(meta_info, {{rand_state, self()}, random:seed(to_timestamp(tpcc_tool:now_nsec()*31))}),
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
                replicas=MyReps,
@@ -137,6 +137,10 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
        timer:sleep(5000),
        COMMIT_TIME = read(TxServer, "COMMIT_TIME", FullPartList, HashLength),
        ets:insert(meta_info, {"COMMIT_TIME", COMMIT_TIME}),
+       lager:info("Inserting rand_state with my id ~p", [self()]),
+       ets:insert(meta_info, {{nurand_state, self()}, random:seed(to_timestamp(COMMIT_TIME*31*17))}),
+       ets:insert(meta_info, {{rand_alea_state, self()}, random:seed(to_timestamp(COMMIT_TIME*31*17*3))}),
+       lager:info("Inserting rand_alea_state with my id ~p", [self()]),
        lager:info("CommitTime is ~w", [COMMIT_TIME]),
        {ok, State#state{stage=to_item}};
     to_item -> 
@@ -197,7 +201,8 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
     end.
 
 populate_items(TxServer, NumDCs, DcId, PartList, MaxItem) ->
-    random:seed({DcId, 122,32}),
+    [{"COMMIT_TIME", COMMIT_TIME}] = ets:lookup(meta_info, "COMMIT_TIME"),
+    ets:insert(meta_info, {{rand_alea_state, self()}, random:seed(to_timestamp(COMMIT_TIME*DcId*31*17*3))}),
     Remainder = MaxItem rem NumDCs,
     DivItems = (MaxItem-Remainder)/NumDCs,
     FirstItem = ((DcId-1) * DivItems) + 1,
@@ -210,7 +215,8 @@ populate_items(TxServer, NumDCs, DcId, PartList, MaxItem) ->
     put_range_items(TxServer, trunc(FirstItem), trunc(LastItem), DcId, PartList).
 
 populate_warehouse(TxServer, DcId, PartList)->
-    random:seed({DcId, 12,32}),
+    [{"COMMIT_TIME", COMMIT_TIME}] = ets:lookup(meta_info, "COMMIT_TIME"),
+    ets:insert(meta_info, {{rand_alea_state, self()}, random:seed(to_timestamp(COMMIT_TIME*DcId*31*17*3))}),
     Warehouse = tpcc_tool:create_warehouse(DcId),
     WKey = tpcc_tool:get_key(Warehouse),
     WYtd = ?WAREHOUSE_YTD,
@@ -221,7 +227,8 @@ populate_warehouse(TxServer, DcId, PartList)->
     put_to_node(TxServer, DcId, PartList, WKey, Warehouse).
 
 populate_stock(TxServer, WarehouseId, PartList, MaxItem) ->
-    random:seed({WarehouseId, 2,222}),
+    [{"COMMIT_TIME", COMMIT_TIME}] = ets:lookup(meta_info, "COMMIT_TIME"),
+    ets:insert(meta_info, {{rand_alea_state, self()}, random:seed(to_timestamp(COMMIT_TIME*WarehouseId*31*17*3))}),
     Seq = lists:seq(1, MaxItem),
     lager:info("Warehouse ~w: Populating stocks from 1 to ~w", [WarehouseId, MaxItem]),
     lists:foreach(fun(StockId) ->
@@ -231,7 +238,8 @@ populate_stock(TxServer, WarehouseId, PartList, MaxItem) ->
                       end, Seq).
 
 populate_district(TxServer, WarehouseId, DistrictId, PartList) ->
-    random:seed({WarehouseId, DistrictId, 22}),
+    [{"COMMIT_TIME", COMMIT_TIME}] = ets:lookup(meta_info, "COMMIT_TIME"),
+    ets:insert(meta_info, {{rand_alea_state, self()}, random:seed(to_timestamp(COMMIT_TIME*WarehouseId*DistrictId*31*17*3))}),
     lager:info("Warehouse ~w: Populating district ~w", [WarehouseId, DistrictId]),
     District = tpcc_tool:create_district(DistrictId, WarehouseId),
     DKey = tpcc_tool:get_key(District),
@@ -243,12 +251,12 @@ populate_district(TxServer, WarehouseId, DistrictId, PartList) ->
 populate_customers(TxServer, WarehouseId, DistrictId, PartList, MaxCustomer) ->
     lager:info("Warehouse ~w, district ~w: Populating customers from 1 to ~w", [WarehouseId, DistrictId, 
                 MaxCustomer]),
-    Seq = lists:seq(1, MaxCustomer),
     [{"COMMIT_TIME", COMMIT_TIME}] = ets:lookup(meta_info, "COMMIT_TIME"),
+    ets:insert(meta_info, {{rand_alea_state, self()}, random:seed(to_timestamp(COMMIT_TIME*WarehouseId*DistrictId*31*17*3))}),
+    Seq = lists:seq(1, MaxCustomer),
     HistoryTime = COMMIT_TIME - 123,
     CustomerTime = COMMIT_TIME - 13,
     lists:foreach(fun(CustomerId) ->
-                    random:seed({WarehouseId, DistrictId, CustomerId}),
                     CLast = tpcc_tool:c_last(WarehouseId),
                     Customer = tpcc_tool:create_customer(WarehouseId, DistrictId, CustomerId, CLast, CustomerTime),
                     CKey = tpcc_tool:get_key(Customer),
@@ -277,16 +285,15 @@ populate_customers(TxServer, WarehouseId, DistrictId, PartList, MaxCustomer) ->
 populate_orders(TxServer, WarehouseId, DistrictId, PartList, MaxCustomer) ->
     lager:info("Warehouse ~w, district ~w: Populating orders from 1 to ~w", [WarehouseId, DistrictId, 
                 ?NB_MAX_ORDER]),
+    [{"COMMIT_TIME", COMMIT_TIME}] = ets:lookup(meta_info, "COMMIT_TIME"),
+    ets:insert(meta_info, {{rand_alea_state, self()}, random:seed(to_timestamp(COMMIT_TIME*WarehouseId*DistrictId*31*17*3))}),
     Seq = lists:seq(1, ?NB_MAX_ORDER),
     L = lists:seq(1, MaxCustomer),
-    random:seed({WarehouseId, DistrictId, 1111}),
     NL = [X||{_,X} <- lists:sort([ {random:uniform(), N} || N <- L])],
-    [{"COMMIT_TIME", CommitTime}] = ets:lookup(meta_info, "COMMIT_TIME"),
     %% Magic number, assume that the order is created 1 sec ago.
-    Date = CommitTime - 1000,
+    Date = COMMIT_TIME - 1000,
     lists:foreach(fun(OrderId) ->
                     %Date = tpcc_tool:now_nsec(),
-                    random:seed({WarehouseId, DistrictId, OrderId}),
                     OOlCnt = tpcc_tool:random_num(5, 15),
                     Order = tpcc_tool:create_order(WarehouseId, DistrictId, OrderId, OOlCnt, lists:nth(OrderId, NL),
                         Date),
@@ -306,16 +313,16 @@ populate_orders(TxServer, WarehouseId, DistrictId, PartList, MaxCustomer) ->
 populate_orderlines(TxServer, WarehouseId, DistrictId, OrderId, OOlCnt, Date, PartList) ->
     %lager:info("Warehouse ~w, district ~w: Populating orderlines from 1 to ~w", [WarehouseId, DistrictId, 
     %            OOlCnt]),
+    [{"COMMIT_TIME", COMMIT_TIME}] = ets:lookup(meta_info, "COMMIT_TIME"),
+    ets:insert(meta_info, {{rand_alea_state, self()}, random:seed(to_timestamp(COMMIT_TIME*WarehouseId*DistrictId*31*17*3))}),
     Seq = lists:seq(1, OOlCnt),
     lists:foreach(fun(OrderlineId) -> 
-                    random:seed({WarehouseId, DistrictId, OrderlineId}),
                     {Amount, DDate} = case OrderId >= ?LIMIT_ORDER of
                                         true ->
                                             {tpcc_order:random_float(0.01, 9999.99, 2), 0};
                                         false ->
                                             {-1, Date}
                                       end,
-                    random:seed({WarehouseId, DistrictId, OrderlineId+10}),
                     OrderLine = tpcc_tool:create_orderline(WarehouseId, DistrictId, OrderId, OrderlineId, DDate, Amount),
                     OLKey = tpcc_tool:get_key(OrderLine),
                     put_to_node(TxServer, WarehouseId, PartList, OLKey, OrderLine)
@@ -418,3 +425,7 @@ read({server, TxServer}, Key, ExpandPartList, HashLength) ->
 get_rep_name(Target, Rep) ->
     list_to_atom(atom_to_list(Target)++"repl"++atom_to_list(Rep)).
 
+to_timestamp(Timestamp) ->
+    {Timestamp div 1000000000000, 
+                    Timestamp div 1000000 rem 1000000,
+                    Timestamp rem 1000000}.
