@@ -3,7 +3,7 @@
 ## Just to test.. 
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 
-AccessMaster="50 80 100"
+AccessMaster="50 80 0"
 for AM in $AccessMaster
 do
     AS=$((100-AM))

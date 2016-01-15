@@ -53,7 +53,7 @@ for f in data_list:
     path = os.path.join(input_folder, f+'/total_throughput')
     data = np.loadtxt(path, skiprows=1, usecols=range(1,5))
     f = f.replace('true','t').replace('false','f').replace('0000','0k')
-    xlabel.append(f)
+    xlabel.append(f[:14])
     colors = ['#EC5B56', ('#EC5B56', 'xx'), ('#EC5B56', '//')]
     # if it is not specula
     h = plt.bar(index, data[0,0], width, yerr=data[1,0], color='#79E026')
