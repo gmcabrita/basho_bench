@@ -101,8 +101,10 @@ new(Id) ->
     case Id of 1 -> ets:new(meta_info, [named_table, public, set]);
          _ -> ok
     end,
+    StartTime = os:timestamp(),
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
+               start_time=StartTime,
                replicas=MyReps,
                part_list = PartList,
                repl_list = ReplList,
@@ -117,7 +119,6 @@ new(Id) ->
 run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId, replicas=RepIds,
         stage=Stage, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId, start_time=StartedTime}) ->
     case Stage of
-	StartTime = os:timestamp(),
         init ->
            case DcId of
                 1 ->
@@ -130,7 +131,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
        COMMIT_TIME = read(TxServer, "COMMIT_TIME", FullPartList, HashLength),
        ets:insert(meta_info, {"COMMIT_TIME", COMMIT_TIME}),
        lager:info("CommitTime is ~w", [COMMIT_TIME]),
-       {ok, State#state{stage=to_item, start_time=StartTime}};
+       {ok, State#state{stage=to_item}};
     to_item -> 
         lager:info("Populating items"),
         populate_items(TxServer, NumDCs, DcId, PartList),
@@ -181,7 +182,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
                 {ok, State#state{district_id=DistrictId+1}};
             false ->
 		NowTime = os:timestamp(),
-		UsedTime = basho_bench_driver_tpcc:get_time_diff(StartedTime, NowTime) div 1000,
+		UsedTime = get_time_diff(StartedTime, NowTime) div 1000,
 		lager:info("************** Node ~w finished populating, used ~w sec. ***************", [DcId, UsedTime]),
                 {ok, State#state{stage=finished}}
         end;
@@ -219,11 +220,13 @@ populate_stock(TxServer, WarehouseId, PartList) ->
     random:seed({WarehouseId, 2,222}),
     Seq = lists:seq(1, ?NB_MAX_ITEM),
     lager:info("Warehouse ~w: Populating stocks from 1 to ~w", [WarehouseId, ?NB_MAX_ITEM]),
-    lists:foreach(fun(StockId) ->
+    
+    FinalWS = lists:foldl(fun(StockId, WriteSet) ->
                       Stock = tpcc_tool:create_stock(StockId, WarehouseId),
                       Key = tpcc_tool:get_key(Stock),
-                      put_to_node(TxServer, WarehouseId, PartList, Key, Stock)
-                      end, Seq).
+                      defer_put(WarehouseId, PartList, Key, Stock, WriteSet)
+                      end, dict:new(), Seq),
+    multi_put(TxServer, WarehouseId, PartList, FinalWS).
 
 populate_district(TxServer, WarehouseId, DistrictId, PartList) ->
     random:seed({WarehouseId, DistrictId, 22}),
@@ -242,14 +245,14 @@ populate_customers(TxServer, WarehouseId, DistrictId, PartList) ->
     [{"COMMIT_TIME", COMMIT_TIME}] = ets:lookup(meta_info, "COMMIT_TIME"),
     HistoryTime = COMMIT_TIME - 123,
     CustomerTime = COMMIT_TIME - 13,
-    lists:foreach(fun(CustomerId) ->
+    FinalWS = lists:foldl(fun(CustomerId, WS) ->
                     random:seed({WarehouseId, DistrictId, CustomerId}),
                     CLast = tpcc_tool:c_last(WarehouseId),
                     Customer = tpcc_tool:create_customer(WarehouseId, DistrictId, CustomerId, CLast, CustomerTime),
                     CKey = tpcc_tool:get_key(Customer),
-                    put_to_node(TxServer, WarehouseId, PartList, CKey, Customer),
+                    WS1 = defer_put(WarehouseId, PartList, CKey, Customer, WS),
                     CBalanceKey = CKey++":c_balance",
-                    put_to_node(TxServer, WarehouseId, PartList, CBalanceKey, -10),
+                    WS2 = defer_put(WarehouseId, PartList, CBalanceKey, -10, WS1),
                     %CustomerLookup = tpcc_tool:create_customer_lookup(WarehouseId, DistrictId, CLast),
                     CLKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CLast}, customer_lookup),
                     CustomerLookup = 
@@ -263,11 +266,12 @@ populate_customers(TxServer, WarehouseId, DistrictId, PartList) ->
                     Ids = CustomerLookup#customer_lookup.ids,
                     %lager:info("Adding ~w to ids ~w", [CustomerId, Ids]),
                     CustomerLookup1 = CustomerLookup#customer_lookup{ids=[CustomerId|Ids]}, 
-                    put_to_node(TxServer, WarehouseId, PartList, CLKey, CustomerLookup1),
+                    WS3 = defer_put(WarehouseId, PartList, CLKey, CustomerLookup1, WS2),
                     History = tpcc_tool:create_history(WarehouseId, DistrictId, CustomerId, HistoryTime),
                     HKey = tpcc_tool:get_key(History),
-                    put_to_node(TxServer, WarehouseId, PartList, HKey, History)
-                end, Seq).
+                    defer_put(WarehouseId, PartList, HKey, History, WS3)
+                end, dict:new(), Seq),
+    multi_put(TxServer, WarehouseId, PartList, FinalWS).
 
 populate_orders(TxServer, WarehouseId, DistrictId, PartList) ->
     lager:info("Warehouse ~w, district ~w: Populating orders from 1 to ~w", [WarehouseId, DistrictId, 
@@ -279,30 +283,31 @@ populate_orders(TxServer, WarehouseId, DistrictId, PartList) ->
     [{"COMMIT_TIME", CommitTime}] = ets:lookup(meta_info, "COMMIT_TIME"),
     %% Magic number, assume that the order is created 1 sec ago.
     Date = CommitTime - 1000,
-    lists:foreach(fun(OrderId) ->
+    FinalWS = lists:foldl(fun(OrderId, WS) ->
                     %Date = tpcc_tool:now_nsec(),
                     random:seed({WarehouseId, DistrictId, OrderId}),
                     OOlCnt = tpcc_tool:random_num(5, 15),
                     Order = tpcc_tool:create_order(WarehouseId, DistrictId, OrderId, OOlCnt, lists:nth(OrderId, NL),
                         Date),
                     OKey = tpcc_tool:get_key(Order),
-                    put_to_node(TxServer, WarehouseId, PartList, OKey, Order),
+                    WS1 = defer_put(WarehouseId, PartList, OKey, Order, WS),
                     populate_orderlines(TxServer, WarehouseId, DistrictId, OrderId, OOlCnt, Date, PartList),
                     case OrderId >= ?LIMIT_ORDER of
                         true ->
                             NewOrder = tpcc_tool:create_neworder(WarehouseId, DistrictId, OrderId),
                             NOKey = tpcc_tool:get_key(NewOrder),
-                            put_to_node(TxServer, WarehouseId, PartList, NOKey, NewOrder);
+                            defer_put(WarehouseId, PartList, NOKey, NewOrder, WS1);
                         false ->
-                            ok
+                            WS1
                     end
-                end, Seq).
+                end, dict:new(), Seq),
+    multi_put(TxServer, WarehouseId, PartList, FinalWS).
 
 populate_orderlines(TxServer, WarehouseId, DistrictId, OrderId, OOlCnt, Date, PartList) ->
     %lager:info("Warehouse ~w, district ~w: Populating orderlines from 1 to ~w", [WarehouseId, DistrictId, 
     %            OOlCnt]),
     Seq = lists:seq(1, OOlCnt),
-    lists:foreach(fun(OrderlineId) -> 
+    FinalWS = lists:foldl(fun(OrderlineId, WS) -> 
                     random:seed({WarehouseId, DistrictId, OrderlineId}),
                     {Amount, DDate} = case OrderId >= ?LIMIT_ORDER of
                                         true ->
@@ -313,17 +318,19 @@ populate_orderlines(TxServer, WarehouseId, DistrictId, OrderId, OOlCnt, Date, Pa
                     random:seed({WarehouseId, DistrictId, OrderlineId+10}),
                     OrderLine = tpcc_tool:create_orderline(WarehouseId, DistrictId, OrderId, OrderlineId, DDate, Amount),
                     OLKey = tpcc_tool:get_key(OrderLine),
-                    put_to_node(TxServer, WarehouseId, PartList, OLKey, OrderLine)
-                end, Seq).
+                    defer_put(WarehouseId, PartList, OLKey, OrderLine, WS)
+                end, dict:new(), Seq),
+    multi_put(TxServer, WarehouseId, PartList, FinalWS).
     
 put_range_items(TxServer, FirstItem, LastItem, DcId, PartList) ->
     lager:info("Populating items from ~w to ~w", [FirstItem, LastItem]),
     Seq = lists:seq(FirstItem, LastItem),
-    lists:foreach(fun(ItemId) ->
+    FinalWS = lists:foldl(fun(ItemId, WS) ->
                     Item = tpcc_tool:create_item(ItemId),
                     Key = tpcc_tool:get_key(Item),
-                    put_to_node(TxServer, DcId, PartList, Key, Item)
-                    end, Seq).
+                    defer_put(DcId, PartList, Key, Item, WS)
+                    end, dict:new(), Seq),
+    multi_put(TxServer, DcId, PartList, FinalWS).
 
 init_params(TxServer, FullPartList, HashLength) ->
     K1 = "C_C_LAST",
@@ -342,10 +349,10 @@ init_params(TxServer, FullPartList, HashLength) ->
     lager:info("Putting CCID to ~w", [Partition2]),
     lager:info("Putting COLIID to ~w", [Partition3]),
     lager:info("Putting COMMIT_TIME to ~w", [Partition4]),
-    single_put(TxServer, Partition1, K1, C_C_LAST, COMMIT_TIME),
-    single_put(TxServer, Partition2, K2, C_C_ID, COMMIT_TIME),
-    single_put(TxServer, Partition3, K3, C_OL_I_ID, COMMIT_TIME),
-    single_put(TxServer, Partition4, K4, COMMIT_TIME, COMMIT_TIME).
+    put(TxServer, Partition1, [{K1, C_C_LAST}], COMMIT_TIME),
+    put(TxServer, Partition2, [{K2, C_C_ID}], COMMIT_TIME),
+    put(TxServer, Partition3, [{K3, C_OL_I_ID}], COMMIT_TIME),
+    put(TxServer, Partition4, [{K4, COMMIT_TIME}], COMMIT_TIME).
 
 get_partition(Key, PartList, HashLength) ->
     Num = crypto:bytes_to_integer(erlang:md5(Key)) rem HashLength +1,
@@ -356,15 +363,29 @@ put_to_node(TxServer, DcId, PartList, Key, Value) ->
     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
     Part = lists:nth(Index, L),    
     [{"COMMIT_TIME", CommitTime}] = ets:lookup(meta_info, "COMMIT_TIME"),
-    single_put(TxServer, Part, Key, Value, CommitTime).
+    put(TxServer, Part, [{Key, Value}], CommitTime).
 
-single_put(TxServer, Part, Key, Value, CommitTime) ->
+defer_put(DcId, PartList, Key, Value, WriteSet) ->
+    {_, L} = lists:nth(DcId, PartList),
+    Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
+    dict:append(Index, {Key, Value}, WriteSet).
+
+multi_put(TxServer, DcId, PartList, WriteSet) ->
+    {_, L} = lists:nth(DcId, PartList),
+    DictList = dict:to_list(WriteSet),
+    [{"COMMIT_TIME", CommitTime}] = ets:lookup(meta_info, "COMMIT_TIME"),
+    lists:foreach(fun({Index, KeyValues}) ->
+            Part = lists:nth(Index, L),    
+            put(TxServer, Part, KeyValues, CommitTime)
+            end, DictList).              
+
+put(TxServer, Part, KeyValues, CommitTime) ->
     %lager:info("Single Puting [~p, ~p] to ~w", [Key, Value, Part]),
     case TxServer of
         {server, S} ->
-            {ok, _} = tx_cert_sup:append_value(S, Part, Key, Value, CommitTime);
+            {ok, _} = tx_cert_sup:append_values(S, Part, KeyValues, CommitTime);
         {rep, S} ->
-            ok = data_repl_serv:append_value(S, Key, Value, CommitTime)
+            ok = data_repl_serv:append_values(S, KeyValues, CommitTime)
     end.
 
 read_from_node(TxServer, Key, DcId, PartList) ->
@@ -413,3 +434,5 @@ read({server, TxServer}, Key, ExpandPartList, HashLength) ->
 get_rep_name(Target, Rep) ->
     list_to_atom(atom_to_list(Target)++"repl"++atom_to_list(Rep)).
 
+get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
+    ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.
