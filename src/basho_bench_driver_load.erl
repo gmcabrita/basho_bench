@@ -31,6 +31,7 @@
 
 -record(state, {worker_id,
                 part_list,
+		start_time,
                 full_part_list,
                 hash_length,
                 repl_list,
@@ -114,8 +115,9 @@ new(Id) ->
 
 %% @doc Read a key
 run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId, replicas=RepIds,
-        stage=Stage, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId}) ->
+        stage=Stage, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId, start_time=StartedTime}) ->
     case Stage of
+	StartTime = os:timestamp(),
         init ->
            case DcId of
                 1 ->
@@ -128,7 +130,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
        COMMIT_TIME = read(TxServer, "COMMIT_TIME", FullPartList, HashLength),
        ets:insert(meta_info, {"COMMIT_TIME", COMMIT_TIME}),
        lager:info("CommitTime is ~w", [COMMIT_TIME]),
-       {ok, State#state{stage=to_item}};
+       {ok, State#state{stage=to_item, start_time=StartTime}};
     to_item -> 
         lager:info("Populating items"),
         populate_items(TxServer, NumDCs, DcId, PartList),
@@ -178,6 +180,9 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
                     RepIds),
                 {ok, State#state{district_id=DistrictId+1}};
             false ->
+		NowTime = os:timestamp(),
+		UsedTime = basho_bench_driver_tpcc:get_time_diff(StartedTime, NowTime) div 1000,
+		lager:info("************** Node ~w finished populating, used ~w sec. ***************", [DcId, UsedTime]),
                 {ok, State#state{stage=finished}}
         end;
     finished ->
