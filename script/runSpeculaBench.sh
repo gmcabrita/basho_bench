@@ -28,7 +28,7 @@ mkdir $Folder
 Tpcc="./basho_bench/examples/tpcc.config"
 Load="./basho_bench/examples/load.config"
 Ant="./antidote/rel/antidote/antidote.config"
-sudo rm config
+sudo rm -f config
 echo tpcc concurrent $1 >> config 
 echo tpcc access_master $2  >> config
 echo tpcc access_slave $3 >> config
