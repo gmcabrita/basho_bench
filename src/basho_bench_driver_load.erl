@@ -30,9 +30,6 @@
 -define(TIMEOUT, 20000).
 
 -record(state, {worker_id,
-		        max_item,
-		        max_customer,
-		        max_district,
                 part_list,
                 full_part_list,
                 hash_length,
@@ -67,9 +64,6 @@ new(Id) ->
     MyNode = basho_bench_config:get(antidote_mynode),
     Cookie = basho_bench_config:get(antidote_cookie),
     ToSleep = basho_bench_config:get(to_sleep),
-    MaxItem = basho_bench_config:get(max_item),
-    MaxCustomer = basho_bench_config:get(max_customer),
-    MaxDistrict = basho_bench_config:get(max_district),
 
     case net_kernel:start(MyNode) of
         {ok, _} ->
@@ -109,9 +103,6 @@ new(Id) ->
     {ok, #state{worker_id=Id,
                my_tx_server=MyTxServer,
                replicas=MyReps,
-	           max_item=MaxItem,
-	           max_customer=MaxCustomer,
-		       max_district=MaxDistrict,
                part_list = PartList,
                repl_list = ReplList,
                full_part_list = FullPartList,
@@ -123,8 +114,7 @@ new(Id) ->
 
 %% @doc Read a key
 run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId, replicas=RepIds,
-        stage=Stage, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId, max_item=MaxItem,
-        max_customer=MaxCustomer, max_district=MaxDistrict}) ->
+        stage=Stage, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId}) ->
     case Stage of
         init ->
            case DcId of
@@ -141,8 +131,8 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
        {ok, State#state{stage=to_item}};
     to_item -> 
         lager:info("Populating items"),
-        populate_items(TxServer, NumDCs, DcId, PartList, MaxItem),
-        lists:foreach(fun({RepDcId, Replica}) -> populate_items(Replica, NumDCs, RepDcId, PartList, MaxItem) end, 
+        populate_items(TxServer, NumDCs, DcId, PartList),
+        lists:foreach(fun({RepDcId, Replica}) -> populate_items(Replica, NumDCs, RepDcId, PartList) end, 
                   RepIds),
         {ok, State#state{stage=to_warehouse}};
     to_warehouse -> 
@@ -153,12 +143,12 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
         {ok, State#state{stage=to_stock}};
     to_stock ->
         lager:info("Populating stocks"),
-        populate_stock(TxServer, DcId, PartList, MaxItem),
-        lists:foreach(fun({RepDcId, Replica}) -> populate_stock(Replica, RepDcId, PartList, MaxItem) end, 
+        populate_stock(TxServer, DcId, PartList),
+        lists:foreach(fun({RepDcId, Replica}) -> populate_stock(Replica, RepDcId, PartList) end, 
                  RepIds),
         {ok, State#state{stage=to_district, district_id=1}};
     to_district ->
-        case DistrictId =< MaxDistrict of
+        case DistrictId =< ?NB_MAX_DISTRICT of
             true ->
                 lager:info("Populating districts ~w", [DistrictId]),
                 populate_district(TxServer, DcId, DistrictId, PartList),
@@ -169,22 +159,22 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
                 {ok, State#state{stage=to_customer, district_id=1}}
         end;
     to_customer ->
-        case DistrictId =< MaxDistrict of
+        case DistrictId =< ?NB_MAX_DISTRICT of
             true ->
                 lager:info("Populating customers for ~w", [DistrictId]),
-                populate_customers(TxServer, DcId, DistrictId, PartList, MaxCustomer),
-                lists:foreach(fun({RepDcId, Replica}) -> populate_customers(Replica, RepDcId, DistrictId, PartList, MaxCustomer) end, 
+                populate_customers(TxServer, DcId, DistrictId, PartList),
+                lists:foreach(fun({RepDcId, Replica}) -> populate_customers(Replica, RepDcId, DistrictId, PartList) end, 
                     RepIds),
                 {ok, State#state{district_id=DistrictId+1}};
             false ->
                 {ok, State#state{stage=to_order, district_id=1}}
         end;
     to_order ->
-        case DistrictId =< MaxDistrict of
+        case DistrictId =< ?NB_MAX_DISTRICT of
             true ->
                 lager:info("Populating orders for ~w", [DistrictId]),
-                populate_orders(TxServer, DcId, DistrictId, PartList, MaxCustomer),
-                lists:foreach(fun({RepDcId, Replica}) -> populate_orders(Replica, RepDcId, DistrictId, PartList, MaxCustomer) end, 
+                populate_orders(TxServer, DcId, DistrictId, PartList),
+                lists:foreach(fun({RepDcId, Replica}) -> populate_orders(Replica, RepDcId, DistrictId, PartList) end, 
                     RepIds),
                 {ok, State#state{district_id=DistrictId+1}};
             false ->
@@ -196,10 +186,10 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
         {error, aborted, State}
     end.
 
-populate_items(TxServer, NumDCs, DcId, PartList, MaxItem) ->
+populate_items(TxServer, NumDCs, DcId, PartList) ->
     random:seed({DcId, 122,32}),
-    Remainder = MaxItem rem NumDCs,
-    DivItems = (MaxItem-Remainder)/NumDCs,
+    Remainder = ?NB_MAX_ITEM rem NumDCs,
+    DivItems = (?NB_MAX_ITEM - Remainder)/NumDCs,
     FirstItem = ((DcId-1) * DivItems) + 1,
     LastItem = case DcId of
                     NumDCs ->
@@ -220,10 +210,10 @@ populate_warehouse(TxServer, DcId, PartList)->
     put_to_node(TxServer, DcId, PartList, WYtdKey, WYtd),
     put_to_node(TxServer, DcId, PartList, WKey, Warehouse).
 
-populate_stock(TxServer, WarehouseId, PartList, MaxItem) ->
+populate_stock(TxServer, WarehouseId, PartList) ->
     random:seed({WarehouseId, 2,222}),
-    Seq = lists:seq(1, MaxItem),
-    lager:info("Warehouse ~w: Populating stocks from 1 to ~w", [WarehouseId, MaxItem]),
+    Seq = lists:seq(1, ?NB_MAX_ITEM),
+    lager:info("Warehouse ~w: Populating stocks from 1 to ~w", [WarehouseId, ?NB_MAX_ITEM]),
     lists:foreach(fun(StockId) ->
                       Stock = tpcc_tool:create_stock(StockId, WarehouseId),
                       Key = tpcc_tool:get_key(Stock),
@@ -240,10 +230,10 @@ populate_district(TxServer, WarehouseId, DistrictId, PartList) ->
     YtdKey = DKey++":d_ytd",
     put_to_node(TxServer, WarehouseId, PartList, YtdKey, DYtd).
 
-populate_customers(TxServer, WarehouseId, DistrictId, PartList, MaxCustomer) ->
+populate_customers(TxServer, WarehouseId, DistrictId, PartList) ->
     lager:info("Warehouse ~w, district ~w: Populating customers from 1 to ~w", [WarehouseId, DistrictId, 
-                MaxCustomer]),
-    Seq = lists:seq(1, MaxCustomer),
+                ?NB_MAX_CUSTOMER]),
+    Seq = lists:seq(1, ?NB_MAX_CUSTOMER),
     [{"COMMIT_TIME", COMMIT_TIME}] = ets:lookup(meta_info, "COMMIT_TIME"),
     HistoryTime = COMMIT_TIME - 123,
     CustomerTime = COMMIT_TIME - 13,
@@ -274,11 +264,11 @@ populate_customers(TxServer, WarehouseId, DistrictId, PartList, MaxCustomer) ->
                     put_to_node(TxServer, WarehouseId, PartList, HKey, History)
                 end, Seq).
 
-populate_orders(TxServer, WarehouseId, DistrictId, PartList, MaxCustomer) ->
+populate_orders(TxServer, WarehouseId, DistrictId, PartList) ->
     lager:info("Warehouse ~w, district ~w: Populating orders from 1 to ~w", [WarehouseId, DistrictId, 
                 ?NB_MAX_ORDER]),
     Seq = lists:seq(1, ?NB_MAX_ORDER),
-    L = lists:seq(1, MaxCustomer),
+    L = lists:seq(1, ?NB_MAX_CUSTOMER),
     random:seed({WarehouseId, DistrictId, 1111}),
     NL = [X||{_,X} <- lists:sort([ {random:uniform(), N} || N <- L])],
     [{"COMMIT_TIME", CommitTime}] = ets:lookup(meta_info, "COMMIT_TIME"),
