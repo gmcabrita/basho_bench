@@ -108,8 +108,8 @@ main(Args) ->
     %% Pull the runtime duration from the config and sleep until that's passed OR
     %% the supervisor process exits
     Mref = erlang:monitor(process, whereis(basho_bench_sup)),
-    DurationMins = basho_bench_config:get(duration),
-    wait_for_stop(Mref, DurationMins).
+    DurationSecs = basho_bench_config:get(duration),
+    wait_for_stop(Mref, DurationSecs).
 
 
 %% ====================================================================
@@ -183,8 +183,8 @@ wait_for_stop(Mref, infinity) ->
             run_post_hook(),
             ?CONSOLE("Test stopped: ~p\n", [Info])
     end;
-wait_for_stop(Mref, DurationMins) ->
-    Duration = timer:minutes(DurationMins) + timer:seconds(1),
+wait_for_stop(Mref, DurationSecs) ->
+    Duration = timer:seconds(DurationSecs) + timer:seconds(1),
     receive
         {'DOWN', Mref, _, _, Info} ->
             lager:info("Down!!!!"),
@@ -201,7 +201,7 @@ wait_for_stop(Mref, DurationMins) ->
             run_post_hook(),
 	    lager:info("Shut down after durationg"),
             basho_bench_app:stop(),
-            ?CONSOLE("Test completed after ~p mins.\n", [DurationMins])
+            ?CONSOLE("Test completed after ~p secs.\n", [DurationSecs])
     end.
 
 %%
