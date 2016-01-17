@@ -44,7 +44,7 @@ then
     echo load duration 150 >> config
 elif [ "$WPerDc" -eq 2 ]
 then
-    echo load duration 220 >> config
+    echo load duration 210 >> config
 else
     echo load duration 250 >> config
 fi
@@ -88,4 +88,4 @@ cat $Folder/$N-stat >> $Folder/stat
 rm $Folder/$N-stat
 done
 
-echo $1 $2 $3 $4 $5 $6 $NumPartitions > $Folder/config
+echo $1 $2 $3 $4 $5 $6 $WPerDc > $Folder/config
