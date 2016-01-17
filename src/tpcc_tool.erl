@@ -236,7 +236,7 @@ set_credit() ->
     end.
 
 now_nsec() ->
-    {MegaSecs, Secs, MicroSecs} = now(),
+    {MegaSecs, Secs, MicroSecs} = os:timestamp(),
     (MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs.
 
 get_carrier_id(OrderId) ->

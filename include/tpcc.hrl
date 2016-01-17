@@ -1,7 +1,7 @@
 -define(A_C_LAST, 255).
 -define(A_C_ID, 1023).
 -define(A_OL_I_ID, 8191).
--define(NB_MAX_ITEM, 40000).
+-define(NB_MAX_ITEM, 100000).
 %-define(NB_MAX_CUSTOMER, 100).
 %-define(NB_MAX_ORDER, 100).
 -define(NB_MAX_CUSTOMER, 1000).
@@ -16,7 +16,8 @@
 -define(MIN_ITEM, 5).
 -define(MAX_ITEM, 15).
 -define(NUM_NAMES, 2).
--define(NAMES, ["BAR","OUGHT","ABLE","PRI"]).
+-define(NAMES, ["BAR","OUGHT","ABLE","PRI","PRES","ESE","ANTI","CALLY"]).
+%-define(NAMES, ["BAR","OUGHT","ABLE"]).
 %% I added that!! (To prevent metadata growing..)
 -define(MAX_NEW_ORDER, 4000).
 

@@ -102,8 +102,10 @@ def add_duration(nodes, dict, total_dict, folder):
         stat_lines = [line.rstrip('\n') for line in open(os.path.join(folder, 'stat'))]
         [stat_line] = [x for x in stat_lines if x.startswith(node)]
         stat_data = stat_line.split()
-        specula_abort_dur = float(stat_data[21])/1000 
-        specula_commit_dur = float(stat_data[23])/1000
+        local_cert_dur = float(stat_data[21])/1000
+        specula_abort_dur = float(stat_data[23])/1000 
+        specula_commit_dur = float(stat_data[25])/1000
+        dur_avg.append(local_cert_dur), 
         dur_avg.append(specula_abort_dur), 
         dur_avg.append(specula_commit_dur)
         dict[node].append(dur_avg)

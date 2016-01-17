@@ -79,9 +79,9 @@ for f in data_list:
         # has remote commit 
         (inter_ind, remote_commit) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,4], data[1,4])], crc, inter_ind, remote_commit)
         # has remote specula abort
-        (inter_ind, specula_abort) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,5], data[1,5]), (data[0,6], data[1,6])], csa, inter_ind, specula_abort)
+        (inter_ind, specula_abort) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,6], data[1,6]), (data[0,5]-data[0,6], data[1,5]), (data[0,7], data[1,7])], csa, inter_ind, specula_abort)
         # has remote specula commit 
-        (inter_ind, specula_commit) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,5], data[1,5]), (data[0,7], data[1,7])], csc, inter_ind, specula_commit)
+        (inter_ind, specula_commit) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,6], data[1,6]), (data[0,5]-data[0,6], data[1,5]), (data[0,8], data[1,8])], csc, inter_ind, specula_commit)
     ind += 1
 
 ymax = data.max()
