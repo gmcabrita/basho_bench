@@ -6,17 +6,12 @@ AllNodes=`cat script/allnodes`
 if [ $# == 7 ]
 then
     echo "Use default num for district, item and customer"
-    MaxDistrict=10
-    MaxItem=10000
-    MaxCustomer=100
-elif [ $# == 10 ]
+    NumPartitions=8
+elif [ $# == 8 ]
 then
-    echo "MaxDistrict is" $8 ", MaxItem is "$9 ", MaxCustomer is "$10
-    MaxDistrict=$8
-    MaxItem=$9
-    MaxCustomer=$10
+    NumPartitions=$8 
 else
-    echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, fast_reply, specula_length, folder, [num_district, num_item, num_customers]"
+    echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, fast_reply, specula_length, folder, [num_partitions]"
     exit
 fi
 
@@ -28,16 +23,11 @@ mkdir $Folder
 Tpcc="./basho_bench/examples/tpcc.config"
 Load="./basho_bench/examples/load.config"
 Ant="./antidote/rel/antidote/antidote.config"
+AppConfig="./antidote/rel/antidote/etc/app.config"
 sudo rm -f config
 echo tpcc concurrent $1 >> config 
 echo tpcc access_master $2  >> config
 echo tpcc access_slave $3 >> config
-echo tpcc max_district $MaxDistrict >> config 
-echo tpcc max_customer $MaxCustomer  >> config
-echo tpcc max_item $MaxItem   >> config
-echo load max_district $MaxDistrict  >> config
-echo load max_customer $MaxCustomer  >> config
-echo load max_item $MaxItem  >> config
 echo ant  do_specula $4  >> config
 echo ant fast_reply $5   >> config
 echo ant specula_length $6  >> config
@@ -47,6 +37,9 @@ echo load duration 180 >> config
 echo tpcc to_sleep 9000 >> config
 echo load to_sleep 9000 >> config
 echo ant do_repl true >> config
+echo app_config ring_creation_size $NumPartitions >> config
+
+exit
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
@@ -86,4 +79,4 @@ cat $Folder/$N-stat >> $Folder/stat
 rm $Folder/$N-stat
 done
 
-echo $1 $2 $3 $4 $5 $6 $MaxDistrict $MaxItem $MaxCustomer > $Folder/config
+echo $1 $2 $3 $4 $5 $6 $7 > $Folder/config

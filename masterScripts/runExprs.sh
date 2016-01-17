@@ -4,9 +4,9 @@
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 AM=50
 AS=50
-    ./script/runSpeculaBench.sh 1 $AM $AS true true 1 specula_tests
-    ./script/runSpeculaBench.sh 1 $AM $AS true true 1 specula_tests
-    ./script/runSpeculaBench.sh 1 $AM $AS true true 2 specula_tests
+    ./script/runSpeculaBench.sh 1 $AM $AS true true 1 specula_tests 4
+    ./script/runSpeculaBench.sh 1 $AM $AS true true 2 specula_tests 8
+    exit
     ./script/runSpeculaBench.sh 1 $AM $AS true true 2 specula_tests
     ./script/runSpeculaBench.sh 1 $AM $AS true true 4 specula_tests
     ./script/runSpeculaBench.sh 1 $AM $AS true true 4 specula_tests
