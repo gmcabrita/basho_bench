@@ -41,10 +41,10 @@ echo tpcc w_per_dc $WPerDc >> config
 echo load w_per_dc $WPerDc >> config
 if [ "$WPerDc" -eq 1 ]
 then
-    echo load duration 165 >> config
+    echo load duration 150 >> config
 elif [ "$WPerDc" -eq 2 ]
 then
-    echo load duration 300 >> config
+    echo load duration 220 >> config
 else
     echo load duration 250 >> config
 fi
