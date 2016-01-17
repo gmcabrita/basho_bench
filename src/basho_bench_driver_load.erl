@@ -145,7 +145,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
         WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
         lists:foreach(fun(WId) -> populate_warehouse(TxServer, WId, PartList, WPerDc) end, WSeq),
         lists:foreach(fun({RepDcId, Replica}) -> 
-            RepWSeq = lists:seq((WPerDc-1)*RepDcId+1, RepDcId*WPerDc),
+            RepWSeq = lists:seq(WPerDc*(RepDcId-1)+1, RepDcId*WPerDc),
             lists:foreach(fun(RepWId) -> populate_warehouse(Replica, RepWId, PartList, WPerDc) end, RepWSeq) end, 
                   RepIds),
         {ok, State#state{stage=to_stock}};
@@ -154,7 +154,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
         WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
         lists:foreach(fun(WId) -> populate_stock(TxServer, WId, PartList, WPerDc) end, WSeq),
         lists:foreach(fun({RepDcId, Replica}) -> 
-            RepWSeq = lists:seq((WPerDc-1)*RepDcId+1, RepDcId*WPerDc),
+            RepWSeq = lists:seq(WPerDc*(RepDcId-1)+1, RepDcId*WPerDc),
             lists:foreach(fun(RepWId) -> populate_stock(Replica, RepWId, PartList, WPerDc) end, RepWSeq) end, 
                  RepIds),
         {ok, State#state{stage=to_district, district_id=1}};
@@ -165,7 +165,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
                 WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
                 lists:foreach(fun(WId) -> populate_district(TxServer, WId, DistrictId, PartList, WPerDc) end, WSeq),
                 lists:foreach(fun({RepDcId, Replica}) -> 
-                    RepWSeq = lists:seq((WPerDc-1)*RepDcId+1, RepDcId*WPerDc),
+                    RepWSeq = lists:seq(WPerDc*(RepDcId-1)+1, RepDcId*WPerDc),
                     lists:foreach(fun(RepWId) -> populate_district(Replica, RepWId, DistrictId, PartList, WPerDc) end, RepWSeq) end, 
                     RepIds),
                 {ok, State#state{district_id=DistrictId+1}};
@@ -179,7 +179,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
                 WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
                 lists:foreach(fun(WId) -> populate_customers(TxServer, WId, DistrictId, PartList, WPerDc) end, WSeq),
                 lists:foreach(fun({RepDcId, Replica}) -> 
-                    RepWSeq = lists:seq((WPerDc-1)*RepDcId+1, RepDcId*WPerDc),
+                    RepWSeq = lists:seq(WPerDc*(RepDcId-1)+1, RepDcId*WPerDc),
                     lists:foreach(fun(RepWId) -> populate_customers(Replica, RepWId, DistrictId, PartList, WPerDc) end, RepWSeq) end, 
                     RepIds),
                 {ok, State#state{district_id=DistrictId+1}};
@@ -193,7 +193,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
                 WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
                 lists:foreach(fun(WId) -> populate_orders(TxServer, WId, DistrictId, PartList, WPerDc) end, WSeq),
                 lists:foreach(fun({RepDcId, Replica}) -> 
-                    RepWSeq = lists:seq((WPerDc-1)*RepDcId+1, RepDcId*WPerDc),
+                    RepWSeq = lists:seq(WPerDc*(RepDcId-1)+1, RepDcId*WPerDc),
                     lists:foreach(fun(RepWId) -> populate_orders(Replica, RepWId, DistrictId, PartList, WPerDc) end, RepWSeq) end, 
                     RepIds),
                 {ok, State#state{district_id=DistrictId+1}};
