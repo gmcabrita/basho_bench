@@ -12,7 +12,7 @@ do
     elif [ ${List[0]} == "load" ]
     then
 	File="examples/load.config"
-    elif [ ${List[0]} == "app_config"]
+    elif [ ${List[0]} == "app_config" ]
     then
         File="../antidote/rel/antidote/etc/app.config"
 	Type=1
