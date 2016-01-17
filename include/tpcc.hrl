@@ -1,7 +1,7 @@
 -define(A_C_LAST, 255).
 -define(A_C_ID, 1023).
 -define(A_OL_I_ID, 8191).
--define(NB_MAX_ITEM, 100000).
+-define(NB_MAX_ITEM, 40000).
 %-define(NB_MAX_CUSTOMER, 100).
 %-define(NB_MAX_ORDER, 100).
 -define(NB_MAX_CUSTOMER, 1000).

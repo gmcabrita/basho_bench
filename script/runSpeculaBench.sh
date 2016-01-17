@@ -39,7 +39,6 @@ echo load to_sleep 9000 >> config
 echo ant do_repl true >> config
 echo app_config ring_creation_size $NumPartitions >> config
 
-exit
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
@@ -79,4 +78,4 @@ cat $Folder/$N-stat >> $Folder/stat
 rm $Folder/$N-stat
 done
 
-echo $1 $2 $3 $4 $5 $6 $7 > $Folder/config
+echo $1 $2 $3 $4 $5 $6 $NumPartitions > $Folder/config
