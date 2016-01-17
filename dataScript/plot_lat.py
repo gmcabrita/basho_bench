@@ -47,18 +47,18 @@ specula_abort = 0
 specula_commit = 0
 for f in data_list:
     path = os.path.join(input_folder, f+'/total_duration')
-    data = np.loadtxt(path, skiprows=1, usecols=range(1,9))
+    data = np.loadtxt(path, skiprows=1, usecols=range(1,10))
     read_lat = data[0,0]
     read_err = data[1,0]
     inter_ind = ind
     f = f.replace('true','t').replace('false','f').replace('0000','0k')
-    xlabel.append(f[:14])
+    xlabel.append(f)
     cla = ['#D3E54E', '#EC5B56']
     clc = ['#D3E54E', '#79E026']
     cra = ['#D3E54E', ('#EC5B56', '//')]
     crc = ['#D3E54E', ('#79E026', '//')]
-    csa = ['#D3E54E', '#33CCB3', ('#EC5B56', 'xx')]
-    csc = ['#D3E54E', '#33CCB3', ('#79E026', 'xx')]
+    csa = ['#D3E54E', '#FFFFFF', '#33CCB3', ('#EC5B56', 'xx')]
+    csc = ['#D3E54E', '#FFFFFF', '#33CCB3', ('#79E026', 'xx')]
     # if it is not specula
     if f.find('false') != -1:
         # has local abort

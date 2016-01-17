@@ -35,6 +35,7 @@
                 part_list,
                 expand_part_list,
                 hash_length,
+                w_per_dc,
                 c_c_last,
                 c_c_id,
                 c_ol_i_id,
@@ -82,6 +83,7 @@ new(Id) ->
    
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
+    WPerDc = basho_bench_config:get(w_per_dc),
 
     case net_kernel:start(MyNode) of
         {ok, _} ->
@@ -139,6 +141,7 @@ new(Id) ->
                access_master=AccessMaster,
                access_slave=AccessSlave,
                part_list = PartList,
+               w_per_dc=WPerDc,
                my_rep_list = MyRepList,
                my_rep_ids = MyRepIds,
                no_rep_list = NoRepList,
@@ -165,8 +168,8 @@ new(Id) ->
 %% objects. 
 run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
         my_rep_ids=MyRepIds, my_rep_list=MyRepList,  no_rep_ids=NoRepIds, dc_id=DcId, 
-        no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, 
-        no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, 
+        no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, worker_id=WorkerId,
+        no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, w_per_dc=WPerDc, 
         item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
     RS = dict:new(),
     WS = dict:new(),
@@ -174,7 +177,8 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %RemoteWS = dict:new(),
 
 	%% TODO: maybe need to change warehouse
-    WarehouseId = DcId,
+    WarehouseId = WPerDc * (DcId-1) + WorkerId rem WPerDc + 1,
+    %lager:info("MyDc is ~w, warehouse is ~w", [DcId, WarehouseId]),
     DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
     CustomerId = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
     NumItems = tpcc_tool:random_num(?MIN_ITEM, ?MAX_ITEM),
@@ -184,17 +188,17 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     TxId = gen_server:call({global, TxServer}, {start_tx}),
     %lager:info("TxId is ~w", [TxId]),
     CustomerKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CustomerId}, customer), 
-    _Customer = read_from_node(TxServer, TxId, CustomerKey, WarehouseId, DcId, PartList, MyRepList), 
+    _Customer = read_from_node(TxServer, TxId, CustomerKey, to_dc(WarehouseId, WPerDc), DcId, PartList, MyRepList), 
     WarehouseKey = tpcc_tool:get_key_by_param({WarehouseId}, warehouse),
 
     %% ************ read time *****************
     RT1 = os:timestamp(),
     %% ************ read time *****************
 
-    _Warehouse = read_from_node(TxServer, TxId, WarehouseKey, WarehouseId, DcId, PartList, MyRepList),
+    _Warehouse = read_from_node(TxServer, TxId, WarehouseKey, to_dc(WarehouseId, WPerDc), DcId, PartList, MyRepList),
 
     DistrictKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId}, district),
-    District = read_from_node(TxServer, TxId, DistrictKey, WarehouseId, DcId, PartList, MyRepList),
+    District = read_from_node(TxServer, TxId, DistrictKey, to_dc(WarehouseId, WPerDc), DcId, PartList, MyRepList),
     OId = District#district.d_next_o_id,
 
     NewOrder = tpcc_tool:create_neworder(WarehouseId, DistrictId, OId),
@@ -207,21 +211,22 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
     Seq = lists:seq(1, NumItems),
     {WS3, _, AllLocal} = lists:foldl(fun(OlNumber, {TWS, TRS, AL}) ->
-                    WId = pick_warehouse(WarehouseId, MyRepIds, NoRepIds, AccessMaster, AccessSlave),
-                    {Min, Max} = lists:nth(WId, ItemRanges),
+                    WId = pick_warehouse(DcId, MyRepIds, NoRepIds, WPerDc, AccessMaster, AccessSlave),
+                    {Min, Max} = lists:nth(to_dc(WId, WPerDc), ItemRanges),
                     %ItemId = case tpcc_tool:random_num(1, 100) of
                     %            1 ->
                     %                -12345;
                     %            _ ->
                     ItemId = tpcc_tool:non_uniform_random(C_OL_I_ID, ?A_OL_I_ID, Min, Max),
+                    %lager:info("MyDc is ~w, item warehouse id is ~w, Id is ~w", [DcId, WId, ItemId]),
                              %end,
                     Quantity = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
                     ItemKey = tpcc_tool:get_key_by_param({ItemId}, item),
                     %Item = read_from_node(TxServer, TxId, ItemKey, WId, PartList, MyRepList),
-                    {Item, TRS1} = read_from_cache_or_node(TRS, TxServer, TxId, ItemKey, WId, DcId, PartList, MyRepList),
+                    {Item, TRS1} = read_from_cache_or_node(TRS, TxServer, TxId, ItemKey, to_dc(WId, WPerDc), DcId, PartList, MyRepList),
                     StockKey = tpcc_tool:get_key_by_param({WId, ItemId}, stock),
                     %Stock = read_from_node(TxServer, TxId, StockKey, WId, PartList, MyRepList),
-                    {Stock, TRS2} = read_from_cache_or_node(TRS1, TxServer, TxId, StockKey, WId, DcId, PartList, MyRepList),
+                    {Stock, TRS2} = read_from_cache_or_node(TRS1, TxServer, TxId, StockKey, to_dc(WId, WPerDc), DcId, PartList, MyRepList),
                     NewSQuantity = case Stock#stock.s_quantity - Quantity >= 10 of
                                         true -> Stock#stock.s_quantity - Quantity;
                                         false -> Stock#stock.s_quantity - Quantity + 91
@@ -258,7 +263,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     OrderKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, OId}, order),
     WS4 = dict:store({WarehouseId, OrderKey}, Order, WS3),
     %LocalWS4 = add_to_writeset(OrderKey, Order, lists:nth(DcId, PartList), LocalWS3),
-    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId),
+    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerDc),
     %lager:info("Local Write set is ~p", [LocalWriteList]),
     %lager:info("Remote Write set is ~p", [RemoteWriteList]),
     %DepsList = ets:lookup(dep_table, TxId),
@@ -301,14 +306,14 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     end;
 
 %% @doc Payment transaction of TPC-C
-run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
-        my_rep_list=MyRepList, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds,
+run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, worker_id=WorkerId,
+        my_rep_list=MyRepList, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds, w_per_dc=WPerDc,
         dc_id=DcId, access_slave=AccessSlave, payment_prep=PaymentPrep, payment_read=PaymentRead,
         c_c_id=C_C_ID, c_c_last = C_C_LAST, access_master=AccessMaster}) ->
     WS = dict:new(),
     %LocalWS = dict:new(),
     %RemoteWS = dict:new(),
-	TWarehouseId = DcId,
+    TWarehouseId = WPerDc * (DcId-1) + WorkerId rem WPerDc +1, 
 	DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
 	
     %% TODO: this should be changed. 
@@ -322,7 +327,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 	%							true -> {N+1, RId};  false -> {N, RId}
 	%						end
 	%			  	end,
-    CWId = pick_warehouse(TWarehouseId, MyRepIds, NoRepIds, AccessMaster, AccessSlave),
+    CWId = pick_warehouse(DcId, MyRepIds, NoRepIds, WPerDc, AccessMaster, AccessSlave),
     CDId = DistrictId,
 	PaymentAmount = tpcc_tool:random_num(100, 500000) / 100.0,
 
@@ -333,15 +338,15 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
     %% ************ read time *****************
     RT1 = os:timestamp(),
     %% ************ read time *****************
-    Warehouse = read_from_node(TxServer, TxId, WarehouseKey, TWarehouseId, DcId, PartList, MyRepList),
+    Warehouse = read_from_node(TxServer, TxId, WarehouseKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList),
 	WYtdKey = WarehouseKey++":w_ytd",
-	WYtd = read_from_node(TxServer, TxId, WYtdKey, TWarehouseId, DcId, PartList, MyRepList),
+	WYtd = read_from_node(TxServer, TxId, WYtdKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList),
 	WYtd1 = WYtd+ PaymentAmount,
 	WS1 = dict:store({TWarehouseId, WYtdKey}, WYtd1, WS),
 	DistrictKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId}, district),
-    District = read_from_node(TxServer, TxId, DistrictKey, TWarehouseId, DcId, PartList, MyRepList),
+    District = read_from_node(TxServer, TxId, DistrictKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList),
 	DYtdKey = DistrictKey++":d_ytd",
-	DYtd = read_from_node(TxServer, TxId, DYtdKey, TWarehouseId, DcId, PartList, MyRepList),
+	DYtd = read_from_node(TxServer, TxId, DYtdKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList),
 	DYtd1 = DYtd+ PaymentAmount,
 	WS2 = dict:store({TWarehouseId, DYtdKey}, DYtd1, WS1),
 	
@@ -351,7 +356,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 				Rand = trunc(tpcc_tool:non_uniform_random(C_C_LAST, ?A_C_LAST, 0, ?MAX_C_LAST)),
 	         	CLastName = tpcc_tool:last_name(Rand),
 				CustomerLookupKey = tpcc_tool:get_key_by_param({CWId, CDId, CLastName}, customer_lookup),
-				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, CWId, DcId, PartList, MyRepList),
+				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, to_dc(CWId, WPerDc), DcId, PartList, MyRepList),
                 case CustomerLookup of
                     error ->
                         lager:error("~p not found", [CustomerLookup]),
@@ -371,14 +376,14 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 	       	false ->
 	         	CustomerID = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
 				CKey = tpcc_tool:get_key_by_param({CWId, CDId, CustomerID}, customer),
-				read_from_node(TxServer, TxId, CKey, CWId, DcId, PartList, MyRepList)
+				read_from_node(TxServer, TxId, CKey, to_dc(CWId, WPerDc), DcId, PartList, MyRepList)
 		end,
     case CW of
         error ->
             {error, not_found, State};
         _ ->
             CWBalanceKey = tpcc_tool:get_key(CW)++":c_balance",
-            CWBalance = read_from_node(TxServer, TxId, CWBalanceKey, CWId, DcId, PartList, MyRepList),
+            CWBalance = read_from_node(TxServer, TxId, CWBalanceKey, to_dc(CWId, WPerDc), DcId, PartList, MyRepList),
 	    %% ************ read time *****************
 	    RT2 = os:timestamp(),
 	    %% ************ read time *****************
@@ -392,7 +397,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
                                                CW#customer.c_id, tpcc_tool:now_nsec(), PaymentAmount, HData),
             HistoryKey = tpcc_tool:get_key(History),
             WS4 = dict:store({TWarehouseId, HistoryKey}, History, WS3),
-            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId),
+            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerDc),
             %DepsList = ets:lookup(dep_table, TxId),
             T1 = os:timestamp(),
             Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
@@ -416,9 +421,9 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 
 %% @doc Payment transaction of TPC-C
 run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
-        my_rep_list=MyRepList, dc_id=DcId, 
+        my_rep_list=MyRepList, dc_id=DcId, w_per_dc=WPerDc, worker_id=WorkerId, 
         c_c_id=C_C_ID, c_c_last = C_C_LAST}) ->
-	TWarehouseId = DcId,
+    TWarehouseId = WPerDc * (DcId-1) + WorkerId rem WPerDc +1, 
 	DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
 	
 	%TxId = {tx_id, tpcc_tool:now_nsec(), self()},
@@ -428,7 +433,7 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
 				Rand = trunc(tpcc_tool:non_uniform_random(C_C_LAST, ?A_C_LAST, 0, ?MAX_C_LAST)),
 	         	CLastName = tpcc_tool:last_name(Rand),
 				CustomerLookupKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, CLastName}, customer_lookup),
-				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, TWarehouseId, DcId, PartList, MyRepList),
+				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList),
                 case CustomerLookup of
                     error ->
                         lager:error("Key not found by last name ~w", [CLastName]),
@@ -437,7 +442,7 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
                         Ids = CustomerLookup#customer_lookup.ids,
                         Customers= lists:foldl(fun(Id, Acc) ->
                                     CKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, Id}, customer),
-                                    C = read_from_node(TxServer, TxId, CKey, TWarehouseId, DcId, PartList, MyRepList),
+                                    C = read_from_node(TxServer, TxId, CKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList),
                                     case C of
                                         error -> Acc;  _ -> [C|Acc]
                                     end end, [], Ids),
@@ -449,7 +454,7 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
 	       	false ->
 	         	CustomerID = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
 				CKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, CustomerID}, customer),
-				read_from_node(TxServer, TxId, CKey, TWarehouseId, DcId, PartList, MyRepList)
+				read_from_node(TxServer, TxId, CKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList)
 		end,
     case CW of
         error ->
@@ -460,7 +465,7 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
             Seq = lists:seq(1, ?NB_MAX_ORDER),
             OrderList = lists:foldl(fun(Id, Acc) ->
                                         OrdKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, Id}, order),
-                                        Ord = read_from_node(TxServer, TxId, OrdKey, TWarehouseId, DcId, PartList, MyRepList),
+                                        Ord = read_from_node(TxServer, TxId, OrdKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList),
                                         case Ord#order.o_c_id of
                                             CWId -> [Ord|Acc]; _ -> Acc
                                         end end, [], Seq),
@@ -479,7 +484,7 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
                     OId = LastOne#order.o_id,
                     lists:foreach(fun(Number) ->
                             OlKey = tpcc_tool:get_key_by_param({OWId, ODId, OId, Number}, orderline),
-                            _Ol = read_from_node(TxServer, TxId, OlKey, TWarehouseId, DcId, PartList, MyRepList)
+                            _Ol = read_from_node(TxServer, TxId, OlKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList)
                             end, Seq2)
             end,
             {ok, State}
@@ -500,48 +505,31 @@ index(E, [_|L], N) ->
     index(E, L, N+1).
 
 read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, MyRepList) ->
-    case DcId of
-                MyDcId ->
+    {ok, V} = case DcId of
+        MyDcId ->
+            {_, L} = lists:nth(DcId, PartList),
+            Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
+            Part = lists:nth(Index, L),
+            tx_cert_sup:read(TxServer, TxId, Key, Part);
+        _ ->
+            case get_replica(DcId, MyRepList) of
+                false ->
                     {_, L} = lists:nth(DcId, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
-                    {ok, V} = tx_cert_sup:read(TxServer, TxId, Key, Part),
-		    case V of
-			[] ->
-                    	    lager:info("Reading local data ~w from ~w of ~w", [Part, DcId, MyDcId]),
-			    lager:error("Key ~p not found!!!! Should read from dc ~w, my dc is ~w", [Key, DcId, MyDcId]),
-			    error;
-			_ ->
-			    V
-		    end;
-                _ ->
-                    case get_replica(DcId, MyRepList) of
-                        false ->
-                            {_, L} = lists:nth(DcId, PartList),
-                            Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
-                            Part = lists:nth(Index, L),
-                            {CacheServName, _} = lists:nth(MyDcId, PartList),
-                            {ok, V} = cache_serv:read(CacheServName, Key, TxId, Part),
-			    case V of
-				[] ->
-				    lager:info("Reading from cache ~w of ~w for ~w", [CacheServName, Part, Key]),
-				    lager:error("Key ~p not found!!!! Should read from dc ~w, my dc is ~w", [Key, DcId, MyDcId]),
-				    error;
-				_ ->
-				    V
-			    end;
-                        N ->
-                            {ok, V} = data_repl_serv:read(N, Key, TxId),
-			    case V of
-				[] ->
-                            	    lager:info("Reading from data_repl ~w for ~w", [N, Key]),
-				    lager:error("Key ~p not found!!!! Should read from dc ~w, my dc is ~w", [Key, DcId, MyDcId]),
-				    error;
-				_ ->
-				    V
-			    end
-                    end
-              end.
+                    {CacheServName, _} = lists:nth(MyDcId, PartList),
+                    cache_serv:read(CacheServName, Key, TxId, Part);
+                N ->
+                    data_repl_serv:read(N, Key, TxId)
+            end
+    end,
+    case V of
+        [] ->
+            lager:error("Key ~p not found!!!! Should read from dc ~w, my dc is ~w", [Key, DcId, MyDcId]),
+            error;
+        _ ->
+            V
+    end.
     %case Res of
     %    {specula, DepTx} ->
     %        ets:insert(dep_table, {TxId, DepTx});
@@ -602,9 +590,10 @@ terminate(_, _State=#state{no_local=NOLocal, no_remote=NORemote, no_local_abort=
     file:write_file(File, io_lib:fwrite("~p ~p ~p  ~p  ~p ~p\n", 
             [NOR, LA,  RA, LCT, RCT, SCT]), [append]).
 
-get_local_remote_writeset(WriteSet, PartList, LocalId) ->
-    {LWSD, RWSD} = dict:fold(fun({Id, Key}, Value, {LWS, RWS}) ->
-                    case Id of LocalId -> {add_to_writeset(Key, Value, lists:nth(LocalId, PartList), LWS), RWS};
+get_local_remote_writeset(WriteSet, PartList, LocalDcId, WPerDc) ->
+    {LWSD, RWSD} = dict:fold(fun({WId, Key}, Value, {LWS, RWS}) ->
+                    Id = (WId-1) div WPerDc + 1, 
+                    case Id of LocalDcId -> {add_to_writeset(Key, Value, lists:nth(LocalDcId, PartList), LWS), RWS};
                                _ -> {LWS, add_to_writeset(Key, Value, lists:nth(Id, PartList), RWS)}
                     end end, {dict:new(), dict:new()}, WriteSet),
     {dict:to_list(LWSD), dict:to_list(RWSD)}.
@@ -625,17 +614,25 @@ get_indexes(PL, List) ->
     lager:info("Trying to get index: PL ~w, List ~w", [PL, List]),
     [index(X, List) || X <- PL ].
 
-pick_warehouse(MyId, RepIds, NoRepIds, AccessMaster, AccessRep) ->
+pick_warehouse(MyId, RepIds, NoRepIds, WPerDc, AccessMaster, AccessRep) ->
     R = random:uniform(100),
     case R =< AccessMaster of
         true ->
-            MyId;
+            WPerDc*(MyId-1) + R rem WPerDc +1;
         false ->
             case R =< AccessMaster + AccessRep of
                 true ->
-                    lists:nth(R rem length(RepIds)+1, RepIds);
+                    L = length(RepIds),
+                    N = R rem (L * WPerDc),
+                    F = N div L +1, 
+                    S = N rem WPerDc,
+                    WPerDc*(lists:nth(F, RepIds)-1)+S+1;
                 false ->
-                    lists:nth(R rem length(NoRepIds)+1, NoRepIds)
+                    L = length(NoRepIds),
+                    N = R rem (L * WPerDc) + 1,
+                    F = (N-1) div L +1, 
+                    S = N rem WPerDc,
+                    WPerDc*(lists:nth(F, NoRepIds)-1)+S+1
             end
     end.
 
@@ -688,3 +685,6 @@ get_rep_name(Target, Rep) ->
     
 get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
     ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.
+
+to_dc(WId, WPerDc) ->
+    (WId-1) div WPerDc + 1.

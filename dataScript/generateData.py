@@ -85,7 +85,7 @@ def update_counter(folder, length, key):
 
 
 def add_duration(nodes, dict, total_dict, folder):
-    total_dur = [0, 0, 0, 0, 0, 0, 0, 0]
+    total_dur = [0, 0, 0, 0, 0, 0, 0, 0, 0]
     for node in nodes:
         dur_file = os.path.join(folder, node+'-prep')
         data = np.loadtxt(dur_file)
@@ -191,8 +191,8 @@ for config in dict:
     write_to_file(throughput, entry['throughput'], nodes, 'ip committed cert_aborted read_aborted cascade_abort') 
     write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted cascade_abort') 
     write_std(total_throughput, entry['total_throughput'])
-    write_to_file(duration, entry['duration'], nodes, 'ip read local_a remote_a local_c remote_c specula_c s_final_a s_final_c')
-    write_to_file(total_duration, entry, ['total_duration'], 'N/A read local_a remote_a local_c remote_c specula_c s_final_a s_final_c')
+    write_to_file(duration, entry['duration'], nodes, 'ip read local_a remote_a local_c remote_c local_cert specula_c s_final_a s_final_c')
+    write_to_file(total_duration, entry, ['total_duration'], 'N/A read local_a remote_a local_c remote_c local_cert specula_c s_final_a s_final_c')
     write_std(total_duration, entry['total_duration'])
     write_to_file(latency, entry['latency'], nodes, 'ip min mean median 95th 99th 99_9th max')
     
