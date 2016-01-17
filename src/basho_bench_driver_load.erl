@@ -182,7 +182,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
                 {ok, State#state{district_id=DistrictId+1}};
             false ->
 		NowTime = os:timestamp(),
-		UsedTime = get_time_diff(StartedTime, NowTime) div 1000,
+		UsedTime = get_time_diff(StartedTime, NowTime) div 1000000,
 		lager:info("************** Node ~w finished populating, used ~w sec. ***************", [DcId, UsedTime]),
                 {ok, State#state{stage=finished}}
         end;
