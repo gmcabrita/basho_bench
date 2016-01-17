@@ -6,10 +6,10 @@ AllNodes=`cat script/allnodes`
 if [ $# == 7 ]
 then
     echo "Use default num for district, item and customer"
-    NumPartitions=8
+    WPerDc=1
 elif [ $# == 8 ]
 then
-    NumPartitions=$8 
+    WPerDc=$8
 else
     echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, fast_reply, specula_length, folder, [num_partitions]"
     exit
@@ -33,11 +33,13 @@ echo ant fast_reply $5   >> config
 echo ant specula_length $6  >> config
 echo load concurrent 1 >> config
 echo tpcc duration 60 >> config
-echo load duration 220 >> config
+echo load duration 200 >> config
 echo tpcc to_sleep 9000 >> config
 echo load to_sleep 9000 >> config
 echo ant do_repl true >> config
-echo app_config ring_creation_size $NumPartitions >> config
+#echo app_config ring_creation_size $NumPartitions >> config
+echo tpcc w_per_dc $WPerDc >> config
+echo load w_per_dc $WPerDc >> config
 
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
