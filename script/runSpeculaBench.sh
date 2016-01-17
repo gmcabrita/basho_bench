@@ -33,7 +33,7 @@ echo ant fast_reply $5   >> config
 echo ant specula_length $6  >> config
 echo load concurrent 1 >> config
 echo tpcc duration 60 >> config
-echo load duration 180 >> config
+echo load duration 220 >> config
 echo tpcc to_sleep 9000 >> config
 echo load to_sleep 9000 >> config
 echo ant do_repl true >> config

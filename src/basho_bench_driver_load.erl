@@ -400,7 +400,7 @@ read_from_node(TxServer, Key, DcId, PartList) ->
             end,
     case V of
         [] ->
-            lager:error("Key ~p not found!!!!", [Key]),
+            %lager:error("Key ~p not found!!!!", [Key]),
             error;
         _ ->
             V
@@ -425,7 +425,7 @@ read({server, TxServer}, Key, ExpandPartList, HashLength) ->
     {ok, V} = tx_cert_sup:single_read(TxServer, Key, Part),
     case V of
         [] ->
-            lager:error("Key ~p not found!!!!", [Key]),
+            %lager:error("Key ~p not found!!!!", [Key]),
             error;
         _ ->
             V
