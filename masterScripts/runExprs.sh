@@ -20,6 +20,18 @@ AS=20
     ./script/runSpeculaBench.sh 4 $AM $AS true true 2 specula_tests 1 
     ./script/runSpeculaBench.sh 4 $AM $AS true true 2 specula_tests 2 
     ./script/runSpeculaBench.sh 4 $AM $AS true true 2 specula_tests 2 
+    ./script/runSpeculaBench.sh 4 $AM $AS true true 4 specula_tests 1 
+    ./script/runSpeculaBench.sh 4 $AM $AS true true 4 specula_tests 1 
+    ./script/runSpeculaBench.sh 4 $AM $AS true true 4 specula_tests 2 
+    ./script/runSpeculaBench.sh 4 $AM $AS true true 4 specula_tests 2 
+    ./script/runSpeculaBench.sh 8 $AM $AS true true 1 specula_tests 1 
+    ./script/runSpeculaBench.sh 8 $AM $AS true true 1 specula_tests 1 
+    ./script/runSpeculaBench.sh 8 $AM $AS true true 1 specula_tests 2 
+    ./script/runSpeculaBench.sh 8 $AM $AS true true 1 specula_tests 2 
+    ./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 1 
+    ./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 1 
+    ./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 
+    ./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 
 exit
 
 AccessMaster="50 80 0"
