@@ -44,7 +44,7 @@ then
     echo load duration 121 >> config
 elif [ "$WPerDc" -eq 2 ]
 then
-    echo load duration 210 >> config
+    echo load duration 225 >> config
 else
     echo load duration 250 >> config
 fi

@@ -360,7 +360,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
                 Ids = CustomerLookup#customer_lookup.ids,
                 Customers= lists:foldl(fun(Id, Acc) ->
                             CKey = tpcc_tool:get_key_by_param({CWId, CDId, Id}, customer),
-                            C = read_from_node(TxServer, TxId, CKey, CWId, DcId, PartList, MyRepList),
+                            C = read_from_node(TxServer, TxId, CKey, to_dc(CWId, WPerDc), DcId, PartList, MyRepList),
                             case C of
                                 error -> Acc;  _ -> [C|Acc]
                             end end, [], Ids),
