@@ -75,6 +75,7 @@ fi
 ./script/gatherThroughput.sh $Folder &
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
 ./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 
+./script/copyFromAll.sh payment.csv ./basho_bench/tests/current/ $Folder & 
 wait
 ./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
