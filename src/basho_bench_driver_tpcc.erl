@@ -357,22 +357,16 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 	         	CLastName = tpcc_tool:last_name(Rand),
 				CustomerLookupKey = tpcc_tool:get_key_by_param({CWId, CDId, CLastName}, customer_lookup),
 				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, to_dc(CWId, WPerDc), DcId, PartList, MyRepList),
-                case CustomerLookup of
-                    error ->
-                        lager:error("~p not found", [CustomerLookup]),
-                        error;                    
-                    _ ->
-                        Ids = CustomerLookup#customer_lookup.ids,
-                        Customers= lists:foldl(fun(Id, Acc) ->
-                                    CKey = tpcc_tool:get_key_by_param({CWId, CDId, Id}, customer),
-                                    C = read_from_node(TxServer, TxId, CKey, CWId, DcId, PartList, MyRepList),
-                                    case C of
-                                        error -> Acc;  _ -> [C|Acc]
-                                    end end, [], Ids),
-                        SortedCustomers = lists:sort(Customers),
-                        Middle = (length(Customers) + 1) div 2,
-                        lists:nth(Middle, SortedCustomers)
-                end;
+                Ids = CustomerLookup#customer_lookup.ids,
+                Customers= lists:foldl(fun(Id, Acc) ->
+                            CKey = tpcc_tool:get_key_by_param({CWId, CDId, Id}, customer),
+                            C = read_from_node(TxServer, TxId, CKey, CWId, DcId, PartList, MyRepList),
+                            case C of
+                                error -> Acc;  _ -> [C|Acc]
+                            end end, [], Ids),
+                SortedCustomers = lists:sort(Customers),
+                Middle = (length(Customers) + 1) div 2,
+                lists:nth(Middle, SortedCustomers);
 	       	false ->
 	         	CustomerID = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
 				CKey = tpcc_tool:get_key_by_param({CWId, CDId, CustomerID}, customer),
@@ -436,7 +430,7 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
 				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList),
                 case CustomerLookup of
                     error ->
-                        lager:error("Key not found by last name ~w", [CLastName]),
+                        lager:error("Key not found by last name ~p", [CLastName]),
                         error;
                     _ ->
                         Ids = CustomerLookup#customer_lookup.ids,
@@ -456,39 +450,22 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
 				CKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, CustomerID}, customer),
 				read_from_node(TxServer, TxId, CKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList)
 		end,
-    case CW of
-        error ->
-            lager:error("Key not found!"),
-            {error, not_found, State};
-        _ ->
-            CWId = CW#customer.c_id,
-            Seq = lists:seq(1, ?NB_MAX_ORDER),
-            OrderList = lists:foldl(fun(Id, Acc) ->
-                                        OrdKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, Id}, order),
-                                        Ord = read_from_node(TxServer, TxId, OrdKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList),
-                                        case Ord#order.o_c_id of
-                                            CWId -> [Ord|Acc]; _ -> Acc
-                                        end end, [], Seq),
-            %lager:info("CWId is ~w, length of orderlist is ~w", [CWId, length(OrderList)]),
-            case OrderList of
-                [] ->
-                    lager:info("Found nothing!");
-                _ ->
-                    Sorted = lists:sort(OrderList),
-                    LastOne = lists:nth(length(Sorted), Sorted),
-                    NumLines = LastOne#order.o_ol_cnt,
-                    Seq2 = lists:seq(1, NumLines),
-                    %lager:info("Loading ~w orderlines", [NumLines]),
-                    OWId = LastOne#order.o_w_id,
-                    ODId = LastOne#order.o_d_id,
-                    OId = LastOne#order.o_id,
-                    lists:foreach(fun(Number) ->
-                            OlKey = tpcc_tool:get_key_by_param({OWId, ODId, OId, Number}, orderline),
-                            _Ol = read_from_node(TxServer, TxId, OlKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList)
-                            end, Seq2)
-            end,
-            {ok, State}
-    end.
+    CWLastOrder = CW#customer.c_last_order,
+    OrdKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, CWLastOrder}, order),
+    LastOne = read_from_node(TxServer, TxId, OrdKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList),
+    %lager:info("CWId is ~w, length of orderlist is ~w", [CWId, length(OrderList)]),
+    NumLines = LastOne#order.o_ol_cnt,
+    Seq2 = lists:seq(1, NumLines),
+    %lager:info("Loading ~w orderlines", [NumLines]),
+    OWId = LastOne#order.o_w_id,
+    ODId = LastOne#order.o_d_id,
+    OId = LastOne#order.o_id,
+    lists:foreach(fun(Number) ->
+            OlKey = tpcc_tool:get_key_by_param({OWId, ODId, OId, Number}, orderline),
+            _Ol = read_from_node(TxServer, TxId, OlKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, MyRepList)
+            end, Seq2),
+    _ =  gen_server:call({global, TxServer}, {certify, TxId, [], []}, ?TIMEOUT),
+    {ok, State}.
 
 get_partition(Key, PartList, HashLength) ->
     Num = crypto:bytes_to_integer(erlang:md5(Key)) rem HashLength +1,

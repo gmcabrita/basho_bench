@@ -38,7 +38,7 @@ def add_throughput(nodes, dict, total_dict, folder):
     for node in nodes:
         th_file = os.path.join(folder, node)
         th_lines = [line.rstrip('\n') for line in open(th_file)]
-        th_lines = th_lines[1:-1]
+        th_lines = th_lines[1:]
         committed = 0
         aborted = 0
         for line in th_lines:

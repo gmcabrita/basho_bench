@@ -170,31 +170,17 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
                     RepIds),
                 {ok, State#state{district_id=DistrictId+1}};
             false ->
-                {ok, State#state{stage=to_customer, district_id=1}}
+                {ok, State#state{stage=to_customer_order, district_id=1}}
         end;
-    to_customer ->
+    to_customer_order ->
         case DistrictId =< ?NB_MAX_DISTRICT of
             true ->
-                lager:info("Populating customers for ~w for dc ~w", [DistrictId, DcId]),
+                lager:info("Populating customer orders for ~w", [DistrictId]),
                 WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
-                lists:foreach(fun(WId) -> populate_customers(TxServer, WId, DistrictId, PartList, WPerDc) end, WSeq),
+                lists:foreach(fun(WId) -> populate_customer_orders(TxServer, WId, DistrictId, PartList, WPerDc) end, WSeq),
                 lists:foreach(fun({RepDcId, Replica}) -> 
                     RepWSeq = lists:seq(WPerDc*(RepDcId-1)+1, RepDcId*WPerDc),
-                    lists:foreach(fun(RepWId) -> populate_customers(Replica, RepWId, DistrictId, PartList, WPerDc) end, RepWSeq) end, 
-                    RepIds),
-                {ok, State#state{district_id=DistrictId+1}};
-            false ->
-                {ok, State#state{stage=to_order, district_id=1}}
-        end;
-    to_order ->
-        case DistrictId =< ?NB_MAX_DISTRICT of
-            true ->
-                lager:info("Populating orders for ~w", [DistrictId]),
-                WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
-                lists:foreach(fun(WId) -> populate_orders(TxServer, WId, DistrictId, PartList, WPerDc) end, WSeq),
-                lists:foreach(fun({RepDcId, Replica}) -> 
-                    RepWSeq = lists:seq(WPerDc*(RepDcId-1)+1, RepDcId*WPerDc),
-                    lists:foreach(fun(RepWId) -> populate_orders(Replica, RepWId, DistrictId, PartList, WPerDc) end, RepWSeq) end, 
+                    lists:foreach(fun(RepWId) -> populate_customer_orders(Replica, RepWId, DistrictId, PartList, WPerDc) end, RepWSeq) end, 
                     RepIds),
                 {ok, State#state{district_id=DistrictId+1}};
             false ->
@@ -257,72 +243,70 @@ populate_district(TxServer, WarehouseId, DistrictId, PartList, WPerDc) ->
     YtdKey = DKey++":d_ytd",
     put_to_node(TxServer, DcId, PartList, YtdKey, DYtd).
 
-populate_customers(TxServer, WarehouseId, DistrictId, PartList, WPerDc) ->
-    lager:info("Warehouse ~w, district ~w: Populating customers from 1 to ~w", [WarehouseId, DistrictId, 
-                ?NB_MAX_CUSTOMER]),
-    Seq = lists:seq(1, ?NB_MAX_CUSTOMER),
-    [{"COMMIT_TIME", COMMIT_TIME}] = ets:lookup(meta_info, "COMMIT_TIME"),
-    HistoryTime = COMMIT_TIME - 123,
-    CustomerTime = COMMIT_TIME - 13,
-    DcId = to_dc(WarehouseId, WPerDc),
-    FinalWS = lists:foldl(fun(CustomerId, WS) ->
-                    random:seed({WarehouseId, DistrictId, CustomerId}),
-                    CLast = tpcc_tool:c_last(WarehouseId),
-                    Customer = tpcc_tool:create_customer(WarehouseId, DistrictId, CustomerId, CLast, CustomerTime),
-                    CKey = tpcc_tool:get_key(Customer),
-                    WS1 = defer_put(DcId, PartList, CKey, Customer, WS),
-                    CBalanceKey = CKey++":c_balance",
-                    WS2 = defer_put(DcId, PartList, CBalanceKey, -10, WS1),
-                    %CustomerLookup = tpcc_tool:create_customer_lookup(WarehouseId, DistrictId, CLast),
-                    CLKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CLast}, customer_lookup),
-                    CustomerLookup = 
-                                case read_from_node(TxServer, CLKey, DcId, PartList) of
-                                    error ->
-                                        %lager:info("Loading for the first time"),
-                                        tpcc_tool:create_customer_lookup(WarehouseId, DistrictId, CLast);
-                                    CL ->
-                                        CL
-                                end,  
-                    Ids = CustomerLookup#customer_lookup.ids,
-                    %lager:info("Adding ~w to ids ~w", [CustomerId, Ids]),
-                    CustomerLookup1 = CustomerLookup#customer_lookup{ids=[CustomerId|Ids]}, 
-                    WS3 = defer_put(DcId, PartList, CLKey, CustomerLookup1, WS2),
-                    History = tpcc_tool:create_history(WarehouseId, DistrictId, CustomerId, HistoryTime),
-                    HKey = tpcc_tool:get_key(History),
-                    defer_put(DcId, PartList, HKey, History, WS3)
-                end, dict:new(), Seq),
-    multi_put(TxServer, DcId, PartList, FinalWS).
 
-populate_orders(TxServer, WarehouseId, DistrictId, PartList, WPerDc) ->
+populate_customer_orders(TxServer, WarehouseId, DistrictId, PartList, WPerDc) ->
     lager:info("Warehouse ~w, district ~w: Populating orders from 1 to ~w", [WarehouseId, DistrictId, 
                 ?NB_MAX_ORDER]),
-    Seq = lists:seq(1, ?NB_MAX_ORDER),
-    L = lists:seq(1, ?NB_MAX_CUSTOMER),
+    NumUniqueNames = ?NUM_NAMES *?NUM_NAMES*?NUM_NAMES, 
+    FCustomerSeq = lists:seq(1, NumUniqueNames),
+    SCustomerSeq = lists:seq(NumUniqueNames+1, ?NB_MAX_CUSTOMER),
+    %% Randomize the list of all combination of names
+    FNameRandSeq = [X||{_,X} <- lists:sort([ {random:uniform(), N} || N <- FCustomerSeq])],
+    SNameRandSeq = [tpcc_tool:c_last_rand(WarehouseId) || _N <- SCustomerSeq],
     random:seed({WarehouseId, DistrictId, 1111}),
-    NL = [X||{_,X} <- lists:sort([ {random:uniform(), N} || N <- L])],
+    %% The list of customer
+    OrderSeq = lists:seq(1, ?NB_MAX_ORDER),
+    RandOrders = [X||{_,X} <- lists:sort([ {random:uniform(), N} || N <- OrderSeq])],
+    {FRandOrders, SRandOrders} = lists:split(NumUniqueNames, RandOrders),
     [{"COMMIT_TIME", CommitTime}] = ets:lookup(meta_info, "COMMIT_TIME"),
     %% Magic number, assume that the order is created 1 sec ago.
-    Date = CommitTime - 1000,
     DcId = to_dc(WarehouseId, WPerDc),
-    FinalWS = lists:foldl(fun(OrderId, WS) ->
-                    %Date = tpcc_tool:now_nsec(),
-                    random:seed({WarehouseId, DistrictId, OrderId}),
-                    OOlCnt = tpcc_tool:random_num(5, 15),
-                    Order = tpcc_tool:create_order(WarehouseId, DistrictId, OrderId, OOlCnt, lists:nth(OrderId, NL),
-                        Date),
-                    OKey = tpcc_tool:get_key(Order),
-                    WS1 = defer_put(to_dc(WarehouseId, WPerDc), PartList, OKey, Order, WS),
-                    populate_orderlines(TxServer, WarehouseId, DistrictId, OrderId, OOlCnt, Date, PartList, WPerDc),
-                    case OrderId >= ?LIMIT_ORDER of
-                        true ->
-                            NewOrder = tpcc_tool:create_neworder(WarehouseId, DistrictId, OrderId),
-                            NOKey = tpcc_tool:get_key(NewOrder),
-                            defer_put(DcId, PartList, NOKey, NewOrder, WS1);
-                        false ->
-                            WS1
-                    end
-                end, dict:new(), Seq),
-    multi_put(TxServer, DcId, PartList, FinalWS).
+    WS = add_customer_order(1, FNameRandSeq, FRandOrders, TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, dict:new()),
+    WS1 = add_customer_order(NumUniqueNames+1, SNameRandSeq, SRandOrders, TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, WS),
+    multi_put(TxServer, DcId, PartList, WS1).
+
+add_customer_order(_, [], [], _, _, _, _, _, _, _, WS) ->
+    WS; 
+add_customer_order(CustomerId, [NameNum|RestName], [RandOrder|RestOrder], TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, WS) ->
+    Date = CommitTime - 1000,
+    HistoryTime = CommitTime - 123,
+    CustomerTime = CommitTime - 13,
+
+    CLast = tpcc_tool:name_by_num(NameNum),
+    OrderId = RandOrder, 
+    %lager:info("Customer id is ~w, order is ~w, clast is ~p", [CustomerId, RandOrder, CLast]),
+    Customer = tpcc_tool:create_customer(WarehouseId, DistrictId, CustomerId, CLast, CustomerTime, OrderId),
+    CKey = tpcc_tool:get_key(Customer),
+    WS1 = defer_put(DcId, PartList, CKey, Customer, WS),
+    CBalanceKey = CKey++":c_balance",
+    WS2 = defer_put(DcId, PartList, CBalanceKey, -10, WS1),
+    CLKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CLast}, customer_lookup),
+    CustomerLookup = case read_from_node(TxServer, CLKey, DcId, PartList) of
+                        error -> tpcc_tool:create_customer_lookup(WarehouseId, DistrictId, CLast);
+                        CL -> CL  end,  
+    Ids = CustomerLookup#customer_lookup.ids,
+    CustomerLookup1 = CustomerLookup#customer_lookup{ids=[CustomerId|Ids]}, 
+    put_to_node(TxServer, to_dc(WarehouseId, WPerDc), PartList, CLKey, CustomerLookup1),
+    History = tpcc_tool:create_history(WarehouseId, DistrictId, CustomerId, HistoryTime),
+    HKey = tpcc_tool:get_key(History),
+    WS3 = defer_put(DcId, PartList, HKey, History, WS2),
+
+    %Date = tpcc_tool:now_nsec(),
+    OOlCnt = tpcc_tool:random_num(5, 15),
+    Order = tpcc_tool:create_order(WarehouseId, DistrictId, OrderId, OOlCnt, CustomerId,
+        Date),
+    OKey = tpcc_tool:get_key(Order),
+    WS4 = defer_put(to_dc(WarehouseId, WPerDc), PartList, OKey, Order, WS3),
+    populate_orderlines(TxServer, WarehouseId, DistrictId, OrderId, OOlCnt, Date, PartList, WPerDc),
+    case OrderId >= ?LIMIT_ORDER of
+        true ->
+            NewOrder = tpcc_tool:create_neworder(WarehouseId, DistrictId, OrderId),
+            NOKey = tpcc_tool:get_key(NewOrder),
+            WS5 = defer_put(DcId, PartList, NOKey, NewOrder, WS4),
+            add_customer_order(CustomerId+1, RestName, RestOrder, TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, WS5);
+        false ->
+            add_customer_order(CustomerId+1, RestName, RestOrder, TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, WS4)
+    end.
 
 populate_orderlines(TxServer, WarehouseId, DistrictId, OrderId, OOlCnt, Date, PartList, WPerDc) ->
     %lager:info("Warehouse ~w, district ~w: Populating orderlines from 1 to ~w", [WarehouseId, DistrictId, 

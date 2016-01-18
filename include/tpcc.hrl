@@ -15,8 +15,10 @@
 -define(LIMIT_ORDER, 2101).
 -define(MIN_ITEM, 5).
 -define(MAX_ITEM, 15).
--define(NUM_NAMES, 2).
--define(NAMES, ["BAR","OUGHT","ABLE","PRI","PRES","ESE","ANTI","CALLY"]).
+-define(NUM_NAMES, 7).
+-define(NAMES, ["BAR","OUGHT","ABLE","PRI","PRES","ESE","ANTI"]).
+%-define(NUM_NAMES, 5).
+%-define(NAMES, ["BAR","OUGHT","ABLE","PRI","PRES"]).
 %-define(NAMES, ["BAR","OUGHT","ABLE"]).
 %% I added that!! (To prevent metadata growing..)
 -define(MAX_NEW_ORDER, 4000).
@@ -84,6 +86,7 @@
     c_phone :: [],
     c_since :: integer(),
     c_credit :: [],
+    c_last_order :: integer(),
     c_credit_lim :: float(),
     c_discount :: float(),
     c_ytd_payment :: float(),
