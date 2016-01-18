@@ -261,13 +261,14 @@ populate_customer_orders(TxServer, WarehouseId, DistrictId, PartList, WPerDc) ->
     [{"COMMIT_TIME", CommitTime}] = ets:lookup(meta_info, "COMMIT_TIME"),
     %% Magic number, assume that the order is created 1 sec ago.
     DcId = to_dc(WarehouseId, WPerDc),
-    WS = add_customer_order(1, FNameRandSeq, FRandOrders, TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, dict:new()),
-    WS1 = add_customer_order(NumUniqueNames+1, SNameRandSeq, SRandOrders, TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, WS),
+    WS = add_customer_order(1, FNameRandSeq, FRandOrders, TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, dict:new(), defer),
+    multi_put(TxServer, DcId, PartList, WS),
+    WS1 = add_customer_order(NumUniqueNames+1, SNameRandSeq, SRandOrders, TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, dict:new(), direct),
     multi_put(TxServer, DcId, PartList, WS1).
 
-add_customer_order(_, [], [], _, _, _, _, _, _, _, WS) ->
+add_customer_order(_, [], [], _, _, _, _, _, _, _, WS, _) ->
     WS; 
-add_customer_order(CustomerId, [NameNum|RestName], [RandOrder|RestOrder], TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, WS) ->
+add_customer_order(CustomerId, [NameNum|RestName], [RandOrder|RestOrder], TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, WS, Type) ->
     Date = CommitTime - 1000,
     HistoryTime = CommitTime - 123,
     CustomerTime = CommitTime - 13,
@@ -281,31 +282,35 @@ add_customer_order(CustomerId, [NameNum|RestName], [RandOrder|RestOrder], TxServ
     CBalanceKey = CKey++":c_balance",
     WS2 = defer_put(DcId, PartList, CBalanceKey, -10, WS1),
     CLKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CLast}, customer_lookup),
-    CustomerLookup = case read_from_node(TxServer, CLKey, DcId, PartList) of
-                        error -> tpcc_tool:create_customer_lookup(WarehouseId, DistrictId, CLast);
-                        CL -> CL  end,  
+    CustomerLookup = case Type of
+                        direct -> read_from_node(TxServer, CLKey, DcId, PartList);
+                        defer -> tpcc_tool:create_customer_lookup(WarehouseId, DistrictId, CLast)
+                     end,
     Ids = CustomerLookup#customer_lookup.ids,
     CustomerLookup1 = CustomerLookup#customer_lookup{ids=[CustomerId|Ids]}, 
-    put_to_node(TxServer, to_dc(WarehouseId, WPerDc), PartList, CLKey, CustomerLookup1),
+    WS3 = case Type of 
+              direct -> put_to_node(TxServer, to_dc(WarehouseId, WPerDc), PartList, CLKey, CustomerLookup1), WS2;
+              defer -> defer_put(DcId, PartList, CLKey, CustomerLookup1, WS2)
+          end,
     History = tpcc_tool:create_history(WarehouseId, DistrictId, CustomerId, HistoryTime),
     HKey = tpcc_tool:get_key(History),
-    WS3 = defer_put(DcId, PartList, HKey, History, WS2),
+    WS4 = defer_put(DcId, PartList, HKey, History, WS3),
 
     %Date = tpcc_tool:now_nsec(),
     OOlCnt = tpcc_tool:random_num(5, 15),
     Order = tpcc_tool:create_order(WarehouseId, DistrictId, OrderId, OOlCnt, CustomerId,
         Date),
     OKey = tpcc_tool:get_key(Order),
-    WS4 = defer_put(to_dc(WarehouseId, WPerDc), PartList, OKey, Order, WS3),
+    WS5 = defer_put(to_dc(WarehouseId, WPerDc), PartList, OKey, Order, WS4),
     populate_orderlines(TxServer, WarehouseId, DistrictId, OrderId, OOlCnt, Date, PartList, WPerDc),
     case OrderId >= ?LIMIT_ORDER of
         true ->
             NewOrder = tpcc_tool:create_neworder(WarehouseId, DistrictId, OrderId),
             NOKey = tpcc_tool:get_key(NewOrder),
-            WS5 = defer_put(DcId, PartList, NOKey, NewOrder, WS4),
-            add_customer_order(CustomerId+1, RestName, RestOrder, TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, WS5);
+            WS6 = defer_put(DcId, PartList, NOKey, NewOrder, WS5),
+            add_customer_order(CustomerId+1, RestName, RestOrder, TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, WS6, Type);
         false ->
-            add_customer_order(CustomerId+1, RestName, RestOrder, TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, WS4)
+            add_customer_order(CustomerId+1, RestName, RestOrder, TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, WS5, Type)
     end.
 
 populate_orderlines(TxServer, WarehouseId, DistrictId, OrderId, OOlCnt, Date, PartList, WPerDc) ->
