@@ -4,20 +4,18 @@
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 AM=80
 AS=20
-    #./script/runSpeculaBench.sh 1 $AM $AS true true 4 specula_tests 1
-    #./script/runSpeculaBench.sh 1 $AM $AS true true 4 specula_tests 1
-    #./script/runSpeculaBench.sh 2 $AM $AS true true 1 specula_tests 1 
-    #./script/runSpeculaBench.sh 2 $AM $AS true true 1 specula_tests 1 
-    #./script/runSpeculaBench.sh 2 $AM $AS true true 1 specula_tests 2
-    #./script/runSpeculaBench.sh 2 $AM $AS true true 1 specula_tests 2 
-    #./script/runSpeculaBench.sh 2 $AM $AS true true 2 specula_tests 1 
-    #./script/runSpeculaBench.sh 2 $AM $AS true true 2 specula_tests 1 
-    #./script/runSpeculaBench.sh 2 $AM $AS true true 2 specula_tests 2
-    #./script/runSpeculaBench.sh 2 $AM $AS true true 2 specula_tests 2 
-    #./script/runSpeculaBench.sh 4 $AM $AS true true 1 specula_tests 1 
-    #./script/runSpeculaBench.sh 4 $AM $AS true true 1 specula_tests 1 
-    #./script/runSpeculaBench.sh 4 $AM $AS true true 1 specula_tests 2 
-    #./script/runSpeculaBench.sh 4 $AM $AS true true 1 specula_tests 2 
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 1 specula_tests 1 
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 1 specula_tests 1 
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 1 specula_tests 2
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 1 specula_tests 2 
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 2 specula_tests 1 
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 2 specula_tests 1 
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 2 specula_tests 2
+    ./script/runSpeculaBench.sh 2 $AM $AS true true 2 specula_tests 2 
+    ./script/runSpeculaBench.sh 4 $AM $AS true true 1 specula_tests 1 
+    ./script/runSpeculaBench.sh 4 $AM $AS true true 1 specula_tests 1 
+    ./script/runSpeculaBench.sh 4 $AM $AS true true 1 specula_tests 2 
+    ./script/runSpeculaBench.sh 4 $AM $AS true true 1 specula_tests 2 
     ./script/runSpeculaBench.sh 4 $AM $AS true true 2 specula_tests 1 
     ./script/runSpeculaBench.sh 4 $AM $AS true true 2 specula_tests 1 
     ./script/runSpeculaBench.sh 4 $AM $AS true true 2 specula_tests 2 
