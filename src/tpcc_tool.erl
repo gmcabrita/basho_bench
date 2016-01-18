@@ -2,9 +2,9 @@
 
 -include("tpcc.hrl").
 
--export([random_num/2, get_key/1, c_last/1, now_nsec/0, non_uniform_random/4, last_name/1,
-        create_item/1, create_warehouse/1, create_stock/2, create_district/2,
-        create_customer/5, create_customer_lookup/3, create_history/4, create_history/8, 
+-export([random_num/2, get_key/1, c_last_rand/1, now_nsec/0, non_uniform_random/4, last_name/1,
+        create_item/1, create_warehouse/1, create_stock/2, create_district/2, name_by_num/1,
+        create_customer/6, create_customer_lookup/3, create_history/4, create_history/8, 
 		create_order/6, create_order/7, create_orderline/6, create_orderline/9, 
 		create_neworder/3, get_key_by_param/2]).
 
@@ -33,17 +33,16 @@ get_c_last(DcId) ->
             V
     end.
 
-c_last(DcId) ->
-    Number = non_uniform_random(get_c_last(DcId), ?A_C_LAST, ?MIN_C_LAST, ?MAX_C_LAST),
-	Alea = integer_to_list(Number),
-	NumZeros = 3 - length(Alea),
-	NewAlea = case NumZeros > 0 of true -> lists:duplicate(NumZeros, 1) ++ Alea;
-				  				  false -> Alea
-			  end,
-	lists:foldl(fun(N, Acc) ->
-				Acc ++ lists:nth(N rem ?NUM_NAMES +1, ?NAMES)
-				end, [],  NewAlea).
+c_last_rand(DcId) ->
+    non_uniform_random(get_c_last(DcId), ?A_C_LAST, ?MIN_C_LAST, ?MAX_C_LAST).
 
+name_by_num(Num) ->
+    FirstDiv = ?NUM_NAMES * ?NUM_NAMES,
+    Number = Num rem (FirstDiv * ?NUM_NAMES),
+    First = trunc(Number / FirstDiv),
+    Second = trunc((Number - First * FirstDiv) / ?NUM_NAMES),
+    Third = Number - First*FirstDiv - Second* ?NUM_NAMES,
+    lists:nth(First+1, ?NAMES)++lists:nth(Second+1, ?NAMES)++lists:nth(Third+1, ?NAMES).
 
 non_uniform_random(Type, X, Min, Max) ->
     A = random_num(0, X),
@@ -103,7 +102,7 @@ create_district(DistrictId, WarehouseId) ->
                 d_street2=random_len_string(10,20), d_city=random_len_string(10,20), d_state=random_string(2),
                 d_zip=random_string(4) ++ "11111", d_tax=random_float(0.0, 0.2, 4), d_next_o_id=3001}.
 
-create_customer(WarehouseId, DistrictId, CustomerId, CLast, Since) ->
+create_customer(WarehouseId, DistrictId, CustomerId, CLast, Since, CLastOrder) ->
     #customer{
     c_d_id=DistrictId,
     c_w_id=WarehouseId,
@@ -111,6 +110,7 @@ create_customer(WarehouseId, DistrictId, CustomerId, CLast, Since) ->
     c_first=random_len_string(8, 16),
     c_middle="OE", 
     c_last=CLast, 
+    c_last_order=CLastOrder,
     c_street1=random_len_string(10, 20), 
     c_street2=random_len_string(10, 20), 
     c_city=random_len_string(10, 20), 
