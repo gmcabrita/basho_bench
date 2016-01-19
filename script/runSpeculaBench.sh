@@ -31,7 +31,7 @@ echo tpcc access_slave $3 >> config
 echo ant  do_specula $4  >> config
 echo ant fast_reply $5   >> config
 echo ant specula_length $6  >> config
-echo load concurrent 1 >> config
+echo load concurrent 3 >> config
 echo tpcc duration 60 >> config
 echo tpcc to_sleep 9000 >> config
 echo load to_sleep 9000 >> config
@@ -41,10 +41,10 @@ echo tpcc w_per_dc $WPerDc >> config
 echo load w_per_dc $WPerDc >> config
 if [ "$WPerDc" -eq 1 ]
 then
-    echo load duration 121 >> config
+    echo load duration 60 >> config
 elif [ "$WPerDc" -eq 2 ]
 then
-    echo load duration 225 >> config
+    echo load duration 100 >> config
 else
     echo load duration 250 >> config
 fi
