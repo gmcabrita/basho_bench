@@ -36,12 +36,12 @@ echo tpcc duration 60 >> config
 echo tpcc to_sleep 9000 >> config
 echo load to_sleep 9000 >> config
 echo ant do_repl true >> config
-#echo app_config ring_creation_size $NumPartitions >> config
+echo app_config ring_creation_size 12 >> config
 echo tpcc w_per_dc $WPerDc >> config
 echo load w_per_dc $WPerDc >> config
 if [ "$WPerDc" -eq 1 ]
 then
-    echo load duration 95 >> config
+    echo load duration 90 >> config
 elif [ "$WPerDc" -eq 2 ]
 then
     echo load duration 145 >> config

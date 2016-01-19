@@ -43,11 +43,17 @@ do
     CurrentNode="'antidote@"$Node"'"
     NextI=$(((I+1) % Length))
     DNextI=$(((I+2) % Length))
+    ThirdI=$(((I+3) % Length))
     if [ $I -ne 0 ]; then
-        ReplList=$ReplList",{"$CurrentNode",["${AntNodeArray[$NextI]}","${AntNodeArray[$DNextI]}"]}"
+        ReplList=$ReplList",{"$CurrentNode",["${AntNodeArray[$NextI]}","${AntNodeArray[$DNextI]}","${AntNodeArray[$ThirdI]}"]}"
     else
-        ReplList=$ReplList"{"$CurrentNode",["${AntNodeArray[$NextI]}","${AntNodeArray[$DNextI]}"]}"
+        ReplList=$ReplList"{"$CurrentNode",["${AntNodeArray[$NextI]}","${AntNodeArray[$DNextI]}","${AntNodeArray[$ThirdI]}"]}"
     fi
+    #if [ $I -ne 0 ]; then
+    #    ReplList=$ReplList",{"$CurrentNode",["${AntNodeArray[$NextI]}","${AntNodeArray[$DNextI]}","${AntNodeArray[$ThirdI]}"]}"
+    #else
+    #    ReplList=$ReplList"{"$CurrentNode",["${AntNodeArray[$NextI]}","${AntNodeArray[$DNextI]}","${AntNodeArray[$ThirdI]}"]}"
+    #fi
     I=$((I+1))
 done
 ReplList=$ReplList"]"
