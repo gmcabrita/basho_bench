@@ -91,7 +91,7 @@ new(Id) ->
     ?INFO("Result of ping is ~p \n", [Result]),
     MyTxServer = {server, list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list(Id))},
     {PartList, ReplList} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), %gen_server:call({global, MyTxServer}, {get_hash_fun}),
-    lager:info("Part list is ~w, Replist is ~w", [PartList, ReplList]),
+    %lager:info("Part list is ~w, Replist is ~w", [PartList, ReplList]),
     FullPartList = lists:flatten([L || {_, L} <- PartList]),
     HashLength = length(FullPartList),
     AllDcs = [N || {N, _} <- PartList],
@@ -450,7 +450,7 @@ index(E, [_|L], N) ->
     index(E, L, N+1).
 
 get_indexes(PL, List) ->
-    lager:info("Trying to get index: PL ~w, List ~w", [PL, List]),
+    %lager:info("Trying to get index: PL ~w, List ~w", [PL, List]),
     [index(X, List) || X <- PL ].
 
 read({server, TxServer}, Key, ExpandPartList, HashLength) ->
