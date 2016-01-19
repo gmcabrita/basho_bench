@@ -41,10 +41,10 @@ echo tpcc w_per_dc $WPerDc >> config
 echo load w_per_dc $WPerDc >> config
 if [ "$WPerDc" -eq 1 ]
 then
-    echo load duration 60 >> config
+    echo load duration 95 >> config
 elif [ "$WPerDc" -eq 2 ]
 then
-    echo load duration 100 >> config
+    echo load duration 145 >> config
 else
     echo load duration 250 >> config
 fi
@@ -68,7 +68,6 @@ Duration=$((NewTime-Time))
 if [ "$Duration" -lt 60 ]
 then
 echo "Load failed... Trying again!"
-sleep 5
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
 fi
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"

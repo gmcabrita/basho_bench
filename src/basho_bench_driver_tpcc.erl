@@ -120,14 +120,16 @@ new(Id) ->
     NoRepList = ((AllDcs -- MyRepList)) -- [TargetNode],
     NoRepIds = get_indexes(NoRepList, AllDcs),
     lager:info("NoRep list is ~w, no rep ids is ~w", [NoRepList, NoRepIds]),
-    %ets:new(dep_table, [private, named_table, bag]),
 
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     %lager:info("Ex list is ~w", [ExpandPartList]),
     HashLength = length(ExpandPartList),
 
     %lager:info("Part list is ~w",[PartList]),
-    case Id of 1 -> timer:sleep(ToSleep);
+    case Id of 1 -> timer:sleep(ToSleep),
+    		    ets:new(meta_info, [public, named_table, set]),
+		    ets:insert(meta_info, {payment, 0,0,0}),
+		    ets:insert(meta_info, {new_order, 0,0,0});
 	      _ ->  timer:sleep(1000)
     end,
     TxId = gen_server:call({global, MyTxServer}, {start_tx}),
@@ -263,7 +265,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     OrderKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, OId}, order),
     WS4 = dict:store({WarehouseId, OrderKey}, Order, WS3),
     %LocalWS4 = add_to_writeset(OrderKey, Order, lists:nth(DcId, PartList), LocalWS3),
-    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerDc),
+    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerDc, new_order),
     %lager:info("Local Write set is ~p", [LocalWriteList]),
     %lager:info("Remote Write set is ~p", [RemoteWriteList]),
     %DepsList = ets:lookup(dep_table, TxId),
@@ -391,7 +393,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
                                                CW#customer.c_id, tpcc_tool:now_nsec(), PaymentAmount, HData),
             HistoryKey = tpcc_tool:get_key(History),
             WS4 = dict:store({TWarehouseId, HistoryKey}, History, WS3),
-            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerDc),
+            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerDc, payment),
             %DepsList = ets:lookup(dep_table, TxId),
             T1 = os:timestamp(),
             Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
@@ -563,16 +565,21 @@ terminate(_, _State=#state{no_local=NOLocal, no_remote=NORemote, no_local_abort=
                                         {AccT1 div AccN1, AccRT1 div AccN1} 
 		     end,
     File= "prep",
+    [{payment, PT, PP, PN}] = ets:lookup(meta_info, payment),
+    [{new_order, NT, NP, NN}] = ets:lookup(meta_info, new_order),
     %lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead1, NORead2, NORead3, NOItem, PPrep, PRead]),
-    file:write_file(File, io_lib:fwrite("~p ~p ~p  ~p  ~p ~p\n", 
-            [NOR, LA,  RA, LCT, RCT, SCT]), [append]).
+    file:write_file(File, io_lib:fwrite("~p ~p ~p  ~p  ~p ~p ~p ~p ~p ~p\n", 
+            [NOR, LA,  RA, LCT, RCT, SCT, PP/PT ,PN/PT, NP/NT, NN/NT]), [append]).
 
-get_local_remote_writeset(WriteSet, PartList, LocalDcId, WPerDc) ->
+get_local_remote_writeset(WriteSet, PartList, LocalDcId, WPerDc, TxType) ->
     {LWSD, RWSD} = dict:fold(fun({WId, Key}, Value, {LWS, RWS}) ->
                     Id = (WId-1) div WPerDc + 1, 
                     case Id of LocalDcId -> {add_to_writeset(Key, Value, lists:nth(LocalDcId, PartList), LWS), RWS};
                                _ -> {LWS, add_to_writeset(Key, Value, lists:nth(Id, PartList), RWS)}
                     end end, {dict:new(), dict:new()}, WriteSet),
+    L = dict:fetch_keys(RWSD),
+    NodeSet = lists:foldl(fun({_, N}, S) -> sets:add_element(N, S) end, sets:new(), L),
+    ets:update_counter(meta_info, TxType, [{2, 1}, {3, length(L)}, {4,sets:size(NodeSet)}]),
     {dict:to_list(LWSD), dict:to_list(RWSD)}.
 
 
