@@ -87,7 +87,7 @@ new(Id) ->
 
     case net_kernel:start(MyNode) of
         {ok, _} ->
-            ?INFO("Net kernel started as ~p\n", [node()]);
+            %?INFO("Net kernel started as ~p\n", [node()]);
         {error, {already_started, _}} ->
             ?INFO("Net kernel already started as ~p\n", [node()]),
             ok;
@@ -99,9 +99,9 @@ new(Id) ->
     TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
     true = erlang:set_cookie(node(), Cookie),
 
-    ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
+    %?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
     Result = net_adm:ping(TargetNode),
-    ?INFO("Result of ping is ~p \n", [Result]),
+    %?INFO("Result of ping is ~p \n", [Result]),
 
     {PartList, ReplList} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
     %lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
@@ -114,12 +114,12 @@ new(Id) ->
     DcId = index(TargetNode, AllDcs),
     NumDcs = length(AllDcs),
     MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)),
-    lager:info("MyTxServer is ~w", [MyTxServer]),
+    %lager:info("MyTxServer is ~w", [MyTxServer]),
 
-    lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),
+    %lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),
     NoRepList = ((AllDcs -- MyRepList)) -- [TargetNode],
     NoRepIds = get_indexes(NoRepList, AllDcs),
-    lager:info("NoRep list is ~w, no rep ids is ~w", [NoRepList, NoRepIds]),
+    %lager:info("NoRep list is ~w, no rep ids is ~w", [NoRepList, NoRepIds]),
 
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     %lager:info("Ex list is ~w", [ExpandPartList]),
@@ -137,7 +137,7 @@ new(Id) ->
     C_C_ID = read(MyTxServer, TxId, "C_C_ID", ExpandPartList, HashLength),
     C_OL_I_ID = read(MyTxServer, TxId, "C_OL_I_ID", ExpandPartList, HashLength),
     ItemRanges = init_item_ranges(NumDcs, ?NB_MAX_ITEM),
-    lager:info("Cclast ~w, ccid ~w, coliid ~w", [C_C_LAST, C_C_ID, C_OL_I_ID]),
+    %lager:info("Cclast ~w, ccid ~w, coliid ~w", [C_C_LAST, C_C_ID, C_OL_I_ID]),
     {ok, #state{time={1,1,1}, worker_id=Id,
                tx_server=MyTxServer,
                access_master=AccessMaster,
@@ -595,7 +595,7 @@ add_to_writeset(Key, Value, {_, PartList}, WSet) ->
     dict:append(Part, {Key, Value}, WSet).
 
 get_indexes(PL, List) ->
-    lager:info("Trying to get index: PL ~w, List ~w", [PL, List]),
+    %lager:info("Trying to get index: PL ~w, List ~w", [PL, List]),
     [index(X, List) || X <- PL ].
 
 pick_warehouse(MyId, RepIds, NoRepIds, WPerDc, AccessMaster, AccessRep) ->
