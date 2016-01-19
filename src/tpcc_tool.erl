@@ -6,7 +6,7 @@
         create_item/1, create_warehouse/1, create_stock/2, create_district/2, name_by_num/1,
         create_customer/6, create_customer_lookup/3, create_history/4, create_history/8, 
 		create_order/6, create_order/7, create_orderline/6, create_orderline/9, 
-		create_neworder/3, get_key_by_param/2]).
+		create_neworder/3, get_key_by_param/2, random_data/0]).
 
 last_name(Num) ->
     lists:nth((Num div 100) rem ?NUM_NAMES +1, ?NAMES) ++
@@ -82,41 +82,58 @@ random_data() ->
     end.
 
 create_item(ItemId) ->
-    #item{i_id=ItemId, i_im_id=random_num(1, 10000), i_name=random_len_string(14,24), 
-            i_price=random_float(1, 100, 2), i_data=random_data()}.
+    #item{i_id=ItemId, i_im_id=random_num(1, 10000), i_name=[], %random_len_string(14,24), 
+            i_price=random_float(1, 100, 2), i_data=[]}.%random_data()}.
 
 create_warehouse(WarehouseId) ->
-    #warehouse{w_id=WarehouseId, w_name=random_len_string(6, 10), w_street1=random_len_string(10, 20),
-    w_street2=random_len_string(10, 20), w_city=random_len_string(10, 20), w_state=random_string(2),
-    w_zip = random_string(4) ++ "11111", w_tax=random_float(0.0, 0.2, 4)}. 
+    #warehouse{w_id=WarehouseId, w_name=[], w_street1=[],
+    w_street2=[], w_city=[], w_state=[],
+    w_zip =[], w_tax=random_float(0.0, 0.2, 4)}. 
+    %#warehouse{w_id=WarehouseId, w_name=random_len_string(6, 10), w_street1=random_len_string(10, 20),
+    %w_street2=random_len_string(10, 20), w_city=random_len_string(10, 20), w_state=random_string(2),
+    %w_zip = random_string(4) ++ "11111", w_tax=random_float(0.0, 0.2, 4)}. 
 
 create_stock(StockId, WarehouseId) ->
     #stock{s_i_id=StockId, s_w_id=WarehouseId, s_quantity=random_num(10,100),
-           s_dist_01=random_string(24), s_dist_02=random_string(24), s_dist_03=random_string(24),
-           s_dist_04=random_string(24), s_dist_05=random_string(24), s_dist_06=random_string(24),
-           s_dist_07=random_string(24), s_dist_08=random_string(24), s_dist_09=random_string(24),
-           s_dist_10=random_string(24), s_ytd=0, s_order_cnt=0, s_remote_cnt=0, s_data=random_data()}.
+           s_dist_01=[], s_dist_02=[], s_dist_03=[],
+           s_dist_04=[], s_dist_05=[], s_dist_06=[],
+           s_dist_07=[], s_dist_08=[], s_dist_09=[],
+           s_dist_10=[], s_ytd=0, s_order_cnt=0, s_remote_cnt=0, s_data=[]}.
+           %s_dist_01=random_string(24), s_dist_02=random_string(24), s_dist_03=random_string(24),
+           %s_dist_04=random_string(24), s_dist_05=random_string(24), s_dist_06=random_string(24),
+           %s_dist_07=random_string(24), s_dist_08=random_string(24), s_dist_09=random_string(24),
+           %s_dist_10=random_string(24), s_ytd=0, s_order_cnt=0, s_remote_cnt=0, s_data=random_data()}.
 
 create_district(DistrictId, WarehouseId) ->
-    #district{d_id=DistrictId, d_w_id=WarehouseId, d_name=random_len_string(6, 10), d_street1=random_len_string(10,20),
-                d_street2=random_len_string(10,20), d_city=random_len_string(10,20), d_state=random_string(2),
-                d_zip=random_string(4) ++ "11111", d_tax=random_float(0.0, 0.2, 4), d_next_o_id=3001}.
+    #district{d_id=DistrictId, d_w_id=WarehouseId, d_name=[], d_street1=[],
+                d_street2=[], d_city=[], d_state=[],
+                d_zip=[], d_tax=random_float(0.0, 0.2, 4), d_next_o_id=3001}.
+    %#district{d_id=DistrictId, d_w_id=WarehouseId, d_name=random_len_string(6, 10), d_street1=random_len_string(10,20),
+    %            d_street2=random_len_string(10,20), d_city=random_len_string(10,20), d_state=random_string(2),
+    %            d_zip=random_string(4) ++ "11111", d_tax=random_float(0.0, 0.2, 4), d_next_o_id=3001}.
 
 create_customer(WarehouseId, DistrictId, CustomerId, CLast, Since, CLastOrder) ->
     #customer{
     c_d_id=DistrictId,
     c_w_id=WarehouseId,
     c_id=CustomerId,
-    c_first=random_len_string(8, 16),
+    %c_first=random_len_string(8, 16),
+    c_first=[],
     c_middle="OE", 
     c_last=CLast, 
     c_last_order=CLastOrder,
-    c_street1=random_len_string(10, 20), 
-    c_street2=random_len_string(10, 20), 
-    c_city=random_len_string(10, 20), 
-    c_state=random_string(2),
-    c_zip=random_string(4)++"11111",
-    c_phone=random_string(16),
+    c_street1=[], 
+    c_street2=[], 
+    %c_street1=random_len_string(10, 20), 
+    %c_street2=random_len_string(10, 20), 
+    %c_city=random_len_string(10, 20), 
+    %c_state=random_string(2),
+    %c_zip=random_string(4)++"11111",
+    %c_phone=random_string(16),
+    c_city=[], 
+    c_state=[],
+    c_zip=[],
+    c_phone=[],
     c_since=Since,
     c_credit=set_credit(),
     c_credit_lim =500000.0,
@@ -124,14 +141,15 @@ create_customer(WarehouseId, DistrictId, CustomerId, CLast, Since, CLastOrder) -
     c_ytd_payment=10.0,
     c_payment_cnt=1,
     c_delivery_cnt=0,
-    c_data=random_len_string(300,500)}.
+    c_data=[]}.
+    %c_data=random_len_string(300,500)}.
 
 create_customer_lookup(WarehouseId, DistrictId, CLast) ->
     #customer_lookup{c_w_id=WarehouseId, c_d_id=DistrictId, c_last=CLast, ids=[]}.
 
 create_history(WarehouseId, DistrictId, CustomerId, Time) ->
     #history{h_c_id=CustomerId, h_c_d_id=DistrictId, h_c_w_id=WarehouseId, h_d_id=DistrictId, h_w_id=WarehouseId, h_date=Time,
-        h_amount=10, h_data=random_len_string(12, 24)}.
+        h_amount=10, h_data=[]}.%random_len_string(12, 24)}.
 
 create_history(TWId, TDId, CWId, CDId, CId, Date, Payment, HData) ->
     #history{h_c_id=CId, h_c_d_id=CDId, h_c_w_id=CWId, h_d_id=TDId, h_w_id=TWId, h_date=Date,
@@ -148,7 +166,7 @@ create_order(WarehouseId, DistrictId, OrderId, OOlCnt, CustomerId, Time, AllLoca
 create_orderline(WarehouseId, DistrictId, OrderId, OrderlineId, DDate, Amount) ->
     #orderline{ol_o_id=OrderId, ol_w_id=WarehouseId, ol_d_id=DistrictId, 
             ol_number=OrderlineId, ol_i_id=non_uniform_random(get_ol_i_id(WarehouseId), ?A_OL_I_ID, 1, ?NB_MAX_ITEM),
-            ol_supply_w_id=WarehouseId, ol_delivery_d=DDate, ol_quantity=5, ol_amount=Amount,ol_dist_info=random_len_string(12,24)
+            ol_supply_w_id=WarehouseId, ol_delivery_d=DDate, ol_quantity=5, ol_amount=Amount,ol_dist_info=[]%random_len_string(12,24)
             }.
 
 create_orderline(WarehouseId, DistrictId, SupplyWId, OrderId, OlIId, OlNumber, OlQuantity, Amount, OlDistInfo) ->
