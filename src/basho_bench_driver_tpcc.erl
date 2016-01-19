@@ -119,7 +119,7 @@ new(Id) ->
     %lager:info("MyTxServer is ~w", [MyTxServer]),
 
     %lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),
-    NoRepList = ((AllDcs -- MyRepList)) -- [TargetNode],
+    NoRepList = ((AllDcs -- [N ||{_,N}  <- MyRepList])) -- [TargetNode],
     NoRepIds = get_indexes(NoRepList, AllDcs),
     lager:info("NoRep list is ~w, no rep ids is ~w", [NoRepList, NoRepIds]),
 
@@ -127,12 +127,12 @@ new(Id) ->
     %lager:info("Ex list is ~w", [ExpandPartList]),
     HashLength = length(ExpandPartList),
 
-    lager:info("Part list is ~w",[PartList]),
+    %lager:info("Part list is ~w",[PartList]),
     case Id of 1 -> timer:sleep(ToSleep),
     		    ets:new(meta_info, [public, named_table, set]),
 		    ets:insert(meta_info, {payment, 0,0,0}),
 		    ets:insert(meta_info, {new_order, 0,0,0});
-	      _ ->  timer:sleep(1000)
+	      _ ->  timer:sleep(2500)
     end,
     TxId = gen_server:call({global, MyTxServer}, {start_tx}),
     C_C_LAST = read(MyTxServer, TxId, "C_C_LAST", ExpandPartList, HashLength),
