@@ -87,6 +87,7 @@ new(Id) ->
 
     case net_kernel:start(MyNode) of
         {ok, _} ->
+	    ok;
             %?INFO("Net kernel started as ~p\n", [node()]);
         {error, {already_started, _}} ->
             ?INFO("Net kernel already started as ~p\n", [node()]),
@@ -100,7 +101,7 @@ new(Id) ->
     true = erlang:set_cookie(node(), Cookie),
 
     %?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
-    Result = net_adm:ping(TargetNode),
+    _Result = net_adm:ping(TargetNode),
     %?INFO("Result of ping is ~p \n", [Result]),
 
     {PartList, ReplList} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
@@ -111,6 +112,7 @@ new(Id) ->
     MyRepIds = get_indexes(M, AllDcs),
     MyRepList = [{N, get_rep_name(TargetNode, lists:nth(N, AllDcs))} || N <- MyRepIds],
     %lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
+    lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
     DcId = index(TargetNode, AllDcs),
     NumDcs = length(AllDcs),
     MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)),
@@ -119,13 +121,13 @@ new(Id) ->
     %lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),
     NoRepList = ((AllDcs -- MyRepList)) -- [TargetNode],
     NoRepIds = get_indexes(NoRepList, AllDcs),
-    %lager:info("NoRep list is ~w, no rep ids is ~w", [NoRepList, NoRepIds]),
+    lager:info("NoRep list is ~w, no rep ids is ~w", [NoRepList, NoRepIds]),
 
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     %lager:info("Ex list is ~w", [ExpandPartList]),
     HashLength = length(ExpandPartList),
 
-    %lager:info("Part list is ~w",[PartList]),
+    lager:info("Part list is ~w",[PartList]),
     case Id of 1 -> timer:sleep(ToSleep),
     		    ets:new(meta_info, [public, named_table, set]),
 		    ets:insert(meta_info, {payment, 0,0,0}),
