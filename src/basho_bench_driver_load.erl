@@ -144,7 +144,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
                 _ ->
                     ok
             end,
-            timer:sleep(2000),
+            timer:sleep(3000),
             case Id of
                 1 ->
        %% Sleep to make sure that COMMIT_TIME is written to a partition

@@ -9,7 +9,7 @@ fi
 
 Status="sudo antidote/rel/antidote/bin/antidote-admin member-status"
 
-for Node in "$Nodes"
+for Node in $Nodes
 do
 while true; do
        LineNum=`./script/command_to_all.sh "$Node" "$Status" | grep "\-\-      'antidote" | wc -l`  
@@ -18,7 +18,7 @@ while true; do
 	       break
        else
                echo "Joining for ${Node}..."
+       	       sleep 3 
        fi
-       sleep 3 
 done
 done
