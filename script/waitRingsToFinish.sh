@@ -2,20 +2,23 @@
 
 if [ $# -eq 0 ]
 then
-    First=`head -1 script/allnodes`
+    Nodes=`head script/allnodes`
 else
-    First=$1
+    Nodes=$1
 fi
 
 Status="sudo antidote/rel/antidote/bin/antidote-admin member-status"
 
+for Node in "$Nodes"
+do
 while true; do
-       sleep 10
-       LineNum=`./script/command_to_all.sh "$First" "$Status" | grep "\-\-      'antidote" | wc -l`  
+       LineNum=`./script/command_to_all.sh "$Node" "$Status" | grep "\-\-      'antidote" | wc -l`  
        if [ $LineNum -ne 0 ]; then
-               echo "Ring joined!"
-               exit
+               echo "Ring joined for ${Node}!"
+	       break
        else
-               echo "Joining..."
+               echo "Joining for ${Node}..."
        fi
+       sleep 3 
+done
 done
