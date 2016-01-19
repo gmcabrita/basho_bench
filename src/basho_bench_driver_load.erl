@@ -33,10 +33,12 @@
                 part_list,
 		        start_time,
                 full_part_list,
+                my_pop_range,
                 hash_length,
                 repl_list,
                 commit_time,
                 non_repl_list,
+                populate_list,
                 w_per_dc,
                 stage,
                 num_dcs,
@@ -67,6 +69,7 @@ new(Id) ->
     Cookie = basho_bench_config:get(antidote_cookie),
     ToSleep = basho_bench_config:get(to_sleep),
     WPerDc = basho_bench_config:get(w_per_dc),
+    TotalThreads = basho_bench_config:get(concurrent),
 
     case net_kernel:start(MyNode) of
         {ok, _} ->
@@ -79,7 +82,8 @@ new(Id) ->
     end,
 
     %% Choose the node using our ID as a modulus
-    TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
+    TargetNode = lists:nth(((Id-1) rem length(IPs)+1), IPs),
+    ThreadPerDc = TotalThreads div length(IPs),
     true = erlang:set_cookie(node(), Cookie),
 
     ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
@@ -102,9 +106,21 @@ new(Id) ->
     case Id of 1 -> ets:new(meta_info, [named_table, public, set]);
          _ -> ok
     end,
+    NewId =  (Id-1) div length(IPs)+1,
+    ToPopulate = length(MyReps)+1,
+    ToPopPerThread = ToPopulate div ThreadPerDc, 
+    MyRange = case NewId of
+                ThreadPerDc ->
+                    lists:sublist([{DcId, MyTxServer}|MyReps], ToPopPerThread*(NewId-1)+1, ToPopPerThread + ToPopulate rem ThreadPerDc);
+                _ ->
+                    lists:sublist([{DcId, MyTxServer}|MyReps], ToPopPerThread*(NewId-1)+1, ToPopPerThread)
+    end,
+    lager:info("My real Id ~w, new Id ~w, range ~w", [Id, NewId, MyRange]),
+    
     StartTime = os:timestamp(),
-    {ok, #state{worker_id=Id,
+    {ok, #state{worker_id=NewId,
                my_tx_server=MyTxServer,
+               my_pop_range=MyRange,
                start_time=StartTime,
                replicas=MyReps,
                part_list = PartList,
@@ -118,56 +134,62 @@ new(Id) ->
                target_node=TargetNode}}.
 
 %% @doc Read a key
-run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId, replicas=RepIds,
+run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId, my_pop_range=PopRange, worker_id=Id,
         stage=Stage, w_per_dc=WPerDc, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId, start_time=StartedTime}) ->
     case Stage of
         init ->
-           case DcId of
-                1 ->
+            case (DcId==1) and (Id==1) of
+                true ->
                     init_params(TxServer, FullPartList, HashLength);
                 _ ->
                     ok
-           end,
+            end,
+            timer:sleep(2000),
+            case Id of
+                1 ->
        %% Sleep to make sure that COMMIT_TIME is written to a partition
-       timer:sleep(5000),
-       COMMIT_TIME = read(TxServer, "COMMIT_TIME", FullPartList, HashLength),
-       ets:insert(meta_info, {"COMMIT_TIME", COMMIT_TIME}),
-       lager:info("CommitTime is ~w", [COMMIT_TIME]),
+                    COMMIT_TIME = read(TxServer, "COMMIT_TIME", FullPartList, HashLength),
+                    ets:insert(meta_info, {"COMMIT_TIME", COMMIT_TIME}),
+                    lager:info("CommitTime is ~w", [COMMIT_TIME]);
+                _ ->
+                    ok
+            end,
+            timer:sleep(1000),
        {ok, State#state{stage=to_item}};
     to_item -> 
         lager:info("Populating items for dc ~w", [DcId]),
-        populate_items(TxServer, NumDCs, DcId, PartList),
+        %populate_items(TxServer, NumDCs, DcId, PartList),
         lists:foreach(fun({RepDcId, Replica}) -> populate_items(Replica, NumDCs, RepDcId, PartList) end, 
-                  RepIds),
+                  PopRange),
         {ok, State#state{stage=to_warehouse}};
     to_warehouse -> 
         lager:info("Populating warehouse for dc ~w", [DcId]),
-        WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
-        lists:foreach(fun(WId) -> populate_warehouse(TxServer, WId, PartList, WPerDc) end, WSeq),
+        %WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
+        %lists:foreach(fun(WId) -> populate_warehouse(TxServer, WId, PartList, WPerDc) end, WSeq),
         lists:foreach(fun({RepDcId, Replica}) -> 
             RepWSeq = lists:seq(WPerDc*(RepDcId-1)+1, RepDcId*WPerDc),
             lists:foreach(fun(RepWId) -> populate_warehouse(Replica, RepWId, PartList, WPerDc) end, RepWSeq) end, 
-                  RepIds),
+                  PopRange),%RepIds),
         {ok, State#state{stage=to_stock}};
     to_stock ->
         lager:info("Populating stocks for dc ~w", [DcId]),
-        WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
-        lists:foreach(fun(WId) -> populate_stock(TxServer, WId, PartList, WPerDc) end, WSeq),
+        %WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
+        %lists:foreach(fun(WId) -> populate_stock(TxServer, WId, PartList, WPerDc) end, WSeq),
         lists:foreach(fun({RepDcId, Replica}) -> 
             RepWSeq = lists:seq(WPerDc*(RepDcId-1)+1, RepDcId*WPerDc),
             lists:foreach(fun(RepWId) -> populate_stock(Replica, RepWId, PartList, WPerDc) end, RepWSeq) end, 
-                 RepIds),
+                 PopRange),%RepIds),
         {ok, State#state{stage=to_district, district_id=1}};
     to_district ->
         case DistrictId =< ?NB_MAX_DISTRICT of
             true ->
                 lager:info("Populating districts ~w for dc ~w", [DistrictId, DcId]),
-                WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
-                lists:foreach(fun(WId) -> populate_district(TxServer, WId, DistrictId, PartList, WPerDc) end, WSeq),
+                %WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
+                %lists:foreach(fun(WId) -> populate_district(TxServer, WId, DistrictId, PartList, WPerDc) end, WSeq),
                 lists:foreach(fun({RepDcId, Replica}) -> 
                     RepWSeq = lists:seq(WPerDc*(RepDcId-1)+1, RepDcId*WPerDc),
                     lists:foreach(fun(RepWId) -> populate_district(Replica, RepWId, DistrictId, PartList, WPerDc) end, RepWSeq) end, 
-                    RepIds),
+                    PopRange),%RepIds),
                 {ok, State#state{district_id=DistrictId+1}};
             false ->
                 {ok, State#state{stage=to_customer_order, district_id=1}}
@@ -176,12 +198,12 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
         case DistrictId =< ?NB_MAX_DISTRICT of
             true ->
                 lager:info("Populating customer orders for ~w", [DistrictId]),
-                WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
-                lists:foreach(fun(WId) -> populate_customer_orders(TxServer, WId, DistrictId, PartList, WPerDc) end, WSeq),
+                %WSeq = lists:seq(WPerDc*(DcId-1)+1, DcId*WPerDc),
+                %lists:foreach(fun(WId) -> populate_customer_orders(TxServer, WId, DistrictId, PartList, WPerDc) end, WSeq),
                 lists:foreach(fun({RepDcId, Replica}) -> 
                     RepWSeq = lists:seq(WPerDc*(RepDcId-1)+1, RepDcId*WPerDc),
                     lists:foreach(fun(RepWId) -> populate_customer_orders(Replica, RepWId, DistrictId, PartList, WPerDc) end, RepWSeq) end, 
-                    RepIds),
+                    PopRange),%RepIds),
                 {ok, State#state{district_id=DistrictId+1}};
             false ->
 		NowTime = os:timestamp(),
