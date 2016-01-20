@@ -106,7 +106,6 @@ init([]) ->
          folsom_metrics:new_histogram({latencies, Op}, slide, basho_bench_config:get(report_interval)),
          folsom_metrics:new_counter({units, Op})
      end || Op <- Ops ++ Measurements],
-    lager:info("*************Interval is ~w *************", [basho_bench_config:get(report_interval)]),
 
     %% Setup output file handles for dumping periodic CSV of histogram results.
     [erlang:put({csv_file, X}, op_csv_file(X)) || X <- Ops],

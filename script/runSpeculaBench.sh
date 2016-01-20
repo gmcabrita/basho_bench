@@ -33,7 +33,7 @@ echo ant fast_reply $5   >> config
 echo ant specula_length $6  >> config
 echo load concurrent 4 >> config
 echo tpcc duration 60 >> config
-echo tpcc to_sleep 11000 >> config
+echo tpcc to_sleep 20000 >> config
 echo load to_sleep 9000 >> config
 echo ant do_repl true >> config
 echo app_config ring_creation_size 12 >> config

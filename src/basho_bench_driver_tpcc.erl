@@ -132,7 +132,7 @@ new(Id) ->
     		    ets:new(meta_info, [public, named_table, set]),
 		    ets:insert(meta_info, {payment, 0,0,0}),
 		    ets:insert(meta_info, {new_order, 0,0,0});
-	      _ ->  timer:sleep(2500)
+	      _ ->  timer:sleep(1000)
     end,
     TxId = gen_server:call({global, MyTxServer}, {start_tx}),
     C_C_LAST = read(MyTxServer, TxId, "C_C_LAST", ExpandPartList, HashLength),
