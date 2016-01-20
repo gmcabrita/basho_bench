@@ -27,6 +27,7 @@ else
     exit
 fi
 
+echo "Params are" $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10} 
 #Params: nodes, cookie, num of dcs, num of nodes, if connect dcs, replication or not, branch
 Time=`date +'%Y-%m-%d-%H%M%S'`
 Folder=$7/$Time
@@ -48,7 +49,7 @@ echo tpcc duration 60 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 ToSleep=$((40000 / ${1} +500))
 echo tpcc to_sleep $ToSleep >> config
-echo load to_sleep 40000 >> config
+echo load to_sleep 30000 >> config
 echo ant do_repl true >> config
 echo app_config ring_creation_size 12 >> config
 echo tpcc w_per_dc $WPerDc >> config
@@ -102,4 +103,4 @@ cat $Folder/$N-stat >> $Folder/stat
 rm $Folder/$N-stat
 done
 
-echo $1 $2 $3 $4 $5 $6 $WPerDc $9 $10  > $Folder/config
+echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10}  > $Folder/config

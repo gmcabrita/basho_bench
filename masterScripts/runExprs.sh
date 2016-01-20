@@ -7,22 +7,31 @@ AS=20
 seq="1 2"
 threads="2 4 8"
 workloads="1 2 3 4"
+length="1 2 4 8"
+start_ind=1
+skip_len=60
 for i in $seq
 do
     for t in $threads
     do
 	for wl in $workloads
 	do
-	if [ $wl == 1 ]; then  n=45  p=45
-	elif [ $wl == 2 ]; then  n=5 p=5
-	elif [ $wl == 3 ]; then n=10 p=0
-	elif [ $wl == 4 ]; then n=90 p=0
+	    if [ $wl == 1 ]; then  n=45  p=45
+	    elif [ $wl == 2 ]; then  n=5 p=5
+	    elif [ $wl == 3 ]; then n=10 p=0
+	    elif [ $wl == 4 ]; then n=90 p=0
 	fi
-    	./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests 2 $n $p 
-    	./script/runSpeculaBench.sh $t $AM $AS true true 1 specula_tests 2 $n $p
-    	./script/runSpeculaBench.sh $t $AM $AS true true 2 specula_tests 2 $n $p
-    	./script/runSpeculaBench.sh $t $AM $AS true true 4 specula_tests 2 $n $p
-    	./script/runSpeculaBench.sh $t $AM $AS true true 8 specula_tests 2 $n $p
+	if [ $start_ind -gt $skip_len ]; then
+    	    ./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests 2 $n $p 
+	fi
+	start_ind=$((start_ind+1))
+	for len in $length
+	do
+	    if [ $start_ind -gt $skip_len ]; then
+    	        ./script/runSpeculaBench.sh $t $AM $AS true true $len specula_tests 2 $n $p
+	    fi
+	    start_ind=$((start_ind+1))
+	done
 	done
     done
 done

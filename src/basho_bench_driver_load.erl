@@ -134,11 +134,11 @@ new(Id) ->
                target_node=TargetNode}}.
 
 %% @doc Read a key
-run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId, my_pop_range=PopRange, worker_id=Id, to_sleep=_ToSleep, target_node=TargetNode,
+run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId, my_pop_range=PopRange, worker_id=Id, to_sleep=ToSleep, target_node=TargetNode,
         stage=Stage, w_per_dc=WPerDc, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId, start_time=StartedTime}) ->
     case Stage of
         init ->
-            %timer:sleep(ToSleep),
+            timer:sleep(ToSleep),
             case (DcId==1) and (Id==1) of
                 true ->
                     init_params(TxServer, FullPartList, HashLength, TargetNode);
