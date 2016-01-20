@@ -4,6 +4,8 @@
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 AM=80
 AS=20
+    	        ./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 50 40 
+exit
 seq="1 2"
 threads="2 4 8"
 workloads="1 2 3 4"

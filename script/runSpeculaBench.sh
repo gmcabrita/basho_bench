@@ -47,8 +47,9 @@ echo ant specula_length $6  >> config
 echo load concurrent 4 >> config
 echo tpcc duration 60 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
+ToSleep=20000
 echo tpcc to_sleep $ToSleep >> config
-echo load to_sleep 35000 >> config
+#echo load to_sleep 35000 >> config
 echo ant do_repl true >> config
 echo app_config ring_creation_size 12 >> config
 echo tpcc w_per_dc $WPerDc >> config
