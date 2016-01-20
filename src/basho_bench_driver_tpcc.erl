@@ -40,6 +40,7 @@
                 c_c_id,
                 c_ol_i_id,
                 my_rep_list,
+                to_sleep,
                 no_rep_list,
                 my_rep_ids,
                 no_rep_ids,
@@ -87,7 +88,7 @@ new(Id) ->
 
     case net_kernel:start(MyNode) of
         {ok, _} ->
-	    ok;
+	        ok;
             %?INFO("Net kernel started as ~p\n", [node()]);
         {error, {already_started, _}} ->
             ?INFO("Net kernel already started as ~p\n", [node()]),
@@ -128,17 +129,23 @@ new(Id) ->
     HashLength = length(ExpandPartList),
 
     %lager:info("Part list is ~w",[PartList]),
-    case Id of 1 -> timer:sleep(ToSleep),
+    case Id of 1 -> 
     		    ets:new(meta_info, [public, named_table, set]),
 		    ets:insert(meta_info, {payment, 0,0,0}),
 		    ets:insert(meta_info, {new_order, 0,0,0});
-	      _ ->  timer:sleep(8000)
+	      _ -> ok 
     end,
-    TxId = gen_server:call({global, MyTxServer}, {start_tx}),
-    C_C_LAST = read(MyTxServer, TxId, "C_C_LAST", ExpandPartList, HashLength),
-    C_C_ID = read(MyTxServer, TxId, "C_C_ID", ExpandPartList, HashLength),
-    C_OL_I_ID = read(MyTxServer, TxId, "C_OL_I_ID", ExpandPartList, HashLength),
+    Key1 = "C_C_LAST",
+    Key2 = "C_C_ID",
+    Key3 = "C_OL_I_ID",
+    Part1 = get_partition(Key1, ExpandPartList, HashLength),
+    Part2 = get_partition(Key1, ExpandPartList, HashLength),
+    Part3 = get_partition(Key1, ExpandPartList, HashLength),
+    {ok, C_C_LAST} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key1, Part1]),
+    {ok, C_C_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key2, Part2]),
+    {ok, C_OL_I_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key3, Part3]),
     ItemRanges = init_item_ranges(NumDcs, ?NB_MAX_ITEM),
+    timer:sleep(ToSleep),
     %lager:info("Cclast ~w, ccid ~w, coliid ~w", [C_C_LAST, C_C_ID, C_OL_I_ID]),
     {ok, #state{time={1,1,1}, worker_id=Id,
                tx_server=MyTxServer,
@@ -149,6 +156,7 @@ new(Id) ->
                my_rep_list = MyRepList,
                my_rep_ids = MyRepIds,
                no_rep_list = NoRepList,
+               to_sleep=ToSleep,
                no_specula={0,0},
                no_local={0,0},
                no_remote={0,0},
@@ -533,12 +541,6 @@ read_from_cache_or_node(ReadSet, TxServer, TxId, Key, DcId, MyDcId, PartList, My
 read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
     Part = get_partition(Key, ExpandPartList, HashLength),
     {ok, V} = tx_cert_sup:read(TxServer, TxId, Key, Part),
-    %case Res of
-    %    {specula, DepTx} ->
-    %        ets:insert(dep_table, {TxId, DepTx});
-    %    ok ->
-    %        ok
-    %end,
     case V of
         [] ->
             lager:error("Key ~p not found!!!!", [Key]),

@@ -40,6 +40,7 @@
                 non_repl_list,
                 populate_list,
                 w_per_dc,
+                to_sleep,
                 stage,
                 num_dcs,
                 dc_id,
@@ -100,8 +101,6 @@ new(Id) ->
     MyReps = lists:map(fun(Index) ->  Name = lists:nth(Index, AllDcs),  {Index, {rep, get_rep_name(TargetNode, Name)}} end, MyRepIds),
     NumDcs = length(AllDcs),
     DcId = index(TargetNode, AllDcs),
-    timer:sleep(ToSleep),
-
     lager:info("TargetNode is ~p, DcId is ~w, My Replica Ids are ~w",[TargetNode, DcId, MyReps]),
     case Id of 1 -> ets:new(meta_info, [named_table, public, set]);
          _ -> ok
@@ -116,12 +115,13 @@ new(Id) ->
                     lists:sublist([{DcId, MyTxServer}|MyReps], ToPopPerThread*(NewId-1)+1, ToPopPerThread)
     end,
     lager:info("My real Id ~w, new Id ~w, range ~w", [Id, NewId, MyRange]),
-    
+
     StartTime = os:timestamp(),
     {ok, #state{worker_id=NewId,
                my_tx_server=MyTxServer,
                my_pop_range=MyRange,
                start_time=StartTime,
+               to_sleep=ToSleep,
                replicas=MyReps,
                part_list = PartList,
                repl_list = ReplList,
@@ -134,10 +134,11 @@ new(Id) ->
                target_node=TargetNode}}.
 
 %% @doc Read a key
-run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId, my_pop_range=PopRange, worker_id=Id,
+run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId, my_pop_range=PopRange, worker_id=Id, to_sleep=ToSleep,
         stage=Stage, w_per_dc=WPerDc, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId, start_time=StartedTime}) ->
     case Stage of
         init ->
+            timer:sleep(ToSleep),
             case (DcId==1) and (Id==1) of
                 true ->
                     init_params(TxServer, FullPartList, HashLength);
