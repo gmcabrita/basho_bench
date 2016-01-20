@@ -5,11 +5,23 @@ AllNodes=`cat script/allnodes`
 
 if [ $# == 7 ]
 then
-    echo "Use default num for district, item and customer"
+    echo "Use default num for workload"
     WPerDc=1
+    new_order=45
+    payment=45
+    order_status=10
 elif [ $# == 8 ]
 then
     WPerDc=$8
+    new_order=45
+    payment=45
+    order_status=10
+elif [ $# == 10 ]
+then
+    WPerDc=$8
+    new_order=$9
+    payment=$10
+    order_status=$((100-${9}-${10}))
 else
     echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, fast_reply, specula_length, folder, [num_partitions]"
     exit
@@ -33,21 +45,22 @@ echo ant fast_reply $5   >> config
 echo ant specula_length $6  >> config
 echo load concurrent 4 >> config
 echo tpcc duration 60 >> config
-ToSleep=$((15000 / ${1} +500))
+echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
+ToSleep=$((40000 / ${1} +500))
 echo tpcc to_sleep $ToSleep >> config
-echo load to_sleep 15000 >> config
+echo load to_sleep 40000 >> config
 echo ant do_repl true >> config
 echo app_config ring_creation_size 12 >> config
 echo tpcc w_per_dc $WPerDc >> config
 echo load w_per_dc $WPerDc >> config
 if [ "$WPerDc" -eq 1 ]
 then
-    echo load duration 105 >> config
+    echo load duration 130 >> config
 elif [ "$WPerDc" -eq 2 ]
 then
-    echo load duration 165 >> config
+    echo load duration 210 >> config
 else
-    echo load duration 250 >> config
+    echo load duration 280 >> config
 fi
 
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
@@ -89,4 +102,4 @@ cat $Folder/$N-stat >> $Folder/stat
 rm $Folder/$N-stat
 done
 
-echo $1 $2 $3 $4 $5 $6 $WPerDc > $Folder/config
+echo $1 $2 $3 $4 $5 $6 $WPerDc $9 $10  > $Folder/config
