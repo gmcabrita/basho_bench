@@ -23,6 +23,7 @@
 
 -export([new/1,
         terminate/2,
+	read/5,
          run/4]).
 
 -include("basho_bench.hrl").

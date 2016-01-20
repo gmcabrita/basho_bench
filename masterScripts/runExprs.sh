@@ -4,7 +4,43 @@
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 AM=80
 AS=20
-    ./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 1 
+seq="1 2"
+threads="2 4 8"
+workloads="1 2 3 4"
+length="1 2 4 8"
+start_ind=1
+skip_len=60
+for i in $seq
+do
+    for t in $threads
+    do
+	for wl in $workloads
+	do
+	    if [ $wl == 1 ]; then  n=45  p=45
+	    elif [ $wl == 2 ]; then  n=5 p=5
+	    elif [ $wl == 3 ]; then n=10 p=0
+	    elif [ $wl == 4 ]; then n=90 p=0
+	fi
+	if [ $start_ind -gt $skip_len ]; then
+    	    ./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests 2 $n $p 
+	else
+	    echo "Skipped..."$start_ind
+	fi
+	start_ind=$((start_ind+1))
+	for len in $length
+	do
+	    if [ $start_ind -gt $skip_len ]; then
+    	        ./script/runSpeculaBench.sh $t $AM $AS true true $len specula_tests 2 $n $p
+	    else
+		echo "Skipped..."$start_ind
+	    fi
+	    start_ind=$((start_ind+1))
+	done
+	done
+    done
+done
+exit
+    ./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 
     ./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 
 	exit
     ./script/runSpeculaBench.sh 2 $AM $AS false false 0 specula_tests 1 
