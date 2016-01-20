@@ -21,7 +21,7 @@
 %% -------------------------------------------------------------------
 -module(basho_bench_driver_load).
 
--export([new/1,
+-export([new/1, read/4,
          run/4]).
 
 -include("basho_bench.hrl").
@@ -134,14 +134,14 @@ new(Id) ->
                target_node=TargetNode}}.
 
 %% @doc Read a key
-run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId, my_pop_range=PopRange, worker_id=Id, to_sleep=ToSleep,
+run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxServer, district_id=DistrictId, my_pop_range=PopRange, worker_id=Id, to_sleep=_ToSleep, target_node=TargetNode,
         stage=Stage, w_per_dc=WPerDc, full_part_list=FullPartList, hash_length=HashLength, num_dcs=NumDCs, dc_id=DcId, start_time=StartedTime}) ->
     case Stage of
         init ->
-            timer:sleep(ToSleep),
+            %timer:sleep(ToSleep),
             case (DcId==1) and (Id==1) of
                 true ->
-                    init_params(TxServer, FullPartList, HashLength);
+                    init_params(TxServer, FullPartList, HashLength, TargetNode);
                 _ ->
                     ok
             end,
@@ -149,13 +149,15 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
             case Id of
                 1 ->
        %% Sleep to make sure that COMMIT_TIME is written to a partition
-                    COMMIT_TIME = read(TxServer, "COMMIT_TIME", FullPartList, HashLength),
+		    Part1 = get_partition("COMMIT_TIME", FullPartList, HashLength),
+		    {server, T} = TxServer,
+		    {ok, COMMIT_TIME} = rpc:call(TargetNode, tx_cert_sup, single_read, [T, "COMMIT_TIME", Part1]),
                     ets:insert(meta_info, {"COMMIT_TIME", COMMIT_TIME}),
                     lager:info("CommitTime is ~w", [COMMIT_TIME]);
                 _ ->
                     ok
             end,
-            timer:sleep(2000),
+            timer:sleep(1000),
        {ok, State#state{stage=to_item}};
     to_item -> 
         lager:info("Populating items for dc ~w", [DcId]),
@@ -366,7 +368,7 @@ put_range_items(TxServer, FirstItem, LastItem, DcId, PartList) ->
                     end, dict:new(), Seq),
     multi_put(TxServer, DcId, PartList, FinalWS).
 
-init_params(TxServer, FullPartList, HashLength) ->
+init_params(_TxServer, FullPartList, HashLength, TargetNode) ->
     K1 = "C_C_LAST",
     K2 = "C_C_ID",
     K3 = "C_OL_I_ID",
@@ -383,10 +385,10 @@ init_params(TxServer, FullPartList, HashLength) ->
     lager:info("Putting CCID to ~w", [Partition2]),
     lager:info("Putting COLIID to ~w", [Partition3]),
     lager:info("Putting COMMIT_TIME to ~w", [Partition4]),
-    put(TxServer, Partition1, [{K1, C_C_LAST}], COMMIT_TIME),
-    put(TxServer, Partition2, [{K2, C_C_ID}], COMMIT_TIME),
-    put(TxServer, Partition3, [{K3, C_OL_I_ID}], COMMIT_TIME),
-    put(TxServer, Partition4, [{K4, COMMIT_TIME}], COMMIT_TIME).
+    rpc:call(TargetNode, tx_cert_sup, append_values, [1, Partition1, [{K1, C_C_LAST}], COMMIT_TIME]),
+    rpc:call(TargetNode, tx_cert_sup, append_values, [1, Partition2, [{K2, C_C_ID}], COMMIT_TIME]),
+    rpc:call(TargetNode, tx_cert_sup, append_values, [1, Partition3, [{K3, C_OL_I_ID}], COMMIT_TIME]),
+    rpc:call(TargetNode, tx_cert_sup, append_values, [1, Partition4, [{K4, COMMIT_TIME}], COMMIT_TIME]).
 
 get_partition(Key, PartList, HashLength) ->
     Num = crypto:bytes_to_integer(erlang:md5(Key)) rem HashLength +1,
