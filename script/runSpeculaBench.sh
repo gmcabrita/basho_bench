@@ -35,7 +35,7 @@ echo load concurrent 4 >> config
 echo tpcc duration 60 >> config
 ToSleep=$((10000 / ${1} +500))
 echo tpcc to_sleep $ToSleep >> config
-echo load to_sleep 8000 >> config
+echo load to_sleep 10000 >> config
 echo ant do_repl true >> config
 echo app_config ring_creation_size 12 >> config
 echo tpcc w_per_dc $WPerDc >> config
