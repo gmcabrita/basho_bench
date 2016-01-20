@@ -49,7 +49,7 @@ echo tpcc duration 60 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 ToSleep=$((40000 / ${1} +500))
 echo tpcc to_sleep $ToSleep >> config
-echo load to_sleep 30000 >> config
+echo load to_sleep 35000 >> config
 echo ant do_repl true >> config
 echo app_config ring_creation_size 12 >> config
 echo tpcc w_per_dc $WPerDc >> config
@@ -59,7 +59,7 @@ then
     echo load duration 130 >> config
 elif [ "$WPerDc" -eq 2 ]
 then
-    echo load duration 210 >> config
+    echo load duration 205 >> config
 else
     echo load duration 280 >> config
 fi
@@ -75,16 +75,17 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #./masterScripts/changeConfig.sh "$AllNodes" $Ant do_repl true
 
 ./script/restartAndConnect.sh "$AllNodes"  antidote 
-Time=`date +%s`
-./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
-NewTime=`date +%s`
-Duration=$((NewTime-Time))
-if [ "$Duration" -lt 60 ]
-then
-echo "Load failed... Trying again!"
-sleep 5
-./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
-fi
+#Time=`date +%s`
+#./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
+#NewTime=`date +%s`
+#Duration=$((NewTime-Time))
+#if [ "$Duration" -lt 60 ]
+#then
+#echo "Load failed... Trying again!"
+#sleep 5
+#./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
+#fi
+./script/load.sh `head -1 ./script/allnodes` $WPerDc
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 ./script/gatherThroughput.sh $Folder &
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 

@@ -9,7 +9,7 @@ threads="2 4 8"
 workloads="1 2 3 4"
 length="1 2 4 8"
 start_ind=1
-skip_len=60
+skip_len=25
 for i in $seq
 do
     for t in $threads
