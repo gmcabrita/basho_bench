@@ -119,7 +119,7 @@ new(Id) ->
     %lager:info("MyTxServer is ~w", [MyTxServer]),
 
     %lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),
-    NoRepList = ((AllDcs -- [N ||{_,N}  <- MyRepList])) -- [TargetNode],
+    NoRepList = (AllDcs -- M) -- [TargetNode],
     NoRepIds = get_indexes(NoRepList, AllDcs),
     lager:info("NoRep list is ~w, no rep ids is ~w", [NoRepList, NoRepIds]),
 
