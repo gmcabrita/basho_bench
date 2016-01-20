@@ -33,7 +33,7 @@ echo ant fast_reply $5   >> config
 echo ant specula_length $6  >> config
 echo load concurrent 4 >> config
 echo tpcc duration 60 >> config
-ToSleep=$((10 / ${1}))
+ToSleep=$((10000 / ${1} +500))
 echo tpcc to_sleep $ToSleep >> config
 echo load to_sleep 8000 >> config
 echo ant do_repl true >> config
