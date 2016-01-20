@@ -20,7 +20,7 @@ elif [ $# == 10 ]
 then
     WPerDc=$8
     new_order=$9
-    payment=$10
+    payment=${10}
     order_status=$((100-${9}-${10}))
 else
     echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, fast_reply, specula_length, folder, [num_partitions]"

@@ -23,12 +23,16 @@ do
 	fi
 	if [ $start_ind -gt $skip_len ]; then
     	    ./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests 2 $n $p 
+	else
+	    echo "Skipped..."$start_ind
 	fi
 	start_ind=$((start_ind+1))
 	for len in $length
 	do
 	    if [ $start_ind -gt $skip_len ]; then
     	        ./script/runSpeculaBench.sh $t $AM $AS true true $len specula_tests 2 $n $p
+	    else
+		echo "Skipped..."$start_ind
 	    fi
 	    start_ind=$((start_ind+1))
 	done
