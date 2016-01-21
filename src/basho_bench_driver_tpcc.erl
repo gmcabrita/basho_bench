@@ -510,7 +510,10 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, MyRepList) ->
                     {CacheServName, _} = lists:nth(MyDcId, PartList),
                     cache_serv:read(CacheServName, Key, TxId, Part);
                 N ->
-                    data_repl_serv:read(N, Key, TxId)
+                    {_, L} = lists:nth(DcId, PartList),
+                    Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
+                    Part = lists:nth(Index, L),
+                    data_repl_serv:read(N, Key, TxId, Part)
             end
     end,
     case V of
