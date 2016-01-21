@@ -90,7 +90,7 @@ new(Id) ->
     ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
     Result = net_adm:ping(TargetNode),
     ?INFO("Result of ping is ~p \n", [Result]),
-    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list(Id div NumPartitions)),
+    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div NumPartitions+1)),
     %{ok, Pid} = antidotec_pb_socket:start_link(TargetNode, PbPort),
     %{ok, PartList} = antidotec_pb_socket:get_hash_fun(Pid),
     {PartList, RepList} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), %gen_server:call({global, MyTxServer}, {get_hash_fun}),
