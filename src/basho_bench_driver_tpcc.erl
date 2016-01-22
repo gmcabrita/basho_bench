@@ -136,6 +136,7 @@ new(Id) ->
 		    ets:insert(meta_info, {new_order, 0,0,0});
 	      _ -> ok 
     end,
+    timer:sleep(ToSleep),
     Key1 = "C_C_LAST",
     Key2 = "C_C_ID",
     Key3 = "C_OL_I_ID",
@@ -146,7 +147,6 @@ new(Id) ->
     {ok, C_C_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key2, Part2]),
     {ok, C_OL_I_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key3, Part3]),
     ItemRanges = init_item_ranges(NumDcs, ?NB_MAX_ITEM),
-    timer:sleep(ToSleep),
     lager:info("Cclast ~w, ccid ~w, coliid ~w", [C_C_LAST, C_C_ID, C_OL_I_ID]),
     {ok, #state{time={1,1,1}, worker_id=Id,
                tx_server=MyTxServer,
