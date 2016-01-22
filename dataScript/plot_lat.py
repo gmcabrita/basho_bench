@@ -2,6 +2,7 @@
 
 import matplotlib.pyplot as plt
 from pylab import *
+from helper import *
 import sys
 import random
 import os
@@ -45,14 +46,17 @@ remote_abort = 0
 remote_commit = 0
 specula_abort = 0
 specula_commit = 0
+data_list.sort()
+print("Sorted"+str(data_list))
+ytitle, new_name = get_title(data_list)
 for f in data_list:
     path = os.path.join(input_folder, f+'/total_duration')
     data = np.loadtxt(path, skiprows=1, usecols=range(1,10))
     read_lat = data[0,0]
     read_err = data[1,0]
     inter_ind = ind
-    f = f.replace('true','t').replace('false','f').replace('0000','0k')
-    xlabel.append(f)
+    name = new_name[ind].replace('true','t').replace('false','f').replace('0000','0k')
+    xlabel.append(name)
     cla = ['#D3E54E', '#EC5B56']
     clc = ['#D3E54E', '#79E026']
     cra = ['#D3E54E', ('#EC5B56', '//')]
@@ -87,7 +91,8 @@ for f in data_list:
 ymax = data.max()
 ylim = 900 
 plt.ylabel('Latency')
-plt.title('Latency decomposition')
+#plt.title('Latency decomposition')
+plt.title('Latency decomposition:'+ytitle)
 plt.ylim([1,ylim])
 plt.xlim([-0.5,len(data_list)])
 plt.xticks([x+2*width for x in np.arange(len(xlabel))], xlabel, fontsize=7)
@@ -95,4 +100,4 @@ plt.xticks([x+2*width for x in np.arange(len(xlabel))], xlabel, fontsize=7)
 plt.legend((local_abort, local_commit, remote_abort, remote_commit, specula_abort, specula_commit), ('local_abort', 'local_commit', 'remote_abort', 'remote_commit', 'remote_specula_abort', 'remote_specula_commit'), fontsize=10)
 #plt.legend(('local_abort', 'local_commit', 'remote_abort', 'remote_commit', 'remote_specula_abort', 'remote_specula_commit'))
 plt.grid(True)
-plt.savefig(output_folder+'/latency.png')
+plt.savefig(output_folder+'/'+ytitle+'-latency.png')

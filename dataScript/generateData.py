@@ -88,6 +88,9 @@ def add_duration(nodes, dict, total_dict, folder):
     total_dur = [0, 0, 0, 0, 0, 0, 0, 0, 0]
     for node in nodes:
         dur_file = os.path.join(folder, node+'-prep')
+        if os.path.isfile(dur_file) == False:
+            total_dict.append(total_dur)
+            return 
         data = np.loadtxt(dur_file)
         if data.ndim == 2:
             #(lines, num_elem) = data.shape
@@ -135,7 +138,7 @@ def write_to_file(file_name, dict, keys, title):
             #data_avg = [x/lines for x in data_sum]
             data_avg = list(np.average(data_array, axis=0))
         else:
-            data_avg = list(data_avg)
+            data_avg = list(data_array)
         file.write(key+' '+' '.join(map(str, data_avg))+'\n')
     file.close()
 

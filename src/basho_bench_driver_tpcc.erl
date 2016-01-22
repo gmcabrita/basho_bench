@@ -41,6 +41,7 @@
                 c_c_id,
                 c_ol_i_id,
                 my_rep_list,
+                my_table,
                 to_sleep,
                 no_rep_list,
                 my_rep_ids,
@@ -130,12 +131,9 @@ new(Id) ->
     HashLength = length(ExpandPartList),
 
     %lager:info("Part list is ~w",[PartList]),
-    case Id of 1 -> 
-    		    ets:new(meta_info, [public, named_table, set]),
-		    ets:insert(meta_info, {payment, 0,0,0}),
-		    ets:insert(meta_info, {new_order, 0,0,0});
-	      _ -> ok 
-    end,
+    MyTable =ets:new(my_table, [private, set]),
+    ets:insert(MyTable, {payment, 0,0,0}),
+    ets:insert(MyTable, {new_order, 0,0,0}),
     timer:sleep(ToSleep),
     Key1 = "C_C_LAST",
     Key2 = "C_C_ID",
@@ -154,6 +152,7 @@ new(Id) ->
                access_slave=AccessSlave,
                part_list = PartList,
                w_per_dc=WPerDc,
+               my_table=MyTable,
                my_rep_list = MyRepList,
                my_rep_ids = MyRepIds,
                no_rep_list = NoRepList,
@@ -182,7 +181,7 @@ new(Id) ->
 run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
         my_rep_ids=MyRepIds, my_rep_list=MyRepList,  no_rep_ids=NoRepIds, dc_id=DcId, 
         no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, worker_id=WorkerId,
-        no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, w_per_dc=WPerDc, 
+        no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, w_per_dc=WPerDc, my_table=MyTable, 
         item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
     RS = dict:new(),
     WS = dict:new(),
@@ -276,7 +275,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     OrderKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, OId}, order),
     WS4 = dict:store({WarehouseId, OrderKey}, Order, WS3),
     %LocalWS4 = add_to_writeset(OrderKey, Order, lists:nth(DcId, PartList), LocalWS3),
-    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerDc, new_order),
+    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerDc, new_order, MyTable),
     %lager:info("Local Write set is ~p", [LocalWriteList]),
     %lager:info("Remote Write set is ~p", [RemoteWriteList]),
     %DepsList = ets:lookup(dep_table, TxId),
@@ -320,7 +319,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
 %% @doc Payment transaction of TPC-C
 run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, worker_id=WorkerId,
-        my_rep_list=MyRepList, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds, w_per_dc=WPerDc,
+        my_rep_list=MyRepList, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds, w_per_dc=WPerDc, my_table=MyTable,
         dc_id=DcId, access_slave=AccessSlave, payment_prep=PaymentPrep, payment_read=PaymentRead,
         c_c_id=C_C_ID, c_c_last = C_C_LAST, access_master=AccessMaster}) ->
     WS = dict:new(),
@@ -404,7 +403,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
                                                CW#customer.c_id, tpcc_tool:now_nsec(), PaymentAmount, HData),
             HistoryKey = tpcc_tool:get_key(History),
             WS4 = dict:store({TWarehouseId, HistoryKey}, History, WS3),
-            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerDc, payment),
+            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerDc, payment, MyTable),
             %DepsList = ets:lookup(dep_table, TxId),
             T1 = os:timestamp(),
             Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
@@ -555,7 +554,7 @@ read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
     end.
 
 terminate(_, _State=#state{no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, no_remote_abort=NORAbort, 
-            no_specula=NOSpecula, no_read=NORead, payment_prep=PaymentPrep, payment_read=PaymentRead}) ->
+            no_specula=NOSpecula, no_read=NORead, payment_prep=PaymentPrep, payment_read=PaymentRead, my_table=MyTable}) ->
     {T1, C1} = NOLocal,
     {T2, C2} = NORemote,
     {T3, C3} = NOLAbort,
@@ -573,13 +572,13 @@ terminate(_, _State=#state{no_local=NOLocal, no_remote=NORemote, no_local_abort=
                                         {AccT1 div AccN1, AccRT1 div AccN1} 
 		     end,
     File= "prep",
-    [{payment, PT, PP, PN}] = ets:lookup(meta_info, payment),
-    [{new_order, NT, NP, NN}] = ets:lookup(meta_info, new_order),
+    [{payment, PT, PP, PN}] = ets:lookup(MyTable, payment),
+    [{new_order, NT, NP, NN}] = ets:lookup(MyTable, new_order),
     %lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead1, NORead2, NORead3, NOItem, PPrep, PRead]),
     file:write_file(File, io_lib:fwrite("~p ~p ~p  ~p  ~p ~p ~p ~p ~p ~p\n", 
             [NOR, LA,  RA, LCT, RCT, SCT, PP/PT ,PN/PT, NP/NT, NN/NT]), [append]).
 
-get_local_remote_writeset(WriteSet, PartList, LocalDcId, WPerDc, TxType) ->
+get_local_remote_writeset(WriteSet, PartList, LocalDcId, WPerDc, TxType, MyTable) ->
     {LWSD, RWSD} = dict:fold(fun({WId, Key}, Value, {LWS, RWS}) ->
                     Id = (WId-1) div WPerDc + 1, 
                     case Id of LocalDcId -> {add_to_writeset(Key, Value, lists:nth(LocalDcId, PartList), LWS), RWS};
@@ -587,7 +586,7 @@ get_local_remote_writeset(WriteSet, PartList, LocalDcId, WPerDc, TxType) ->
                     end end, {dict:new(), dict:new()}, WriteSet),
     L = dict:fetch_keys(RWSD),
     NodeSet = lists:foldl(fun({_, N}, S) -> sets:add_element(N, S) end, sets:new(), L),
-    ets:update_counter(meta_info, TxType, [{2, 1}, {3, length(L)}, {4,sets:size(NodeSet)}]),
+    ets:update_counter(MyTable, TxType, [{2, 1}, {3, length(L)}, {4,sets:size(NodeSet)}]),
     {dict:to_list(LWSD), dict:to_list(RWSD)}.
 
 
@@ -607,6 +606,7 @@ get_indexes(PL, List) ->
     [index(X, List) || X <- PL ].
 
 pick_warehouse(MyId, RepIds, NoRepIds, WPerDc, AccessMaster, AccessRep) ->
+    %lager:info("~w ~w ~w ~w ~w ~w", [MyId, RepIds, NoRepIds, WPerDc, AccessMaster, AccessRep]),
     R = random:uniform(100),
     case R =< AccessMaster of
         true ->
@@ -616,13 +616,13 @@ pick_warehouse(MyId, RepIds, NoRepIds, WPerDc, AccessMaster, AccessRep) ->
                 true ->
                     L = length(RepIds),
                     N = R rem (L * WPerDc),
-                    F = N div L +1, 
+                    F = N div WPerDc +1, 
                     S = N rem WPerDc,
                     WPerDc*(lists:nth(F, RepIds)-1)+S+1;
                 false ->
                     L = length(NoRepIds),
                     N = R rem (L * WPerDc) + 1,
-                    F = (N-1) div L +1, 
+                    F = (N-1) div WPerDc +1, 
                     S = N rem WPerDc,
                     WPerDc*(lists:nth(F, NoRepIds)-1)+S+1
             end
