@@ -47,7 +47,8 @@ echo ant specula_length $6  >> config
 echo load concurrent 4 >> config
 echo tpcc duration 60 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
-ToSleep=20000
+#ToSleep=$((40000 / ${1}))
+ToSleep=$((40000 / ${1}))
 echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
 echo ant do_repl true >> config
@@ -74,7 +75,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 7000
 #./masterScripts/changeConfig.sh "$AllNodes" $Ant do_repl true
 
-./script/restartAndConnect.sh "$AllNodes"  antidote 
+timeout 60 ./script/restartAndConnect.sh "$AllNodes"  antidote 
 #Time=`date +%s`
 #./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
 #NewTime=`date +%s`
@@ -85,8 +86,12 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #sleep 5
 #./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
 #fi
-./script/load.sh `head -1 ./script/allnodes` $WPerDc
-./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
+timeout 60 ./script/load.sh `head -1 ./script/allnodes` $WPerDc
+#if [ $ToSleep -lt 20 ]
+#then
+#sleep 15
+#fi
+timeout 200 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 ./script/gatherThroughput.sh $Folder &
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
 ./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 
@@ -96,7 +101,7 @@ wait
 
 for N in $AllNodes
 do
-./script/parseStat.sh $N $Folder
+timeout 10 ./script/parseStat.sh $N $Folder
 done
 for N in $AllNodes
 do
@@ -105,3 +110,4 @@ rm $Folder/$N-stat
 done
 
 echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10}  > $Folder/config
+sudo pkill -P $$
