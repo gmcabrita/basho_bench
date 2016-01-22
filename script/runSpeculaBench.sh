@@ -75,7 +75,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 7000
 #./masterScripts/changeConfig.sh "$AllNodes" $Ant do_repl true
 
-./script/restartAndConnect.sh "$AllNodes"  antidote 
+timeout 60 ./script/restartAndConnect.sh "$AllNodes"  antidote 
 #Time=`date +%s`
 #./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
 #NewTime=`date +%s`
