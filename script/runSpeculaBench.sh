@@ -86,7 +86,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #sleep 5
 #./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
 #fi
-./script/load.sh `head -1 ./script/allnodes` $WPerDc
+./script/load.sh `head -1 ./script/allnodes` tpcc $WPerDc
 #sleep 5
 #if [ $ToSleep -lt 20000 ]
 #then
