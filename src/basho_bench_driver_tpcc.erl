@@ -607,6 +607,7 @@ get_indexes(PL, List) ->
     [index(X, List) || X <- PL ].
 
 pick_warehouse(MyId, RepIds, NoRepIds, WPerDc, AccessMaster, AccessRep) ->
+    %lager:info("~w ~w ~w ~w ~w ~w", [MyId, RepIds, NoRepIds, WPerDc, AccessMaster, AccessRep]),
     R = random:uniform(100),
     case R =< AccessMaster of
         true ->
@@ -616,13 +617,13 @@ pick_warehouse(MyId, RepIds, NoRepIds, WPerDc, AccessMaster, AccessRep) ->
                 true ->
                     L = length(RepIds),
                     N = R rem (L * WPerDc),
-                    F = N div L +1, 
+                    F = N div WPerDc +1, 
                     S = N rem WPerDc,
                     WPerDc*(lists:nth(F, RepIds)-1)+S+1;
                 false ->
                     L = length(NoRepIds),
                     N = R rem (L * WPerDc) + 1,
-                    F = (N-1) div L +1, 
+                    F = (N-1) div WPerDc +1, 
                     S = N rem WPerDc,
                     WPerDc*(lists:nth(F, NoRepIds)-1)+S+1
             end
