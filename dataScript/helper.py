@@ -18,7 +18,7 @@ def get_same(list1, list2):
 
 def get_title(param_list):
     split_f=[]
-    params=[' threads','% m','% s', ' do_repl', ' fast_reply', ' length', ' Ws']
+    params=[' threads','% m','% s', ' do_repl', ' fast_reply', ' length', ' Ws', '% NewOrder', '% Payment']
     for f in param_list:
         f=f.replace('false','f').replace('true','t')
         split_f.append(f.split("_"))
