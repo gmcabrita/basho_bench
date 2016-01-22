@@ -134,7 +134,9 @@ new(Id) ->
     MyTable =ets:new(my_table, [private, set]),
     ets:insert(MyTable, {payment, 0,0,0}),
     ets:insert(MyTable, {new_order, 0,0,0}),
-    timer:sleep(ToSleep),
+    case Id of 1 -> timer:sleep(15000);
+    	       _ -> timer:sleep(ToSleep)
+    end,
     Key1 = "C_C_LAST",
     Key2 = "C_C_ID",
     Key3 = "C_OL_I_ID",

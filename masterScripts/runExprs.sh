@@ -10,7 +10,7 @@ workloads="1 2 3 4"
 length="1 2 4 8"
 start_ind=1
 skip_len=0
-    	    ./script/runSpeculaBench.sh 8 $AM $AS true true 8 specula_tests 2 45 45 
+    	    ./script/runSpeculaBench.sh 10 $AM $AS true true 8 specula_tests 2 45 45 
 exit
 for i in $seq
 do
