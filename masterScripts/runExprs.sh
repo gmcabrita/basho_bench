@@ -4,14 +4,12 @@
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 AM=80
 AS=20
-    	        ./script/runSpeculaBench.sh 8 $AM $AS true true 8 specula_tests 2 50 40 
-exit
 seq="1 2"
 threads="2 4 8"
 workloads="1 2 3 4"
 length="1 2 4 8"
 start_ind=1
-skip_len=25
+skip_len=0
 for i in $seq
 do
     for t in $threads
