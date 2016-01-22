@@ -9,5 +9,6 @@ fi
 
 echo $AllNodes
 
-./script/stopNodes.sh "$AllNodes"
-./script/startNodes.sh "$AllNodes"
+RestartNodes="sudo antidote/rel/antidote/bin/antidote stop && sudo rm -rf antidote/rel/antidote/log/* && sudo antidote/rel/antidote/bin/antidote start"
+./script/parallel_command.sh "$AllNodes" "$RestartNodes"
+
