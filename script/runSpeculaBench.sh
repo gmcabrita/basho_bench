@@ -75,7 +75,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 7000
 #./masterScripts/changeConfig.sh "$AllNodes" $Ant do_repl true
 
-timeout 60 ./script/restartAndConnect.sh "$AllNodes"  antidote 
+./script/restartAndConnect.sh "$AllNodes"  antidote 
 #Time=`date +%s`
 #./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
 #NewTime=`date +%s`
@@ -86,12 +86,13 @@ timeout 60 ./script/restartAndConnect.sh "$AllNodes"  antidote
 #sleep 5
 #./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
 #fi
-timeout 60 ./script/load.sh `head -1 ./script/allnodes` $WPerDc
-#if [ $ToSleep -lt 20 ]
-#then
-#sleep 15
-#fi
-timeout 200 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
+./script/load.sh `head -1 ./script/allnodes` $WPerDc &
+if [ $ToSleep -lt 20 ]
+then
+sleep 15
+fi
+./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
+#timeout 200 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 ./script/gatherThroughput.sh $Folder &
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
 ./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 
