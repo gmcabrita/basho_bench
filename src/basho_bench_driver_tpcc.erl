@@ -29,7 +29,7 @@
 -include("basho_bench.hrl").
 -include("tpcc.hrl").
 
--define(TIMEOUT, 10000).
+-define(TIMEOUT, 15000).
 
 -record(state, {worker_id,
                 time,

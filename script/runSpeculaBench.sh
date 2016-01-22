@@ -48,7 +48,7 @@ echo load concurrent 4 >> config
 echo tpcc duration 60 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 #ToSleep=$((40000 / ${1}))
-ToSleep=$((30000 / ${1}))
+ToSleep=$((20000 / ${1} + WPerDc*6))
 echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
 echo ant do_repl true >> config
@@ -76,8 +76,9 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #./masterScripts/changeConfig.sh "$AllNodes" $Ant do_repl true
 
 #./script/restartAndConnect.sh "$AllNodes"  antidote 
-./script/restartNodes.sh 
-sleep 20
+./script/restartAndConnect.sh
+#./script/restartNodes.sh 
+#sleep 20
 
 #Time=`date +%s`
 #./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
