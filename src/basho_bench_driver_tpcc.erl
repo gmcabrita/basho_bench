@@ -306,14 +306,17 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
             lager:info("Timeout on client ~p",[TxServer]),
             {error, timeout, State};
         {aborted, local} ->
+	    random:seed(os:timestamp()),
             {NOLTime, NOLCount} = NOLAbort,
             {error, aborted, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_local_abort={NOLTime+get_time_diff(RT2, RT3), 
                     NOLCount+1}}};
         {aborted, remote} ->
+	    random:seed(os:timestamp()),
             {NORTime, NORCount} = NORAbort,
             {error, aborted, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_remote_abort={NORTime+get_time_diff(RT2, RT3), 
                     NORCount+1}}};
         {aborted, _} ->
+	    random:seed(os:timestamp()),
             {error, aborted, State};
         {badrpc, Reason} ->
             {error, Reason, State}
@@ -420,6 +423,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
                     lager:info("Timeout on client ~p",[TxServer]),
                     {error, timeout, State};
                 {aborted, _} ->
+	    	    random:seed(os:timestamp()),
                     %lager:error("Aborted"),
                     {error, aborted, State};
                 {badrpc, Reason} ->
