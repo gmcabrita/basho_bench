@@ -22,7 +22,7 @@ do
     DNextI=$(((I+2) % Length))
     ThirdI=$(((I+3) % Length))
     FourthI=$(((I+4) % Length))
-    if [ $RepDegree -eq 2]; then
+    if [ $RepDegree -eq 2 ]; then
     	if [ $I -ne 0 ]; then
             ReplList=$ReplList",{"$CurrentNode",["${AntNodeArray[$NextI]}","${AntNodeArray[$DNextI]}"]}"
     	else

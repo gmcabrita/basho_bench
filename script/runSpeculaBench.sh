@@ -22,6 +22,7 @@ then
     new_order=$9
     payment=${10}
     order_status=$((100-${9}-${10}))
+    repl_degree=${11}
 else
     echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, fast_reply, specula_length, folder, [num_partitions]"
     exit
@@ -48,7 +49,7 @@ echo load concurrent 4 >> config
 echo tpcc duration 60 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 #ToSleep=$((40000 / ${1}))
-ToSleep=$((25000 / ${1} + WPerDc*6))
+ToSleep=$(((25000 + WPerDc*3*repl_degree) / ${1}))
 echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
 echo ant do_repl true >> config
@@ -77,6 +78,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 
 #./script/restartAndConnect.sh "$AllNodes"  antidote 
 ./script/restartAndConnect.sh
+./script/parallel_command.sh "cd basho_bench && sudo ./script/configReplication.sh $repl_degree"
 #./script/restartNodes.sh 
 #sleep 20
 
@@ -119,5 +121,5 @@ cat $Folder/$N-stat >> $Folder/stat
 rm $Folder/$N-stat
 done
 
-echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10}  > $Folder/config
+echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10} ${11}  > $Folder/config
 sudo pkill -P $$
