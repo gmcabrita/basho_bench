@@ -48,7 +48,7 @@ echo load concurrent 4 >> config
 echo tpcc duration 60 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 #ToSleep=$((40000 / ${1}))
-ToSleep=$((20000 / ${1} + WPerDc*6))
+ToSleep=$((25000 / ${1} + WPerDc*6))
 echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
 echo ant do_repl true >> config
