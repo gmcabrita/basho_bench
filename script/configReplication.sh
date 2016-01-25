@@ -33,16 +33,17 @@ for Node in $AllNodes
 do
     CurrentNode="'antidote@"$Node"'"
     if [ $I -ne 0 ]; then
-            ReplList=$ReplList",{"$CurrentNode
+            ReplList=$ReplList",{"$CurrentNode",["
         else
-            ReplList=$ReplList"{"$CurrentNode
+            ReplList=$ReplList"{"$CurrentNode",["
     fi
     for NodeId in $(seq 1 $RepDegree);
     do
             NextI=$(((I+NodeId*Leap) % Length))
             echo "I is"$I", Next i is "$NextI", NodeId is"$NodeId
-            ReplList=$ReplList",["${AntNodeArray[$NextI]}
+            ReplList=$ReplList${AntNodeArray[$NextI]}","
     done
+    ReplList=${ReplList::-1}
     ReplList=$ReplList"]}"
     I=$((I+1))
 done
