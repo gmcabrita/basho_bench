@@ -125,7 +125,7 @@ new(Id) ->
     %lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),
     NoRepList = (AllNodes -- M) -- [TargetNode],
     NoRepIds = get_indexes(NoRepList, AllNodes),
-    HashDict = build_local_norep_dict(NodeId, AllNodes, NoRepIds, NumDcs),
+    HashDict = build_local_norep_dict(NodeId, ReplList, AllNodes, NoRepIds, NumDcs),
     HashDict1 =  lists:foldl(fun(N, D) ->
                         dict:store(N, get_rep_name(TargetNode, lists:nth(N, AllNodes)), D)
                         end, HashDict, MyRepIds),
@@ -697,25 +697,27 @@ get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
 to_dc(WId, WPerNode) ->
     (WId-1) div WPerNode + 1.
 
-build_local_norep_dict(NodeId, AllNodes, NoRepIds, NumDcs) ->
-    case length(AllNodes) of NumDcs -> dict:new();
+build_local_norep_dict(NodeId, ReplList, AllNodes, _NoRepIds, NumDcs) ->
+    case length(AllNodes) of 
+		NumDcs -> dict:new();
 		_ -> 
 		    NodesPerDc = length(AllNodes) div NumDcs,
-		    DcId = (NodeId-1) div NodesPerDc +1,
-		    lists:foldl(fun(NoRepId, Dict) ->
-			    Rem = NoRepId rem NodesPerDc + 1,
-			    RepedByLocal = Rem + (DcId-1) * NodesPerDc,
-			    RepedLocalNode = lists:nth(RepedByLocal, AllNodes),
-			    NoRepNode = lists:nth(NoRepId, AllNodes),
+		    DcId = (NodeId-1) div NodesPerDc+1,
+		    Base = (DcId-1)*NodesPerDc,
+			%lager:info("DcId ~w, base ~w", [DcId, Base]),
+		    DcNodes = lists:sublist(ReplList, Base+1, NodesPerDc),
+		    DcOtherNodes = delete_by_id(DcNodes, NodeId-Base), 
+		    %lager:info("DcOhternodes are ~w", [DcOtherNodes]),
+		    lists:foldl(fun({LocalNode, LocalRepNodes}, Dict) ->
+			    lists:foldl(fun(RepNode, D) ->
+				RepId = index(RepNode, AllNodes),
+			    	lager:info("Local node ~w replicates ~w", [LocalNode, RepNode]),
+				dict:store(RepId, get_rep_name(LocalNode, RepNode), D)
+					end, Dict, LocalRepNodes)
+				end, dict:new(), DcOtherNodes)
 			    %lager:info("nEWdICT IS ~w", [Dict]),
-			    dict:store(NoRepId, get_rep_name(RepedLocalNode, NoRepNode), Dict)
-			    end, dict:new(), NoRepIds)
     end.
-            
-                    
-                    
-    
-        
 
-
-
+delete_by_id(List, N) ->
+  {L1, [_|L2]} = lists:split(N-1, List),
+  L1 ++ L2.
