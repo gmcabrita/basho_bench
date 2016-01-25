@@ -50,7 +50,10 @@ echo load concurrent 4 >> config
 echo tpcc duration 60 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 #ToSleep=$((40000 / ${1}))
+NumNodes=`cat ./script/allnodes | wc -l`
+MasterToSleep=$((NumNodes*4200))
 ToSleep=$(((25000 + WPerDc*3*repl_degree) / ${1}))
+echo tpcc master_to_sleep $MasterToSleep >> config
 echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
 echo ant num_dcs  `cat ./script/num_dcs` >> config 

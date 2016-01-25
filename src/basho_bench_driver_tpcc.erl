@@ -707,7 +707,7 @@ build_local_norep_dict(NodeId, AllNodes, NoRepIds, NumDcs) ->
 			    RepedByLocal = Rem + (DcId-1) * NodesPerDc,
 			    RepedLocalNode = lists:nth(RepedByLocal, AllNodes),
 			    NoRepNode = lists:nth(NoRepId, AllNodes),
-			    lager:info("nEWdICT IS ~w", [Dict]),
+			    %lager:info("nEWdICT IS ~w", [Dict]),
 			    dict:store(NoRepId, get_rep_name(RepedLocalNode, NoRepNode), Dict)
 			    end, dict:new(), NoRepIds)
     end.
