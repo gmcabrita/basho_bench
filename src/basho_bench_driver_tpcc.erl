@@ -694,8 +694,8 @@ to_dc(WId, WPerDc) ->
     (WId-1) div WPerDc + 1.
 
 build_local_norep_dict(NodeId, AllNodes, NoRepIds, NumDcs) ->
-    case length(AllNodes) of NumDcs -> ok;
-		else -> 
+    case length(AllNodes) of NumDcs -> dict:new();
+		_ -> 
 		    NodesPerDc = length(AllNodes) div NumDcs,
 		    DcId = (NodeId-1) div NodesPerDc +1,
 		    lists:foldl(fun(NoRepId, Dict) ->
