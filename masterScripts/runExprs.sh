@@ -12,7 +12,10 @@ warehouse="6 4 2"
 repl_degree="4 3 3"
 start_ind=1
 skip_len=139
-    	    ./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 2 
+./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 2 
+./script/runSpeculaBench.sh 8 $AM $AS true true 1 specula_tests 2 45 45 2 
+./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 45 45 3 
+exit
     	    #./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 
     	    #./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 
     	    #./script/runSpeculaBench.sh 16 $AM $AS false false 0 specula_tests 2 45 45 
