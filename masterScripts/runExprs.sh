@@ -11,7 +11,7 @@ length="8 4 2"
 warehouse="6 4 2"
 repl_degree="4 3 3"
 start_ind=1
-skip_len=0
+skip_len=139
     	    #./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 
     	    #./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 
     	    #./script/runSpeculaBench.sh 16 $AM $AS false false 0 specula_tests 2 45 45 
@@ -33,20 +33,26 @@ do
 	    elif [ $wl == 3 ]; then n=10 p=0
 	    elif [ $wl == 4 ]; then n=90 p=0
 	fi
-	if [ $start_ind -gt $skip_len ]; then
-    	    ./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests 2 $n $p 
-	else
-	    echo "Skipped..."$start_ind
-	fi
-	start_ind=$((start_ind+1))
-	for len in $length
+	for wh in $warehouse
 	do
-	    if [ $start_ind -gt $skip_len ]; then
-    	        ./script/runSpeculaBench.sh $t $AM $AS true true $len specula_tests 2 $n $p
-	    else
-		echo "Skipped..."$start_ind
-	    fi
-	    start_ind=$((start_ind+1))
+	    for rep in $repl_degree
+	    do
+		if [ $start_ind -gt $skip_len ]; then
+    	    	./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests $wh $n $p $rep 
+		else
+		    echo "Skipped..."$start_ind
+		fi
+		start_ind=$((start_ind+1))
+		for len in $length
+		do
+		    if [ $start_ind -gt $skip_len ]; then
+			./script/runSpeculaBench.sh $t $AM $AS true true $len specula_tests $wh $n $p $rep
+		    else
+			echo "Skipped..."$start_ind
+		    fi
+	    	start_ind=$((start_ind+1))
+	    	done
+	    done
 	done
 	done
     done

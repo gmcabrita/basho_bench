@@ -16,7 +16,7 @@ then
     new_order=45
     payment=45
     order_status=10
-elif [ $# == 10 ]
+elif [ $# == 11 ]
 then
     WPerDc=$8
     new_order=$9
@@ -40,6 +40,7 @@ Ant="./antidote/rel/antidote/antidote.config"
 AppConfig="./antidote/rel/antidote/etc/app.config"
 sudo rm -f config
 echo tpcc concurrent $1 >> config 
+echo ant concurrent $1 >> config 
 echo tpcc access_master $2  >> config
 echo tpcc access_slave $3 >> config
 echo ant  do_specula $4  >> config

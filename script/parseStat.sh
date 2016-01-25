@@ -2,7 +2,8 @@
 
 Folder=$2
 AllNodes=$1
-Results=`sudo ./localScripts/getStat.sh "$1"`
+FetchName=$3
+Results=`sudo ./localScripts/getStat.sh "$1" $FetchName`
 echo "Result is " "$Results"
 Results=`echo "$Results" | tr '\n' ' ' `
 Results=`cut -d "{" -f 2 <<< "$Results"`
