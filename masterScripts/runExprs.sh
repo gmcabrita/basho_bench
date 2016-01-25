@@ -2,7 +2,7 @@
 
 ## Just to test.. 
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
-AM=80
+AM=50
 AS=20
 seq="1 2"
 threads="16 8 4"
@@ -12,6 +12,7 @@ warehouse="6 4 2"
 repl_degree="4 3 3"
 start_ind=1
 skip_len=139
+    	    ./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 2 
     	    #./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 
     	    #./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 
     	    #./script/runSpeculaBench.sh 16 $AM $AS false false 0 specula_tests 2 45 45 
