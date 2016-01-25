@@ -53,6 +53,7 @@ echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$
 ToSleep=$(((25000 + WPerDc*3*repl_degree) / ${1}))
 echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
+echo ant `cat ./script/num_dcs` >> config 
 echo ant do_repl true >> config
 echo app_config ring_creation_size 12 >> config
 echo tpcc w_per_dc $WPerDc >> config
