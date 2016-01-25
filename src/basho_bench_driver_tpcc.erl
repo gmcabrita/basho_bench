@@ -694,17 +694,19 @@ to_dc(WId, WPerDc) ->
     (WId-1) div WPerDc + 1.
 
 build_local_norep_dict(NodeId, AllNodes, NoRepIds, NumDcs) ->
-    lager:info("NodeId is ~w, AllNodes are ~w, noRepIds is ~w, NumDcs is ~w", [NodeId, AllNodes, NoRepIds, NumDcs]),
-    NodesPerDc = length(AllNodes) div NumDcs,
-    DcId = (NodeId-1) div NodesPerDc +1,
-    lists:foldl(fun(NoRepId, Dict) ->
-            Rem = NoRepId rem NodesPerDc + 1,
-            RepedByLocal = Rem + (DcId-1) * NodesPerDc,
-            RepedLocalNode = lists:nth(RepedByLocal, AllNodes),
-            NoRepNode = lists:nth(NoRepId, AllNodes),
-            lager:info("nEWdICT IS ~w", [Dict]),
-            dict:store(NoRepId, get_rep_name(RepedLocalNode, NoRepNode), Dict)
-            end, dict:new(), NoRepIds).
+    case length(AllNodes) of NumDcs -> ok;
+		else -> 
+		    NodesPerDc = length(AllNodes) div NumDcs,
+		    DcId = (NodeId-1) div NodesPerDc +1,
+		    lists:foldl(fun(NoRepId, Dict) ->
+			    Rem = NoRepId rem NodesPerDc + 1,
+			    RepedByLocal = Rem + (DcId-1) * NodesPerDc,
+			    RepedLocalNode = lists:nth(RepedByLocal, AllNodes),
+			    NoRepNode = lists:nth(NoRepId, AllNodes),
+			    lager:info("nEWdICT IS ~w", [Dict]),
+			    dict:store(NoRepId, get_rep_name(RepedLocalNode, NoRepNode), Dict)
+			    end, dict:new(), NoRepIds)
+    end.
             
                     
                     
