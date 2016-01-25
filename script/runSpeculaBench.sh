@@ -69,8 +69,9 @@ else
 fi
 
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
-sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh && sudo ./script/configReplication.sh $repl_degree"
 
+./script/restartAndConnect.sh
 #Change Load params
 #./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1 
 #./masterScripts/changeConfig.sh "$AllNodes" $Load duration 1 
@@ -79,8 +80,6 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #./masterScripts/changeConfig.sh "$AllNodes" $Ant do_repl true
 
 #./script/restartAndConnect.sh "$AllNodes"  antidote 
-./script/restartAndConnect.sh
-./script/parallel_command.sh "cd basho_bench && sudo ./script/configReplication.sh $repl_degree"
 #./script/restartNodes.sh 
 #sleep 20
 

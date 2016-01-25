@@ -514,7 +514,7 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
             tx_cert_sup:read(TxServer, TxId, Key, Part);
         _ ->
             case dict:find(DcId, HashDict) of
-                false ->
+                error ->
                     {_, L} = lists:nth(DcId, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
