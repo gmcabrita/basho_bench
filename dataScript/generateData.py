@@ -20,7 +20,9 @@ def init_dict(nodes):
     dict['total_throughput'] = [] 
     dict['total_duration'] = [] 
     dict['duration'] = init_node_data(nodes)
-    dict['latency'] = init_node_data(nodes)
+    dict['new-order'] = [] #init_node_data(nodes)
+    dict['payment'] = [] #init_node_data(nodes)
+    dict['order-status'] = [] #init_node_data(nodes)
     return dict
 
 def init_node_data(nodes):
@@ -116,15 +118,23 @@ def add_duration(nodes, dict, total_dict, folder):
     total_avg_dur = [x/len(nodes) for x in total_dur]
     total_dict.append(total_avg_dur)
         
-def add_latency(nodes, dict, folder):
+def add_latency(nodes, tag, dict, folder):
+    total_latency=[0,0,0,0,0,0,0]
     for node in nodes:
-        lat_file = os.path.join(folder, node+'-new-order_latencies.csv')
-        data = np.loadtxt(lat_file, delimiter=',', skiprows=1)
+        lat_file = os.path.join(folder, node+'-'+tag+'_latencies.csv')
+        if os.path.isfile(lat_file) == False:
+            dict.append(total_latency)
+            return
+        data = np.loadtxt(lat_file, delimiter=',', skiprows=1, usecols=range(3,10))
         #print data 
-        (lines, num_elem) = data.shape
-        lat_sum = data.sum(axis=0)
-        lat_avg = [x/lines for x in lat_sum]
-        dict[node].append(lat_avg[3:10])
+        #(lines, num_elem) = data.shape
+        #lat_sum = data.sum(axis=0)
+        #lat_avg = [x/lines for x in lat_sum]
+        latency_avg = list(np.average(data, axis=0))
+        total_latency = list(map(add, total_latency, latency_avg))
+
+    total_latency = [x/len(nodes) for x in total_latency]
+    dict.append(total_latency)
 
 def write_to_file(file_name, dict, keys, title):
     file = open(file_name, 'w')
@@ -179,7 +189,9 @@ for f in sub_folders:
 
         add_throughput(nodes, dict[config]['throughput'], dict[config]['total_throughput'], input_folder)
         add_duration(nodes, dict[config]['duration'], dict[config]['total_duration'], input_folder)
-        add_latency(nodes, dict[config]['latency'], input_folder)
+        add_latency(nodes, 'new-order', dict[config]['new-order'], input_folder)
+        add_latency(nodes, 'payment', dict[config]['payment'], input_folder)
+        add_latency(nodes, 'order-status', dict[config]['order-status'], input_folder)
         config_folder = os.path.join(output_fold, config)
         update_counter(config_folder, len(dict[config]['total_throughput']), f)
 
@@ -190,12 +202,18 @@ for config in dict:
     total_throughput = os.path.join(config_folder, 'total_throughput')
     duration = os.path.join(config_folder, 'duration')
     total_duration = os.path.join(config_folder, 'total_duration')
-    latency = os.path.join(config_folder, 'latency')
+
+    new_order_latency = os.path.join(config_folder, 'new-order-latency')
+    payment_latency = os.path.join(config_folder, 'payment-latency')
+    order_status_latency = os.path.join(config_folder, 'order-status-latency')
+    write_to_file(new_order_latency, entry, ['new-order'], 'N/A min mean median 95th 99th 99_9th max')
+    write_to_file(payment_latency, entry, ['payment'], 'N/A min mean median 95th 99th 99_9th max')
+    write_to_file(order_status_latency, entry, ['order-status'], 'N/A min mean median 95th 99th 99_9th max')
+
     write_to_file(throughput, entry['throughput'], nodes, 'ip committed cert_aborted read_aborted cascade_abort') 
     write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted cascade_abort') 
     write_std(total_throughput, entry['total_throughput'])
     write_to_file(duration, entry['duration'], nodes, 'ip read local_a remote_a local_c remote_c local_cert specula_c s_final_a s_final_c')
     write_to_file(total_duration, entry, ['total_duration'], 'N/A read local_a remote_a local_c remote_c local_cert specula_c s_final_a s_final_c')
     write_std(total_duration, entry['total_duration'])
-    write_to_file(latency, entry['latency'], nodes, 'ip min mean median 95th 99th 99_9th max')
     

@@ -34,12 +34,16 @@ for key,value in split_names.items():
         field_dict[fields] = [key]
 
 lat_folder=os.path.join(output_folder, "latency")
+op_lat_folder=os.path.join(output_folder, "op_latency")
 th_folder=os.path.join(output_folder, "throughput")
 os.mkdir(lat_folder)
+os.mkdir(op_lat_folder)
 os.mkdir(th_folder)
 for key, flist in field_dict.items():
+    print(key+":"+str(flist))
     os.system('./dataScript/plot_lat.py %s %s %s' % (input_folder, lat_folder, ' '.join(map(str, flist))))
     os.system('./dataScript/plot_bar_th.py %s %s %s' % (input_folder, th_folder, ' '.join(map(str, flist))))
+    os.system('./dataScript/plot_op_lat.py %s %s %s' % (input_folder, op_lat_folder, ' '.join(map(str, flist))))
 
 #str_series = ' '.join(map(str, series))
 #for config in series:
