@@ -88,7 +88,7 @@ new(Id) ->
    
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
-    WPerDc = basho_bench_config:get(w_per_dc),
+    WPerNode = basho_bench_config:get(w_per_dc),
 
     case net_kernel:start(MyNode) of
         {ok, _} ->
@@ -160,7 +160,7 @@ new(Id) ->
                access_slave=AccessSlave,
                part_list = PartList,
                hash_dict = HashDict1,
-               w_per_dc=WPerDc,
+               w_per_dc=WPerNode,
                my_table=MyTable,
                my_rep_ids = MyRepIds,
                no_rep_list = NoRepList,
@@ -189,7 +189,7 @@ new(Id) ->
 run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
         my_rep_ids=MyRepIds, hash_dict=HashDict, no_rep_ids=NoRepIds, node_id=DcId, 
         no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, worker_id=WorkerId,
-        no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, w_per_dc=WPerDc, my_table=MyTable, 
+        no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, w_per_dc=WPerNode, my_table=MyTable, 
         item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
     RS = dict:new(),
     WS = dict:new(),
@@ -197,7 +197,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %RemoteWS = dict:new(),
 
 	%% TODO: maybe need to change warehouse
-    WarehouseId = WPerDc * (DcId-1) + WorkerId rem WPerDc + 1,
+    WarehouseId = WPerNode * (DcId-1) + WorkerId rem WPerNode + 1,
     %lager:info("MyDc is ~w, warehouse is ~w", [DcId, WarehouseId]),
     DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
     CustomerId = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
@@ -208,17 +208,17 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     TxId = gen_server:call({global, TxServer}, {start_tx}),
     %lager:info("TxId is ~w", [TxId]),
     CustomerKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CustomerId}, customer), 
-    _Customer = read_from_node(TxServer, TxId, CustomerKey, to_dc(WarehouseId, WPerDc), DcId, PartList, HashDict), 
+    _Customer = read_from_node(TxServer, TxId, CustomerKey, to_dc(WarehouseId, WPerNode), DcId, PartList, HashDict), 
     WarehouseKey = tpcc_tool:get_key_by_param({WarehouseId}, warehouse),
 
     %% ************ read time *****************
     RT1 = os:timestamp(),
     %% ************ read time *****************
 
-    _Warehouse = read_from_node(TxServer, TxId, WarehouseKey, to_dc(WarehouseId, WPerDc), DcId, PartList, HashDict),
+    _Warehouse = read_from_node(TxServer, TxId, WarehouseKey, to_dc(WarehouseId, WPerNode), DcId, PartList, HashDict),
 
     DistrictKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId}, district),
-    District = read_from_node(TxServer, TxId, DistrictKey, to_dc(WarehouseId, WPerDc), DcId, PartList, HashDict),
+    District = read_from_node(TxServer, TxId, DistrictKey, to_dc(WarehouseId, WPerNode), DcId, PartList, HashDict),
     OId = District#district.d_next_o_id,
 
     NewOrder = tpcc_tool:create_neworder(WarehouseId, DistrictId, OId),
@@ -231,8 +231,8 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
     Seq = lists:seq(1, NumItems),
     {WS3, _, AllLocal} = lists:foldl(fun(OlNumber, {TWS, TRS, AL}) ->
-                    WId = pick_warehouse(DcId, MyRepIds, NoRepIds, WPerDc, AccessMaster, AccessSlave),
-                    {Min, Max} = lists:nth(to_dc(WId, WPerDc), ItemRanges),
+                    WId = pick_warehouse(DcId, MyRepIds, NoRepIds, WPerNode, AccessMaster, AccessSlave),
+                    {Min, Max} = lists:nth(to_dc(WId, WPerNode), ItemRanges),
                     %ItemId = case tpcc_tool:random_num(1, 100) of
                     %            1 ->
                     %                -12345;
@@ -243,10 +243,10 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
                     Quantity = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
                     ItemKey = tpcc_tool:get_key_by_param({ItemId}, item),
                     %Item = read_from_node(TxServer, TxId, ItemKey, WId, PartList, MyRepList),
-                    {Item, TRS1} = read_from_cache_or_node(TRS, TxServer, TxId, ItemKey, to_dc(WId, WPerDc), DcId, PartList, HashDict),
+                    {Item, TRS1} = read_from_cache_or_node(TRS, TxServer, TxId, ItemKey, to_dc(WId, WPerNode), DcId, PartList, HashDict),
                     StockKey = tpcc_tool:get_key_by_param({WId, ItemId}, stock),
                     %Stock = read_from_node(TxServer, TxId, StockKey, WId, PartList, MyRepList),
-                    {Stock, TRS2} = read_from_cache_or_node(TRS1, TxServer, TxId, StockKey, to_dc(WId, WPerDc), DcId, PartList, HashDict),
+                    {Stock, TRS2} = read_from_cache_or_node(TRS1, TxServer, TxId, StockKey, to_dc(WId, WPerNode), DcId, PartList, HashDict),
                     NewSQuantity = case Stock#stock.s_quantity - Quantity >= 10 of
                                         true -> Stock#stock.s_quantity - Quantity;
                                         false -> Stock#stock.s_quantity - Quantity + 91
@@ -283,7 +283,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     OrderKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, OId}, order),
     WS4 = dict:store({WarehouseId, OrderKey}, Order, WS3),
     %LocalWS4 = add_to_writeset(OrderKey, Order, lists:nth(DcId, PartList), LocalWS3),
-    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerDc, new_order, MyTable),
+    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerNode, new_order, MyTable),
     %lager:info("Local Write set is ~p", [LocalWriteList]),
     %lager:info("Remote Write set is ~p", [RemoteWriteList]),
     %DepsList = ets:lookup(dep_table, TxId),
@@ -330,13 +330,13 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
 %% @doc Payment transaction of TPC-C
 run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, worker_id=WorkerId,
-        hash_dict=HashDict, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds, w_per_dc=WPerDc, my_table=MyTable,
+        hash_dict=HashDict, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds, w_per_dc=WPerNode, my_table=MyTable,
         node_id=DcId, access_slave=AccessSlave, payment_prep=PaymentPrep, payment_read=PaymentRead,
         c_c_id=C_C_ID, c_c_last = C_C_LAST, access_master=AccessMaster}) ->
     WS = dict:new(),
     %LocalWS = dict:new(),
     %RemoteWS = dict:new(),
-    TWarehouseId = WPerDc * (DcId-1) + WorkerId rem WPerDc +1, 
+    TWarehouseId = WPerNode * (DcId-1) + WorkerId rem WPerNode +1, 
 	DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
 	
     %% TODO: this should be changed. 
@@ -350,7 +350,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 	%							true -> {N+1, RId};  false -> {N, RId}
 	%						end
 	%			  	end,
-    CWId = pick_warehouse(DcId, MyRepIds, NoRepIds, WPerDc, AccessMaster, AccessSlave),
+    CWId = pick_warehouse(DcId, MyRepIds, NoRepIds, WPerNode, AccessMaster, AccessSlave),
     CDId = DistrictId,
 	PaymentAmount = tpcc_tool:random_num(100, 500000) / 100.0,
 
@@ -361,15 +361,15 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
     %% ************ read time *****************
     RT1 = os:timestamp(),
     %% ************ read time *****************
-    Warehouse = read_from_node(TxServer, TxId, WarehouseKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, HashDict),
+    Warehouse = read_from_node(TxServer, TxId, WarehouseKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
 	WYtdKey = WarehouseKey++":w_ytd",
-	WYtd = read_from_node(TxServer, TxId, WYtdKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, HashDict),
+	WYtd = read_from_node(TxServer, TxId, WYtdKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
 	WYtd1 = WYtd+ PaymentAmount,
 	WS1 = dict:store({TWarehouseId, WYtdKey}, WYtd1, WS),
 	DistrictKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId}, district),
-    District = read_from_node(TxServer, TxId, DistrictKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, HashDict),
+    District = read_from_node(TxServer, TxId, DistrictKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
 	DYtdKey = DistrictKey++":d_ytd",
-	DYtd = read_from_node(TxServer, TxId, DYtdKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, HashDict),
+	DYtd = read_from_node(TxServer, TxId, DYtdKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
 	DYtd1 = DYtd+ PaymentAmount,
 	WS2 = dict:store({TWarehouseId, DYtdKey}, DYtd1, WS1),
 	
@@ -379,11 +379,11 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 				Rand = trunc(tpcc_tool:non_uniform_random(C_C_LAST, ?A_C_LAST, 0, ?MAX_C_LAST)),
 	         	CLastName = tpcc_tool:last_name(Rand),
 				CustomerLookupKey = tpcc_tool:get_key_by_param({CWId, CDId, CLastName}, customer_lookup),
-				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, to_dc(CWId, WPerDc), DcId, PartList, HashDict),
+				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, to_dc(CWId, WPerNode), DcId, PartList, HashDict),
                 Ids = CustomerLookup#customer_lookup.ids,
                 Customers= lists:foldl(fun(Id, Acc) ->
                             CKey = tpcc_tool:get_key_by_param({CWId, CDId, Id}, customer),
-                            C = read_from_node(TxServer, TxId, CKey, to_dc(CWId, WPerDc), DcId, PartList, HashDict),
+                            C = read_from_node(TxServer, TxId, CKey, to_dc(CWId, WPerNode), DcId, PartList, HashDict),
                             case C of
                                 error -> Acc;  _ -> [C|Acc]
                             end end, [], Ids),
@@ -393,14 +393,14 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 	       	false ->
 	         	CustomerID = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
 				CKey = tpcc_tool:get_key_by_param({CWId, CDId, CustomerID}, customer),
-				read_from_node(TxServer, TxId, CKey, to_dc(CWId, WPerDc), DcId, PartList, HashDict)
+				read_from_node(TxServer, TxId, CKey, to_dc(CWId, WPerNode), DcId, PartList, HashDict)
 		end,
     case CW of
         error ->
             {error, not_found, State};
         _ ->
             CWBalanceKey = tpcc_tool:get_key(CW)++":c_balance",
-            CWBalance = read_from_node(TxServer, TxId, CWBalanceKey, to_dc(CWId, WPerDc), DcId, PartList, HashDict),
+            CWBalance = read_from_node(TxServer, TxId, CWBalanceKey, to_dc(CWId, WPerNode), DcId, PartList, HashDict),
 	    %% ************ read time *****************
 	    RT2 = os:timestamp(),
 	    %% ************ read time *****************
@@ -414,7 +414,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
                                                CW#customer.c_id, tpcc_tool:now_nsec(), PaymentAmount, HData),
             HistoryKey = tpcc_tool:get_key(History),
             WS4 = dict:store({TWarehouseId, HistoryKey}, History, WS3),
-            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerDc, payment, MyTable),
+            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerNode, payment, MyTable),
             %DepsList = ets:lookup(dep_table, TxId),
             T1 = os:timestamp(),
             Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
@@ -439,9 +439,9 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 
 %% @doc Payment transaction of TPC-C
 run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
-        hash_dict=HashDict, node_id=DcId, w_per_dc=WPerDc, worker_id=WorkerId, 
+        hash_dict=HashDict, node_id=DcId, w_per_dc=WPerNode, worker_id=WorkerId, 
         c_c_id=C_C_ID, c_c_last = C_C_LAST}) ->
-    TWarehouseId = WPerDc * (DcId-1) + WorkerId rem WPerDc +1, 
+    TWarehouseId = WPerNode * (DcId-1) + WorkerId rem WPerNode +1, 
 	DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
 	
 	%TxId = {tx_id, tpcc_tool:now_nsec(), self()},
@@ -451,7 +451,7 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
 				Rand = trunc(tpcc_tool:non_uniform_random(C_C_LAST, ?A_C_LAST, 0, ?MAX_C_LAST)),
 	         	CLastName = tpcc_tool:last_name(Rand),
 				CustomerLookupKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, CLastName}, customer_lookup),
-				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, HashDict),
+				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
                 case CustomerLookup of
                     error ->
                         lager:error("Key not found by last name ~p", [CLastName]),
@@ -460,7 +460,7 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
                         Ids = CustomerLookup#customer_lookup.ids,
                         Customers= lists:foldl(fun(Id, Acc) ->
                                     CKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, Id}, customer),
-                                    C = read_from_node(TxServer, TxId, CKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, HashDict),
+                                    C = read_from_node(TxServer, TxId, CKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
                                     case C of
                                         error -> Acc;  _ -> [C|Acc]
                                     end end, [], Ids),
@@ -472,11 +472,11 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
 	       	false ->
 	         	CustomerID = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
 				CKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, CustomerID}, customer),
-				read_from_node(TxServer, TxId, CKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, HashDict)
+				read_from_node(TxServer, TxId, CKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict)
 		end,
     CWLastOrder = CW#customer.c_last_order,
     OrdKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, CWLastOrder}, order),
-    LastOne = read_from_node(TxServer, TxId, OrdKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, HashDict),
+    LastOne = read_from_node(TxServer, TxId, OrdKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
     %lager:info("CWId is ~w, length of orderlist is ~w", [CWId, length(OrderList)]),
     NumLines = LastOne#order.o_ol_cnt,
     Seq2 = lists:seq(1, NumLines),
@@ -486,7 +486,7 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
     OId = LastOne#order.o_id,
     lists:foreach(fun(Number) ->
             OlKey = tpcc_tool:get_key_by_param({OWId, ODId, OId, Number}, orderline),
-            _Ol = read_from_node(TxServer, TxId, OlKey, to_dc(TWarehouseId, WPerDc), DcId, PartList, HashDict)
+            _Ol = read_from_node(TxServer, TxId, OlKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict)
             end, Seq2),
     _ =  gen_server:call({global, TxServer}, {certify, TxId, [], []}, ?TIMEOUT),
     {ok, State}.
@@ -590,9 +590,9 @@ terminate(_, _State=#state{no_local=NOLocal, no_remote=NORemote, no_local_abort=
     file:write_file(File, io_lib:fwrite("~p ~p ~p  ~p  ~p ~p ~p ~p ~p ~p\n", 
             [NOR, LA,  RA, LCT, RCT, SCT, PP/PT ,PN/PT, NP/NT, NN/NT]), [append]).
 
-get_local_remote_writeset(WriteSet, PartList, LocalDcId, WPerDc, TxType, MyTable) ->
+get_local_remote_writeset(WriteSet, PartList, LocalDcId, WPerNode, TxType, MyTable) ->
     {LWSD, RWSD} = dict:fold(fun({WId, Key}, Value, {LWS, RWS}) ->
-                    Id = (WId-1) div WPerDc + 1, 
+                    Id = (WId-1) div WPerNode + 1, 
                     case Id of LocalDcId -> {add_to_writeset(Key, Value, lists:nth(LocalDcId, PartList), LWS), RWS};
                                _ -> {LWS, add_to_writeset(Key, Value, lists:nth(Id, PartList), RWS)}
                     end end, {dict:new(), dict:new()}, WriteSet),
@@ -617,26 +617,30 @@ get_indexes(PL, List) ->
     %lager:info("Trying to get index: PL ~w, List ~w", [PL, List]),
     [index(X, List) || X <- PL ].
 
-pick_warehouse(MyId, RepIds, NoRepIds, WPerDc, AccessMaster, AccessRep) ->
-    %lager:info("~w ~w ~w ~w ~w ~w", [MyId, RepIds, NoRepIds, WPerDc, AccessMaster, AccessRep]),
+pick_warehouse(MyId, RepIds, NoRepIds, WPerNode, AccessMaster, AccessRep) ->
+    %lager:info("~w ~w ~w ~w ~w ~w", [MyId, RepIds, NoRepIds, WPerNode, AccessMaster, AccessRep]),
     R = random:uniform(100),
     case R =< AccessMaster of
         true ->
-            WPerDc*(MyId-1) + R rem WPerDc +1;
+            WPerNode*(MyId-1) + R rem WPerNode +1;
         false ->
             case R =< AccessMaster + AccessRep of
                 true ->
                     L = length(RepIds),
-                    N = R rem (L * WPerDc),
-                    F = N div WPerDc +1, 
-                    S = N rem WPerDc,
-                    WPerDc*(lists:nth(F, RepIds)-1)+S+1;
+                    N = R rem (L * WPerNode),
+                    F = N div WPerNode +1, 
+                    S = N rem WPerNode,
+                    WPerNode*(lists:nth(F, RepIds)-1)+S+1;
                 false ->
                     L = length(NoRepIds),
-                    N = R rem (L * WPerDc) + 1,
-                    F = (N-1) div WPerDc +1, 
-                    S = N rem WPerDc,
-                    WPerDc*(lists:nth(F, NoRepIds)-1)+S+1
+                    case L of 0 ->
+                        WPerNode*(MyId-1) + R rem WPerNode +1;
+                            else ->
+                                N = R rem (L * WPerNode) + 1,
+                                F = (N-1) div WPerNode +1, 
+                                S = N rem WPerNode,
+                                WPerNode*(lists:nth(F, NoRepIds)-1)+S+1
+                    end
             end
     end.
 
@@ -690,8 +694,8 @@ get_rep_name(Target, Rep) ->
 get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
     ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.
 
-to_dc(WId, WPerDc) ->
-    (WId-1) div WPerDc + 1.
+to_dc(WId, WPerNode) ->
+    (WId-1) div WPerNode + 1.
 
 build_local_norep_dict(NodeId, AllNodes, NoRepIds, NumDcs) ->
     case length(AllNodes) of NumDcs -> dict:new();
