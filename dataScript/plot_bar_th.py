@@ -48,28 +48,28 @@ remote_abort = 0
 remote_commit = 0
 specula_abort = 0
 specula_commit = 0
-handlers = [None, None, None, None]
+handlers = [None, None, None, None, None]
 data_list.sort()
 ytitle, new_name = get_title(data_list)
 maxv=0
 for f in data_list:
     path = os.path.join(input_folder, f+'/total_throughput')
-    data = np.loadtxt(path, skiprows=1, usecols=range(1,5))
+    data = np.loadtxt(path, skiprows=1, usecols=range(1,6))
     name = new_name[index].replace('true','t').replace('false','f').replace('0000','0k')
     xlabel.append(name)
-    colors = ['#EC5B56', ('#EC5B56', 'xx'), ('#EC5B56', '//')]
+    colors = ['#EC5B56', ('#EC5B56', 'xx'), ('#EC5B56', '..'), ('#EC5B56', '//')]
     # if it is not specula
     h = plt.bar(index, data[0,0], width, yerr=data[1,0], color='#79E026')
     handlers[0] = h
-    newmaxv = max(data[0,0], data[0,1]+data[0,2]+data[0,3])
+    newmaxv = max(data[0,0], data[0,1]+data[0,2]+data[0,3]+data[0,4])
     maxv=max(maxv, newmaxv)
-    handlers = draw_bar_if_need(index+width, width, [(data[0,1], data[1,1]), (data[0,2], data[1,2]), (data[0,3], data[1,3])], colors, handlers)
+    handlers = draw_bar_if_need(index+width, width, [(data[0,1], data[1,1]), (data[0,2], data[1,2]), (data[0,3], data[1,3]), (data[0,4],data[1,4]),], colors, handlers)
     index += 1
 
 ylim = maxv * 1.4
 print("Highest throughput for "+ytitle+" is "+str(maxv))
 handler_idx = [i for i, x in enumerate(handlers) if x == None]
-labels = ['committed', 'cert_abort', 'read_abort', 'cascade_abort']
+labels = ['committed', 'cert_abort', 'read_abort', 'read_invalid', 'cascade_abort']
 handlers = [i for j, i in enumerate(handlers) if j not in handler_idx]
 labels = [i for j, i in enumerate(labels) if j not in handler_idx]
 plt.ylabel('Throughput')

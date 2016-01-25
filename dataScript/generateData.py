@@ -34,6 +34,7 @@ def init_node_data(nodes):
 def add_throughput(nodes, dict, total_dict, folder):
     all_committed = 0
     all_r_abort = 0
+    all_r_invalid = 0
     all_cert_abort = 0
     all_c_abort = 0
     all_abort = 0
@@ -51,24 +52,40 @@ def add_throughput(nodes, dict, total_dict, folder):
         stat_lines = [line.rstrip('\n') for line in open(os.path.join(folder, 'stat'))]
         [stat_line] = [x for x in stat_lines if x.startswith(node)]
         stat_data = stat_line.split()
-        read_abort = int(stat_data[1])
-        cert_abort = int(stat_data[3])
-        cascade_abort = int(stat_data[5])
+        if len(stat_data) == 28:
+            read_abort = int(stat_data[1])
+            read_invalid = int(stat_data[3])
+            cert_abort = int(stat_data[5])
+            cascade_abort = int(stat_data[7])
+            if int(stat_data[9]) == 0:
+                # This is specula!
+                real_committed = committed
+                cert_abort = aborted
+            else:
+                real_committed = int(stat_data[7])
+        elif len(stat_data) == 26:
+            read_abort = int(stat_data[1])
+            read_invalid = 0 
+            cert_abort = int(stat_data[3])
+            cascade_abort = int(stat_data[5])
+            if int(stat_data[7]) == 0:
+                # This is specula!
+                real_committed = committed
+                cert_abort = aborted
+            else:
+                real_committed = int(stat_data[7])
+        else:
+            print("***WTF, data dimenstion is wrong!!!***")
         
         #print str(committed)+' '+str(aborted) +' '+str(read_abort)+' '+str(specula_abort)+' '+str(cascade_abort) 
-        if int(stat_data[7]) == 0:
-            # This is specula!
-            real_committed = committed
-            cert_abort = aborted
-        else:
-            real_committed = int(stat_data[7])
-        dict[node].append([real_committed, cert_abort, read_abort, cascade_abort])
+        dict[node].append([real_committed, cert_abort, read_abort, read_invalid, cascade_abort])
         all_committed += real_committed
         all_cert_abort += cert_abort
         all_r_abort += read_abort
+        all_r_invalid += read_invalid
         all_c_abort += cascade_abort
 
-    total_dict.append([all_committed/60, all_cert_abort/60, all_r_abort/60, all_c_abort/60])
+    total_dict.append([all_committed/60, all_cert_abort/60, all_r_abort/60, all_r_invalid/60, all_c_abort/60])
     
 
 def update_counter(folder, length, key):
@@ -210,8 +227,8 @@ for config in dict:
     write_to_file(payment_latency, entry, ['payment'], 'N/A min mean median 95th 99th 99_9th max')
     write_to_file(order_status_latency, entry, ['order-status'], 'N/A min mean median 95th 99th 99_9th max')
 
-    write_to_file(throughput, entry['throughput'], nodes, 'ip committed cert_aborted read_aborted cascade_abort') 
-    write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted cascade_abort') 
+    write_to_file(throughput, entry['throughput'], nodes, 'ip committed cert_aborted read_aborted read_invalid cascade_abort') 
+    write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted read_invalid cascade_abort') 
     write_std(total_throughput, entry['total_throughput'])
     write_to_file(duration, entry['duration'], nodes, 'ip read local_a remote_a local_c remote_c local_cert specula_c s_final_a s_final_c')
     write_to_file(total_duration, entry, ['total_duration'], 'N/A read local_a remote_a local_c remote_c local_cert specula_c s_final_a s_final_c')
