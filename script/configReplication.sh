@@ -48,4 +48,4 @@ do
 done
 ReplList=$ReplList"]"
 echo "$ReplList"
-#./localScripts/changeConfig.sh ../antidote/rel/antidote/antidote.config to_repl "$ReplList"
+./localScripts/changeConfig.sh ../antidote/rel/antidote/antidote.config to_repl "$ReplList"
