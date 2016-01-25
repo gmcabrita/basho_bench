@@ -634,8 +634,8 @@ pick_warehouse(MyId, RepIds, NoRepIds, WPerNode, AccessMaster, AccessRep) ->
                 false ->
                     L = length(NoRepIds),
                     case L of 0 ->
-                        WPerNode*(MyId-1) + R rem WPerNode +1;
-                            else ->
+                                WPerNode*(MyId-1) + R rem WPerNode +1;
+                            _ ->
                                 N = R rem (L * WPerNode) + 1,
                                 F = (N-1) div WPerNode +1, 
                                 S = N rem WPerNode,
