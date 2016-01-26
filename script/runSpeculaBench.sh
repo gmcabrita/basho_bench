@@ -58,7 +58,7 @@ echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
 echo ant num_dcs  `cat ./script/num_dcs` >> config 
 echo ant do_repl true >> config
-echo app_config ring_creation_size 16 >> config
+echo app_config ring_creation_size 32 >> config
 echo tpcc w_per_dc $WPerDc >> config
 echo load w_per_dc $WPerDc >> config
 if [ "$WPerDc" -eq 1 ]
