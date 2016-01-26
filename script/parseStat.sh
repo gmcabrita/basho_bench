@@ -24,4 +24,4 @@ CacheTotalRead=${Results[10]}
 AvgLocalCert=${Results[11]}
 AvgSpeculaAbort=${Results[12]}
 AvgSpeculaCommit=${Results[13]}
-echo $AllNodes":ReadAborted" $ReadAborted " SpeculaAborted" $SpeculaAborted " CascadeAborted" $CascadeAborted" Committed" $Committed" speculaCommitted" $SpeculaCommitted  PartSpeculaRead "$PartSpeculaRead" RepSpec "$RepSpeculaRead" RepTotal "$RepTotalRead" CacheSpec "$CacheSpeculaRead" CacheTotal "$CacheTotalRead "LocalCert "$AvgLocalCert" SpeculaAbort "$AvgSpeculaAbort" SpeculaCommit "$AvgSpeculaCommit" >> $Folder/$1-stat
+echo $AllNodes":ReadAborted" $ReadAborted " SpeculaAborted" $SpeculaAborted " CascadeAborted" $CascadeAborted" Committed" $Committed" speculaCommitted" $SpeculaCommitted  PartSpeculaRead "$PartSpeculaRead" RepSpec "$RepSpeculaRead" RepTotal "$RepTotalRead" CacheSpec "$CacheSpeculaRead" CacheTotal "$CacheTotalRead "LocalCert "$AvgLocalCert" SpeculaAbort "$AvgSpeculaAbort" SpeculaCommit "$AvgSpeculaCommit" >> $Folder/stat
