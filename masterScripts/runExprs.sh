@@ -20,24 +20,24 @@ if [ $wl == 1 ]; then  NO=45  PM=45
 elif [ $wl == 2 ]; then  NO=5 PM=5
 fi
 ./script/preciseTime.sh
-./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 1 
-./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 1 
-./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 1 
-./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 2 
-./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 2 
-./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 2 
-./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 3 
-./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 3 
-./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 3 
+#./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 1 
+#./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 1 
+#./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 1 
+#./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 2 
+#./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 2 
+#./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 2 
+#./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 3 
+#./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 3 
+#./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 3 
 AM=20
 AS=30
 ./script/preciseTime.sh
-./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 1 
-./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 1 
-./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 1 
-./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 2
-./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 2
-./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 2 
+#./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 1 
+#./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 1 
+#./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 1 
+#./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 2
+#./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 2
+#./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 2 
 ./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 3 
 ./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 3 
 ./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 3 
