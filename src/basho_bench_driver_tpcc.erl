@@ -110,7 +110,7 @@ new(Id) ->
     %?INFO("Result of ping is ~p \n", [Result]),
 
     {PartList, ReplList, NumDcs} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
-    lager:info("NumDcs is ~w", [NumDcs]),
+    %lager:info("NumDcs is ~w", [NumDcs]),
     %lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
 
     [M] = [L || {N, L} <- ReplList, N == TargetNode ],
@@ -129,8 +129,8 @@ new(Id) ->
     HashDict1 =  lists:foldl(fun(N, D) ->
                         dict:store(N, get_rep_name(TargetNode, lists:nth(N, AllNodes)), D)
                         end, HashDict, MyRepIds),
-    lager:info("My Rep Ids is ~w, my rep list is ~p", [MyRepIds, dict:to_list(HashDict1)]),
-    lager:info("NoRep list is ~w, no rep ids is ~w", [NoRepList, NoRepIds]),
+    %lager:info("My Rep Ids is ~w, my rep list is ~p", [MyRepIds, dict:to_list(HashDict1)]),
+    lager:info("My Rep Ids are ~w, noRep list is ~w, no rep ids is ~w", [MyRepIds, NoRepList, NoRepIds]),
 
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     %lager:info("Ex list is ~w", [ExpandPartList]),
