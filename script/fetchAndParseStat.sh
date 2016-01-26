@@ -1,8 +1,8 @@
 #!/bin/bash
 
-
-
-./script/parallel_command.sh "cd basho_bench && sudo ./script/praseStat.sh localhost ."
+AllNodes=`cat ./script/allnodes`
+Folder=$1
+./script/parallel_command.sh "cd basho_bench && sudo rm ./stat && sudo ./script/parseStat.sh localhost ."
 ./script/copyFromAll.sh stat ./basho_bench/ $Folder                 
 
 for N in $AllNodes

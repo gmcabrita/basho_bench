@@ -116,17 +116,10 @@ wait
 wait
 ./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
-./script/parallel_command.sh "cd basho_bench && sudo ./script/praseStat localhost ."
-./script/copyFromAll.sh stat ./basho_bench/ $Folder 
-
 #for N in $AllNodes
 #do
 #./script/parseStat.sh $N $Folder
 #done
-for N in $AllNodes
-do
-cat $Folder/$N-stat >> $Folder/stat
-rm $Folder/$N-stat
-done
+./script/fetchAndParseStat.sh $Folder
 
 sudo pkill -P $$

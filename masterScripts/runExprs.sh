@@ -2,7 +2,7 @@
 
 ## Just to test.. 
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
-AM=50
+AM=70
 AS=20
 seq="1 2"
 threads="16 8 4"
@@ -12,18 +12,22 @@ warehouse="6 4 2"
 repl_degree="4 3 3"
 start_ind=1
 skip_len=139
-#./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 45 45 2 
-./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 2 
-./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 45 45 3 
-./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 3 
-AM=30
-AS=35
-./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 45 45 1 
-./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 1 
-./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 45 45 2
-./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 2 
-./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 45 45 3 
-./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 3 
+NO=5
+PM=5
+./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 1 
+./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 1 
+./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 2 
+./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 2 
+./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 3 
+./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 3 
+AM=20
+AS=30
+./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 1 
+./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 1 
+./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 2
+./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 2 
+./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 3 
+./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 3 
 exit
     	    #./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 
     	    #./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 45 45 
