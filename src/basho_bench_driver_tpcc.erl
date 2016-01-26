@@ -129,7 +129,7 @@ new(Id) ->
     HashDict1 =  lists:foldl(fun(N, D) ->
                         dict:store(N, get_rep_name(TargetNode, lists:nth(N, AllNodes)), D)
                         end, HashDict, MyRepIds),
-    lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, dict:to_list(HashDict1)]),
+    lager:info("My Rep Ids is ~w, my rep list is ~p", [MyRepIds, dict:to_list(HashDict1)]),
     lager:info("NoRep list is ~w, no rep ids is ~w", [NoRepList, NoRepIds]),
 
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),

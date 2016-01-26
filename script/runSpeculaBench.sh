@@ -34,6 +34,7 @@ Time=`date +'%Y-%m-%d-%H%M%S'`
 Folder=$7/$Time
 echo "Folder to make is" $Folder
 mkdir $Folder
+echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10} ${11}  > $Folder/config
 Tpcc="./basho_bench/examples/tpcc.config"
 Load="./basho_bench/examples/load.config"
 Ant="./antidote/rel/antidote/antidote.config"
@@ -125,5 +126,4 @@ cat $Folder/$N-stat >> $Folder/stat
 rm $Folder/$N-stat
 done
 
-echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10} ${11}  > $Folder/config
 sudo pkill -P $$
