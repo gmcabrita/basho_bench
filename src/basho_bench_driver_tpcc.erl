@@ -711,7 +711,7 @@ build_local_norep_dict(NodeId, ReplList, AllNodes, _NoRepIds, NumDcs) ->
 		    lists:foldl(fun({LocalNode, LocalRepNodes}, Dict) ->
 			    lists:foldl(fun(RepNode, D) ->
 				RepId = index(RepNode, AllNodes),
-			    	lager:info("Local node ~w replicates ~w", [LocalNode, RepNode]),
+			    	%lager:info("Local node ~w replicates ~w", [LocalNode, RepNode]),
 				dict:store(RepId, get_rep_name(LocalNode, RepNode), D)
 					end, Dict, LocalRepNodes)
 				end, dict:new(), DcOtherNodes)
