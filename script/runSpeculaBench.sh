@@ -34,7 +34,6 @@ Time=`date +'%Y-%m-%d-%H%M%S'`
 Folder=$7/$Time
 echo "Folder to make is" $Folder
 mkdir $Folder
-echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10} ${11}  > $Folder/config
 Tpcc="./basho_bench/examples/tpcc.config"
 Load="./basho_bench/examples/load.config"
 Ant="./antidote/rel/antidote/antidote.config"
@@ -52,8 +51,8 @@ echo tpcc duration 60 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*4200))
-ToSleep=$(((25000 + WPerDc*3*repl_degree) / ${1}))
+MasterToSleep=$((NumNodes*4500))
+ToSleep=$(((25000 + WPerDc*3*repl_degree+2000) / ${1}))
 echo tpcc master_to_sleep $MasterToSleep >> config
 echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
@@ -73,6 +72,7 @@ else
 fi
 
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
+echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10} ${11}  > $Folder/config
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh && sudo ./script/configReplication.sh $repl_degree"
 
 ./script/restartAndConnect.sh
