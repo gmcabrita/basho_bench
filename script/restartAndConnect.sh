@@ -16,4 +16,8 @@ fi
 	Others=("${NodesList[@]:1:$((Length-1))}")
 	OtherList=`echo ${Others[@]}`
 	sudo ./script/joinNodesToRing.sh $First "$OtherList"
-	./script/waitRingsToFinish.sh "$AllNodes" 
+	for Node in $AllNodes
+	do
+	./script/waitRingsToFinish.sh $Node & 
+	done
+	wait
