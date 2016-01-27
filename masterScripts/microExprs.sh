@@ -3,18 +3,22 @@
 ## Just to test.. 
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 seq="1"
-threads="16 8 4"
+threads="16 8"
 workloads="1 2 3"
 length="8 4 2"
 repl_degree="3 2 1"
 start_ind=1
-skip_len=0
+skip_len=66
+skip_mode=1
 
 #./script/restartAndConnect.sh
 for len in $length
 do
+if [ $skip_mode -eq 0 ]
+then
 sudo ./script/restartAndConnect.sh
-sleep 20
+sleep 39 
+fi
     for t in $threads
     do
 	for wl in $workloads
@@ -29,12 +33,18 @@ sleep 20
 		    for i in $seq
 		    do
 			    if [ $start_ind -gt $skip_len ]; then
-				./script/runMicroBench.sh $t $MN $SN $CN $MR $SR $CR true $len random $rep specula_tests false
+				if [ $skip_mode -eq 1 ]
+				then
+				    sudo ./script/restartAndConnect.sh
+				    sleep 35
+				    skip_mode=0
+				fi
+				./script/runMicroBench.sh $t $MN $SN $CN $MR $SR $CR true $len random $rep specula_tests false $start_ind
 			    else
 				echo "Skipped..."$start_ind
 			    fi
+	    		    start_ind=$((start_ind+1))
 		    done
-	    	start_ind=$((start_ind+1))
 	    done
 	done
      done
@@ -43,7 +53,7 @@ done
 
 #echo "Trying to run non-specula!"
 ./script/restartAndConnect.sh
-sleep 20
+sleep 35 
 for i in $seq
 do
     for t in $threads
@@ -59,7 +69,7 @@ do
 	    do
 		start_ind=$((start_ind+1))
 		if [ $start_ind -gt $skip_len ]; then
-    	    	./script/runMicroBench.sh $t $MN $SN $CN $MR $SR $CR false 0 random $rep specula_tests false 
+    	    	./script/runMicroBench.sh $t $MN $SN $CN $MR $SR $CR false 0 random $rep specula_tests false $start_ind 
 		else
 		    echo "Skipped..."$start_ind
 		fi

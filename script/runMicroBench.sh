@@ -22,11 +22,8 @@ then
     else
 	fast_reply=false
     fi
-    if [ $# -eq 13 ]; then
-	Restart=${13}
-    else
-	Restart=true	
-    fi
+    Restart=${13}
+    Seq=${14}
 else
     echo "Wrong usage: concurrent, master_num, slave_num, cache_num, master_range, slave_range, cache_range, do_specula, fast_reply, specula_length, pattern, repl_degree, folder"
     exit
@@ -37,6 +34,7 @@ Time=`date +'%Y-%m-%d-%H%M%S'`
 Folder=$folder/$Time
 echo "Folder to make is" $Folder
 mkdir $Folder
+touch $Folder/$Seq
 echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11}  > $Folder/config
 sudo rm -f config
 echo ant concurrent $1 >> config 
@@ -59,8 +57,8 @@ if [ $Restart == true ]; then
     MasterToSleep=$((NumNodes*700+10000))
     ToSleep=$(((10000 + 500*NumNodes) / ${1}))
 else
-    MasterToSleep=10000
-    ToSleep=3000
+    MasterToSleep=40000
+    ToSleep=$((45000 / ${1}))
 fi
 echo micro master_to_sleep $MasterToSleep >> config
 echo micro to_sleep $ToSleep >> config
@@ -75,6 +73,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 if [ $Restart == true ]; then
 ./script/restartAndConnect.sh
 else
+./script/clean_data.sh
 ./script/clean_data.sh
 fi
 

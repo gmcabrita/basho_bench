@@ -60,7 +60,7 @@ run(Pids) ->
     ok.
 
 cleanup(Pids) ->
-    lager:info("Sending cleanup to ~w", [Pids]),
+    %lager:info("Sending cleanup to ~w", [Pids]),
     [Pid ! {'CLEANUP', nothing} || Pid <- Pids],
     timer:sleep(3000),
     ok.
@@ -351,7 +351,7 @@ max_worker_run_loop(State) ->
         {ok, State2} ->
             case needs_shutdown(State2) of
                 true ->
-		    lager:warning("*********Terminating worker now**********"),
+		    %lager:warning("*********Terminating worker now**********"),
                     ok;
                 false ->
                     max_worker_run_loop(State2)
