@@ -57,25 +57,25 @@ if [ $Restart == true ]; then
     MasterToSleep=$((NumNodes*700+10000))
     ToSleep=$(((10000 + 500*NumNodes) / ${1}))
 else
-    MasterToSleep=20000
-    ToSleep=$((15000 / ${1}))
+    MasterToSleep=30000
+    ToSleep=$((25000 / ${1}))
 fi
 echo micro master_to_sleep $MasterToSleep >> config
 echo micro to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
 echo ant num_dcs  `cat ./script/num_dcs` >> config 
 echo ant do_repl true >> config
-echo app_config ring_creation_size 32 >> config
+echo app_config ring_creation_size 8 >> config
 
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh && sudo ./script/configReplication.sh $repl_degree"
 
-if [ $Restart == true ]; then
+#if [ $Restart == true ]; then
 ./script/restartAndConnect.sh
-else
-./script/clean_data.sh
-./script/clean_data.sh
-fi
+#else
+#./script/clean_data.sh
+#./script/clean_data.sh
+#fi
 
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/micro.config" &
 ./script/load.sh `head -1 ./script/allnodes` micro 500000 

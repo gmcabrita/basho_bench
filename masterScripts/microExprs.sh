@@ -10,8 +10,8 @@ repl_degree="3 2 1"
 start_ind=1
 skip_len=66
 skip_mode=1
-sudo ./script/restartAndConnect.sh
-MN=2 SN=2 CN=6 MR=100000 SR=100000 CR=100000
+#sudo ./script/restartAndConnect.sh
+MN=8 SN=1 CN=1 MR=5000 SR=50000 CR=50000
 ./script/runMicroBench.sh 16 $MN $SN $CN $MR $SR $CR true 8 random 1 specula_tests false 1 
 ./script/runMicroBench.sh 16 $MN $SN $CN $MR $SR $CR true 8 random 2 specula_tests false 1 
 ./script/runMicroBench.sh 16 $MN $SN $CN $MR $SR $CR false 0 random 2 specula_tests false 1 
@@ -28,15 +28,15 @@ sleep 39
 fi
     for t in $threads
     do
-	for wl in $workloads
-	do
+    	for rep in $repl_degree
+    	do
+	    for wl in $workloads
+	    do
 	    if [ $wl == 1 ]; then MN=8  SN=1 CN=1  MR=100000 SR=100000 CR=100000 
 	    elif [ $wl == 2 ]; then MN=8 SN=1 CN=1  MR=10000 SR=100000 CR=100000 
 	    elif [ $wl == 3 ]; then MN=2 SN=6 CN=2 MR=100000 SR=100000 CR=100000
 	    elif [ $wl == 4 ]; then MN=2 SN=6 CN=2 MR=100000 SR=10000 CR=100000
 	    fi
-	    for rep in $repl_degree
-	    do
 		    for i in $seq
 		    do
 			    if [ $start_ind -gt $skip_len ]; then
@@ -52,8 +52,8 @@ fi
 			    fi
 	    		    start_ind=$((start_ind+1))
 		    done
-	    done
-	done
+	     done
+	 done
      done
 done
 
