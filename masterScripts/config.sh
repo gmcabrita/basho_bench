@@ -22,6 +22,7 @@ echo $LocalIp
 CurrentNode="'antidote@"$Ip"'"
 LoadNode="['load@"$Ip"',longnames]"
 BenchNode="['tpcc@"$Ip"',longnames]"
+MicroNode="['micro@"$Ip"',longnames]"
 echo $CurrentNode
 echo "$CurrentNode"
 sudo sed -i -e "s/{antidote_pb_ips.*/{antidote_pb_ips, [$CurrentNode]}./" examples/tpcc.config 
@@ -36,6 +37,7 @@ sudo sed -i -e "s/{node.*/{node, \x22antidote@$Ip\x22}./" /home/ubuntu/antidote/
 
 ./localScripts/changeConfig.sh examples/load.config antidote_mynode "$LoadNode"
 ./localScripts/changeConfig.sh examples/tpcc.config antidote_mynode "$BenchNode"
+./localScripts/changeConfig.sh examples/micro.config antidote_mynode "$MicroNode"
 
 I=0
 Length=${#AntNodeArray[@]}
