@@ -124,8 +124,8 @@ new(Id) ->
     AllNodes = [N || {N, _} <- PartList],
     MyRepIds = get_indexes(M, AllNodes),
     MyRepList = [{N, get_rep_name(TargetNode, lists:nth(N, AllNodes))} || N <- MyRepIds],
-    lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
-    lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
+    %lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
+    %lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
     NodeId = index(TargetNode, AllNodes),
     NumNodes = length(AllNodes),
     MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)),
@@ -134,7 +134,7 @@ new(Id) ->
     %lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),
     NoRepList = (AllNodes -- M) -- [TargetNode],
     NoRepIds = get_indexes(NoRepList, AllNodes),
-    lager:info("NoRep list is ~w, no rep ids is ~w", [NoRepList, NoRepIds]),
+    %lager:info("NoRep list is ~w, no rep ids is ~w", [NoRepList, NoRepIds]),
     HashDict = build_local_norep_dict(NodeId, ReplList, AllNodes, NoRepIds, NumDcs),
     HashDict1 =  lists:foldl(fun(N, D) ->
                         dict:store(N, get_rep_name(TargetNode, lists:nth(N, AllNodes)), D)

@@ -22,8 +22,8 @@ then
     else
 	fast_reply=false
     fi
-    if [ $# -eq 12 ]; then
-	Restart=${12}
+    if [ $# -eq 13 ]; then
+	Restart=${13}
     else
 	Restart=true	
     fi
@@ -59,8 +59,8 @@ if [ $Restart == true ]; then
     MasterToSleep=$((NumNodes*700+10000))
     ToSleep=$(((10000 + 500*NumNodes) / ${1}))
 else
-    MasterToSleep=4000
-    ToSleep=1000
+    MasterToSleep=10000
+    ToSleep=3000
 fi
 echo micro master_to_sleep $MasterToSleep >> config
 echo micro to_sleep $ToSleep >> config

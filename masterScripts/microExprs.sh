@@ -14,6 +14,7 @@ skip_len=0
 for len in $length
 do
 sudo ./script/restartAndConnect.sh
+sleep 20
     for t in $threads
     do
 	for wl in $workloads
@@ -41,7 +42,8 @@ done
 
 
 #echo "Trying to run non-specula!"
-#./script/restartAndConnect.sh
+./script/restartAndConnect.sh
+sleep 20
 for i in $seq
 do
     for t in $threads
