@@ -3,7 +3,7 @@ set -e
 
 while read -r Line
 do
-    echo "Line is" $Line
+    #echo "Line is" $Line
     List=($Line)
     Type=0
     if [ ${List[0]} == "tpcc" ]
