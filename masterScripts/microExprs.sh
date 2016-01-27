@@ -10,6 +10,13 @@ repl_degree="3 2 1"
 start_ind=1
 skip_len=66
 skip_mode=1
+sudo ./script/restartAndConnect.sh
+MN=2 SN=2 CN=6 MR=100000 SR=100000 CR=100000
+./script/runMicroBench.sh 16 $MN $SN $CN $MR $SR $CR true 8 random 1 specula_tests false 1 
+./script/runMicroBench.sh 16 $MN $SN $CN $MR $SR $CR true 8 random 2 specula_tests false 1 
+./script/runMicroBench.sh 16 $MN $SN $CN $MR $SR $CR false 0 random 2 specula_tests false 1 
+./script/runMicroBench.sh 16 $MN $SN $CN $MR $SR $CR false 0 random 2 specula_tests false 1 
+exit
 
 #./script/restartAndConnect.sh
 for len in $length

@@ -57,8 +57,8 @@ if [ $Restart == true ]; then
     MasterToSleep=$((NumNodes*700+10000))
     ToSleep=$(((10000 + 500*NumNodes) / ${1}))
 else
-    MasterToSleep=40000
-    ToSleep=$((45000 / ${1}))
+    MasterToSleep=20000
+    ToSleep=$((15000 / ${1}))
 fi
 echo micro master_to_sleep $MasterToSleep >> config
 echo micro to_sleep $ToSleep >> config
