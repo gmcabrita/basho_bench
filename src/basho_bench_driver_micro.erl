@@ -85,6 +85,7 @@ new(Id) ->
     MyNode = basho_bench_config:get(antidote_mynode),
     Cookie = basho_bench_config:get(antidote_cookie),
     IPs = basho_bench_config:get(antidote_pb_ips),
+    MasterToSleep = basho_bench_config:get(master_to_sleep),
     ToSleep = basho_bench_config:get(to_sleep),
    
     AccessMaster = basho_bench_config:get(access_master),
@@ -145,12 +146,12 @@ new(Id) ->
 
     %lager:info("Part list is ~w",[PartList]),
     case Id of 1 -> 
-    	    ets:new(meta_info, [public, named_table, set]),
+    	    	    ets:new(meta_info, [public, named_table, set]),
 		    ets:insert(meta_info, {payment, 0,0,0}),
-		    ets:insert(meta_info, {new_order, 0,0,0});
-	      _ -> ok 
+		    ets:insert(meta_info, {new_order, 0,0,0}),
+		    timer:sleep(MasterToSleep);
+	      _ ->  timer:sleep(ToSleep) 
     end,
-    timer:sleep(ToSleep),
     {ok, #state{time={1,1,1}, worker_id=Id,
                tx_server=MyTxServer,
                access_master=AccessMaster,
