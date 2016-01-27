@@ -3,7 +3,7 @@ set -u
 set -e
 AllNodes=`cat script/allnodes`
 
-if [ $# == 11 ]
+if [ $# == 12 ]
 then
     concurrent=$1
     master_num=$2
@@ -12,11 +12,16 @@ then
     master_range=$5
     slave_range=$6
     cache_range=$7
-    do_spedula=$8
+    do_specula=$8
     specula_length=$9
     pattern=${10}
     repl_degree=${11}
     folder=${12}
+    if [ "$do_specula" == true ]; then
+	fast_reply=true
+    else
+	fast_reply=false
+    fi
 else
     echo "Wrong usage: concurrent, master_num, slave_num, cache_num, master_range, slave_range, cache_range, do_specula, fast_reply, specula_length, pattern, repl_degree, folder"
     exit
@@ -24,10 +29,10 @@ fi
 
 #Params: nodes, cookie, num of dcs, num of nodes, if connect dcs, replication or not, branch
 Time=`date +'%Y-%m-%d-%H%M%S'`
-Folder=$7/$Time
+Folder=$folder/$Time
 echo "Folder to make is" $Folder
 mkdir $Folder
-echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${11}  > $Folder/config
+echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11}  > $Folder/config
 sudo rm -f config
 echo ant concurrent $1 >> config 
 echo micro concurrent $1 >> config 
@@ -38,7 +43,7 @@ echo micro master_range $master_range >> config
 echo micro slave_range $slave_range >> config
 echo micro cache_range $cache_range >> config
 echo micro pattern $pattern >> config
-echo ant  do_specula $do_specula  >> config
+echo ant do_specula $do_specula  >> config
 echo ant fast_reply $fast_reply   >> config
 echo ant specula_length $specula_length  >> config
 echo tpcc duration 60 >> config
@@ -56,7 +61,7 @@ echo app_config ring_creation_size 32 >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh && sudo ./script/configReplication.sh $repl_degree"
 
-./script/clean_data.sh
+./script/restartAndConnect.sh
 
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/micro.config" &
 ./script/load.sh `head -1 ./script/allnodes` micro 500000 
