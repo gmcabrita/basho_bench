@@ -213,7 +213,9 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
                     dict:store({NodeId, Key}, V+Add, WS) 
                 end, WS1, SlaveKeys),
     WS3 = lists:foldl(fun(Key, WS) ->
-                    NodeId = lists:nth(random:uniform(NoRepSize), NoRepIds),
+		    NodeId = case NoRepSize of 0 -> lists:nth(random:uniform(MyRepSize), MyRepIds); 
+                    			      _ -> lists:nth(random:uniform(NoRepSize), NoRepIds)
+			     end,
                     V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
                     dict:store({NodeId, Key}, V+Add, WS) 
                 end, WS2, CacheKeys),
@@ -362,6 +364,7 @@ build_local_norep_dict(NodeId, ReplList, AllNodes, _NoRepIds, NumDcs) ->
         NumDcs -> dict:new();
         _ ->
             NodesPerDc = length(AllNodes) div NumDcs,
+	   lager:info("Nodes per dc is ~w, numdcs is ~w, node id is ~w", [NodesPerDc, NumDcs, NodeId]),
             DcId = (NodeId-1) div NodesPerDc+1,
             Base = (DcId-1)*NodesPerDc,
             %lager:info("DcId ~w, base ~w", [DcId, Base]),
