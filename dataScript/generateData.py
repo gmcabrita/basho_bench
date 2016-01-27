@@ -62,7 +62,7 @@ def add_throughput(nodes, dict, total_dict, folder):
                 real_committed = committed
                 cert_abort = aborted
             else:
-                real_committed = int(stat_data[7])
+                real_committed = int(stat_data[9])
         elif len(stat_data) == 26:
             read_abort = int(stat_data[1])
             read_invalid = 0 

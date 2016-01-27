@@ -48,6 +48,7 @@ specula_abort = 0
 specula_commit = 0
 data_list.sort()
 print("Sorted"+str(data_list))
+max_lat=0
 ytitle, new_name = get_title(data_list)
 for f in data_list:
     path = os.path.join(input_folder, f+'/total_duration')
@@ -73,6 +74,8 @@ for f in data_list:
         (inter_ind, remote_abort) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,2], data[1,2])], cra, inter_ind, remote_abort)
         # has remote commit 
         (inter_ind, remote_commit) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,4], data[1,4])], crc, inter_ind, remote_commit)
+        max_lat = max(max_lat, data[0,0]+data[0,3])
+        max_lat = max(max_lat, data[0,0]+data[0,4])
     else:
         # has local abort
         (inter_ind, local_abort) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,1], data[1,1])], cla, inter_ind, local_abort)
@@ -86,13 +89,17 @@ for f in data_list:
         (inter_ind, specula_abort) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,6], data[1,6]), (data[0,5]-data[0,6], data[1,5]), (data[0,7], data[1,7])], csa, inter_ind, specula_abort)
         # has remote specula commit 
         (inter_ind, specula_commit) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,6], data[1,6]), (data[0,5]-data[0,6], data[1,5]), (data[0,8], data[1,8])], csc, inter_ind, specula_commit)
+        max_lat = max(max_lat, data[0,0]+data[0,3])
+        max_lat = max(max_lat, data[0,0]+data[0,4])
+        max_lat = max(max_lat, data[0,0]+data[0,5]++data[0,8])
+
     ind += 1
 
-ymax = data.max()
-ylim = 900 
+ymax = max_lat*1.3
+ylim = ymax
 plt.ylabel('Latency')
 #plt.title('Latency decomposition')
-plt.title('Latency decomposition:'+ytitle)
+plt.title('Latency decomposition:'+ytitle, fontsize=11)
 plt.ylim([1,ylim])
 plt.xlim([-0.5,len(data_list)])
 plt.xticks([x+2*width for x in np.arange(len(xlabel))], xlabel, fontsize=7)

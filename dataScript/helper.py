@@ -20,7 +20,7 @@ def get_same(list1, list2):
 def get_title(param_list):
     split_f=[]
     params=[' threads','% m','% s', 'do_specula', 'fast_reply', ' length', ' Ws', '% NewOrder', '% Payment', 'rep']
-    name_params=['T','%M','%S', 'Spec', 'Fast', 'SL', 'W', '%N', '%P', 'Rep']
+    name_params=['T','%M','%S', 'Spec', 'Fast', 'SL', 'W', '%N', '%P', 'R']
     for f in param_list:
         f=f.replace('false','f').replace('true','t')
         split_f.append(f.split("_"))
@@ -34,17 +34,24 @@ def get_title(param_list):
     for f in split_f:
         new_name=[(j, i) for j, i in enumerate(f) if j not in old_same]
         new_str_name=""
+        flag=False
         for (i, p) in new_name:
             if i == 3:
                 if p=='f':
-                    new_str_name+='nosp'
+                    new_str_name+='nosp,'
+                    flag=True
                 else:
-                    new_str_name+='sp'
+                    new_str_name+='sp,'
             elif i == 4:
                 new_str_name=new_str_name
+            elif i == 5:
+                if flag == True: 
+                    new_str_name=new_str_name
+                else:
+                    new_str_name+=str(p)+str(name_params[i])+','
             else:
-                new_str_name+=str(p)+str(name_params[i])
-        new_split_f.append(new_str_name)
+                new_str_name+=str(p)+str(name_params[i])+','
+        new_split_f.append(new_str_name[:-1])
 
     title=""
     for f in old_same:
