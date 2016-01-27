@@ -32,6 +32,7 @@
 -record(state, {worker_id,
                 time,
                 part_list,
+		my_table,
                 expand_part_list,
                 hash_length,
                 w_per_dc,
@@ -53,15 +54,15 @@
                 cache_range,
                 access_master,
                 access_slave,
-		        no_specula,
-                no_local,
-                no_remote,
-                no_local_abort,
-                no_remote_abort,
-		        no_read,
+		specula,
+                local,
+                remote,
+                local_abort,
+                remote_abort,
+		read,
                 new_order_committed,
                 payment_prep,
-		        payment_read,
+		payment_read,
                 node_id,
                 tx_server,
                 target_node}).
@@ -103,7 +104,7 @@ new(Id) ->
 	        ok;
             %?INFO("Net kernel started as ~p\n", [node()]);
         {error, {already_started, _}} ->
-            ?INFO("Net kernel already started as ~p\n", [node()]),
+            %?INFO("Net kernel already started as ~p\n", [node()]),
             ok;
         {error, Reason} ->
             ?FAIL_MSG("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
@@ -146,17 +147,16 @@ new(Id) ->
 
     %lager:info("Part list is ~w",[PartList]),
     case Id of 1 -> 
-    	    	    ets:new(meta_info, [public, named_table, set]),
-		    ets:insert(meta_info, {payment, 0,0,0}),
-		    ets:insert(meta_info, {new_order, 0,0,0}),
 		    timer:sleep(MasterToSleep);
 	      _ ->  timer:sleep(ToSleep) 
     end,
+    MyTable = ets:new(my_table, [private, set]),
     {ok, #state{time={1,1,1}, worker_id=Id,
                tx_server=MyTxServer,
                access_master=AccessMaster,
                access_slave=AccessSlave,
                part_list = PartList,
+		my_table=MyTable,
                my_rep_list = MyRepList,
                my_rep_ids = MyRepIds,
                no_rep_list = NoRepList,
@@ -168,14 +168,12 @@ new(Id) ->
                master_range=MasterRange,
                slave_range=SlaveRange,
                cache_range=CacheRange,
-               no_specula={0,0},
-               no_local={0,0},
-               no_remote={0,0},
-               no_local_abort={0,0},
-               no_remote_abort={0,0},
-               no_read=0,
-               payment_prep={0,0}, 
-               payment_read={0,0}, 
+               specula={0,0},
+               local={0,0},
+               remote={0,0},
+               local_abort={0,0},
+               remote_abort={0,0},
+               read=0,
                no_rep_ids = NoRepIds,
                expand_part_list = ExpandPartList,
                hash_length = HashLength,   
@@ -185,8 +183,9 @@ new(Id) ->
 
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
-run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
-        my_rep_ids=MyRepIds, no_rep_ids=NoRepIds, node_id=MyNodeId,  hash_dict=HashDict,
+run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
+        my_rep_ids=MyRepIds, no_rep_ids=NoRepIds, node_id=MyNodeId,  hash_dict=HashDict, local=Local, remote=Remote,
+	local_abort=LAbort, remote_abort=RAbort, specula=Specula, read=Read,
         master_num=MNum, slave_num=SNum, cache_num=CNum, master_range=MRange, slave_range=SRange, cache_range=CRange})->
     %LocalWS = dict:new(),
     %RemoteWS = dict:new(),
@@ -200,7 +199,10 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
     MasterKeys = unique_num(1, MNum, MRange),
     SlaveKeys = unique_num(MRange+1, SNum, SRange),
     CacheKeys = unique_num(MRange+SRange+1, CNum, CRange),
-    random:seed(os:timestamp()),
+ 
+    RT1 = os:timestamp(),
+    random:seed(RT1),
+    
     WS1 = lists:foldl(fun(Key, WS) ->
                     V = read_from_node(TxServer, TxId, Key, MyNodeId, MyNodeId, PartList, HashDict),
                     dict:store({MyNodeId, Key}, V+Add, WS) 
@@ -215,23 +217,41 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
                     V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
                     dict:store({NodeId, Key}, V+Add, WS) 
                 end, WS2, CacheKeys),
+
+    RT2 = os:timestamp(),
                     
     {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS3, PartList, MyNodeId),
+
     %lager:info("LW is ~p, RW is ~p",  [LocalWriteList, RemoteWriteList]),
     Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
+    RT3 = os:timestamp(),
     case Response of
         {ok, {committed, _}} ->
-            {ok, State};
+	    case RemoteWriteList of
+                [] ->
+                    {LTime, LCount} = Local,
+                    {ok, State#state{read=Read+get_time_diff(RT1, RT2), local={LTime+get_time_diff(RT2, RT3),
+                            LCount+1}}};
+                _ ->
+                    {RTime, RCount} = Remote,
+                    {ok, State#state{read=Read+get_time_diff(RT1, RT2), remote={RTime+get_time_diff(RT2, RT3),
+                            RCount+1}}}
+            end;
         {ok, {specula_commit, _}} ->
-            {ok, State};
+	    {STime, SCount} = Specula,
+            {ok, State#state{read=Read+get_time_diff(RT1, RT2), specula={STime+get_time_diff(RT2, RT3),
+                    SCount+1}}};
         {error,timeout} ->
             lager:info("Timeout on client ~p",[TxServer]),
             {error, timeout, State};
         {aborted, local} ->
-            {error, aborted, State};
+	    {LTime, LCount} = LAbort,
+            {error, aborted, State#state{read=Read+get_time_diff(RT1, RT2), local_abort={LTime+get_time_diff(RT2, RT3),
+                    LCount+1}}};
         {aborted, remote} ->
-            %{NORTime, NORCount} = NORAbort,
-            {error, aborted, State};
+	    {RTime, RCount} = RAbort,
+            {error, aborted, State#state{read=Read+get_time_diff(RT1, RT2), remote_abort={RTime+get_time_diff(RT2, RT3),
+                    RCount+1}}};
         {aborted, _} ->
             {error, aborted, State};
         {badrpc, Reason} ->
@@ -284,33 +304,23 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
     %        ok
     %end,
 
-terminate(_, _State) ->
-    ok.
-
-%terminate(_, _State=#state{no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, no_remote_abort=NORAbort, 
-%           no_specula=NOSpecula, no_read=NORead, payment_prep=PaymentPrep, payment_read=PaymentRead}) ->
-%    {T1, C1} = NOLocal,
-%    {T2, C2} = NORemote,
-%    {T3, C3} = NOLAbort,
-%    {T4, C4} = NORAbort,
-%    {T5, C5} = NOSpecula,
-%    LCT = T1 div max(1, C1),
-%    RCT = T2 div max(1, C2),
-%    LA = T3 div max(1, C3),
-%    RA = T4 div max(1, C4),
-%    SCT = T5 div max(1, C5),
-%    NOR = NORead div max(1, C1+C2+C3+C4+C5),
-%    {_PPrep, _PRead} = case PaymentPrep of
-%			{0, 0} -> {0, 0};
-%			{AccT1, AccN1} -> {AccRT1, AccN1} = PaymentRead,
-%                                        {AccT1 div AccN1, AccRT1 div AccN1} 
-%		     end,
-%    File= "prep",
-%    [{payment, PT, PP, PN}] = ets:lookup(meta_info, payment),
-%    [{new_order, NT, NP, NN}] = ets:lookup(meta_info, new_order),
-%    %lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead1, NORead2, NORead3, NOItem, PPrep, PRead]),
-%    file:write_file(File, io_lib:fwrite("~p ~p ~p  ~p  ~p ~p ~p ~p ~p ~p\n", 
-%            [NOR, LA,  RA, LCT, RCT, SCT, PP/PT ,PN/PT, NP/NT, NN/NT]), [append]).
+terminate(_, _State=#state{local=Local, remote=Remote, local_abort=LAbort, remote_abort=RAbort, 
+           specula=Specula, read=Read}) ->
+    {T1, C1} = Local,
+    {T2, C2} = Remote,
+    {T3, C3} = LAbort,
+    {T4, C4} = RAbort,
+    {T5, C5} = Specula,
+    LCT = T1 div max(1, C1),
+    RCT = T2 div max(1, C2),
+    LA = T3 div max(1, C3),
+    RA = T4 div max(1, C4),
+    SCT = T5 div max(1, C5),
+    NOR = Read div max(1, C1+C2+C3+C4+C5),
+    File= "prep",
+    %lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead1, NORead2, NORead3, NOItem, PPrep, PRead]),
+    file:write_file(File, io_lib:fwrite("~p ~p ~p  ~p  ~p ~p ~p ~p ~p ~p\n", 
+            [NOR, LA,  RA, LCT, RCT, SCT, 0, 0,0,0]), [append]).
 
 get_local_remote_writeset(WriteSet, PartList, LocalDcId) ->
     {LWSD, RWSD} = dict:fold(fun({NodeId, Key}, Value, {LWS, RWS}) ->
@@ -371,3 +381,6 @@ build_local_norep_dict(NodeId, ReplList, AllNodes, _NoRepIds, NumDcs) ->
 delete_by_id(List, N) ->
   {L1, [_|L2]} = lists:split(N-1, List),
   L1 ++ L2.
+
+get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
+    ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.
