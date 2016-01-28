@@ -12,6 +12,12 @@ start_ind=1
 skip_len=139
 NO=5
 PM=5
+AM=70
+AS=20
+./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 1 
+./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 1 
+exit
+
 for wl in $workloads
 do 
 AM=70
