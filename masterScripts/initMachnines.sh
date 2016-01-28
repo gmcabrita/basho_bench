@@ -17,7 +17,7 @@ echo "Only cleaning antidote"
 elif [ $Clean == 2 ]
 then
 echo "Only cleaning basho_bench"
-./script/parallel_command.sh "cd basho_bench && git stash && git pull && sudo make"
+./script/parallel_command.sh "cd basho_bench && git stash && git fetch && git checkout direct_bench_ist && git pull && sudo make"
 ./script/command_to_all.sh "./basho_bench/masterScripts/config.sh" 
 ./script/command_to_all.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"
 elif [ $Clean == 3 ]
