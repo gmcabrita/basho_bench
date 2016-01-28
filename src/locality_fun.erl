@@ -55,9 +55,9 @@ build_local_norep_dict(NodeId, ReplList, AllNodes, NumDcs) ->
 
 build_dc_srep_dict(ReplList, AllNodes, NodeId, NumDcs) ->
     DcOtherReps = get_dc_other_reps(NodeId, ReplList, AllNodes, NumDcs),
-    lager:info("Dcother reps are ~w" ,[DcOtherReps]),
+    %lager:info("Dcother reps are ~w" ,[DcOtherReps]),
     DcAllReps = DcOtherReps ++ [lists:nth(NodeId, ReplList)], 
-    lager:info("Dcother all reps are ~w" ,[DcAllReps]),
+    %lager:info("Dcother all reps are ~w" ,[DcAllReps]),
       lists:foldl(fun({LocalNode, LocalRepNodes}, Dict) ->
           lists:foldl(fun(RepNode, D) ->
           RepId = index(RepNode, AllNodes),
