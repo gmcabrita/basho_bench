@@ -121,29 +121,28 @@ new(Id) ->
     {PartList, ReplList, NumDcs} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
     %lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
 
-    [M] = [L || {N, L} <- ReplList, N == TargetNode ],
+    %[M] = [L || {N, L} <- ReplList, N == TargetNode ],
     AllNodes = [N || {N, _} <- PartList],
-    MyRepIds = get_indexes(M, AllNodes),
-    MyRepList = [{N, get_rep_name(TargetNode, lists:nth(N, AllNodes))} || N <- MyRepIds],
-    %lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
-    %lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
     NodeId = index(TargetNode, AllNodes),
     NumNodes = length(AllNodes),
     MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)),
     %lager:info("MyTxServer is ~w", [MyTxServer]),
-
     %lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),
-    NoRepList = (AllNodes -- M) -- [TargetNode],
-    NoRepIds = get_indexes(NoRepList, AllNodes),
-    %lager:info("NoRep list is ~w, no rep ids is ~w", [NoRepList, NoRepIds]),
-    HashDict = build_local_norep_dict(NodeId, ReplList, AllNodes, NoRepIds, NumDcs),
-    HashDict1 =  lists:foldl(fun(N, D) ->
-                        dict:store(N, get_rep_name(TargetNode, lists:nth(N, AllNodes)), D)
-                        end, HashDict, MyRepIds),
+
+    %MyRepIds = get_indexes(M, AllNodes),
+    %MyRepList = [{N, get_rep_name(TargetNode, lists:nth(N, AllNodes))} || N <- MyRepIds],
+    %NoRepList = (AllNodes -- M) -- [TargetNode],
+    %NoRepIds = get_indexes(NoRepList, AllNodes),
+    %HashDict = build_local_norep_dict(NodeId, ReplList, AllNodes, NoRepIds, NumDcs),
+    %HashDict1 =  lists:foldl(fun(N, D) ->
+    %                    dict:store(N, get_rep_name(TargetNode, lists:nth(N, AllNodes)), D)
+    %                    end, HashDict, MyRepIds),
 
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     %lager:info("Ex list is ~w", [ExpandPartList]),
     HashLength = length(ExpandPartList),
+    {MyRepIds, NoRepIds, HashDict1} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
+    lager:info("MyRepIds ~w, No ~w, D ~w", [MyRepIds, NoRepIds, dict:to_list(HashDict1)]),
 
     %lager:info("Part list is ~w",[PartList]),
     case Id of 1 -> 
@@ -156,10 +155,10 @@ new(Id) ->
                access_master=AccessMaster,
                access_slave=AccessSlave,
                part_list = PartList,
-		my_table=MyTable,
-               my_rep_list = MyRepList,
+		       my_table=MyTable,
+               %my_rep_list = MyRepList,
                my_rep_ids = MyRepIds,
-               no_rep_list = NoRepList,
+               %no_rep_list = NoRepList,
                hash_dict = HashDict1,
                to_sleep=ToSleep,
                master_num=MasterNum,
@@ -208,7 +207,9 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
                     dict:store({MyNodeId, Key}, V+Add, WS) 
                 end, dict:new(), MasterKeys),
     WS2 = lists:foldl(fun(Key, WS) ->
-                    NodeId = lists:nth(random:uniform(MyRepSize), MyRepIds),
+                NodeId = case MyRepSize of 0 -> lists:nth(random:uniform(NoRepSize), NoRepIds);
+                                      _ -> lists:nth(random:uniform(MyRepSize), MyRepIds)
+                 end,
                     V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
                     dict:store({NodeId, Key}, V+Add, WS) 
                 end, WS1, SlaveKeys),
@@ -340,13 +341,6 @@ add_to_writeset(Key, Value, {_, PartList}, WSet) ->
     Part = lists:nth(Index, PartList),
     dict:append(Part, {Key, Value}, WSet).
 
-get_indexes(PL, List) ->
-    %lager:info("Trying to get index: PL ~w, List ~w", [PL, List]),
-    [index(X, List) || X <- PL ].
-    
-get_rep_name(Target, Rep) ->
-    list_to_atom(atom_to_list(Target)++"repl"++atom_to_list(Rep)).
-
 unique_num(Base, Num, Range) ->
     unique_num(Base, Num, Range, sets:new()).
 
@@ -359,31 +353,6 @@ unique_num(Base, Num, Range, Set) ->
         true -> unique_num(Base, Num, Range, Set)
     end.
 
-build_local_norep_dict(NodeId, ReplList, AllNodes, _NoRepIds, NumDcs) ->
-    case length(AllNodes) of
-        NumDcs -> dict:new();
-        _ ->
-            NodesPerDc = length(AllNodes) div NumDcs,
-	   lager:info("Nodes per dc is ~w, numdcs is ~w, node id is ~w", [NodesPerDc, NumDcs, NodeId]),
-            DcId = (NodeId-1) div NodesPerDc+1,
-            Base = (DcId-1)*NodesPerDc,
-            %lager:info("DcId ~w, base ~w", [DcId, Base]),
-            DcNodes = lists:sublist(ReplList, Base+1, NodesPerDc),
-            DcOtherNodes = delete_by_id(DcNodes, NodeId-Base),
-            %lager:info("DcOhternodes are ~w", [DcOtherNodes]),
-            lists:foldl(fun({LocalNode, LocalRepNodes}, Dict) ->
-                lists:foldl(fun(RepNode, D) ->
-                RepId = index(RepNode, AllNodes),
-                    %lager:info("Local node ~w replicates ~w", [LocalNode, RepNode]),
-                dict:store(RepId, get_rep_name(LocalNode, RepNode), D)
-                    end, Dict, LocalRepNodes)
-                end, dict:new(), DcOtherNodes)
-                %lager:info("nEWdICT IS ~w", [Dict]),
-    end.
-
-delete_by_id(List, N) ->
-  {L1, [_|L2]} = lists:split(N-1, List),
-  L1 ++ L2.
 
 get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
     ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.

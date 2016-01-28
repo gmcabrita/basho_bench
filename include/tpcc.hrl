@@ -4,8 +4,8 @@
 -define(NB_MAX_ITEM, 100000).
 %-define(NB_MAX_CUSTOMER, 100).
 %-define(NB_MAX_ORDER, 100).
--define(NB_MAX_CUSTOMER, 1000).
--define(NB_MAX_ORDER, 1000).
+-define(NB_MAX_CUSTOMER, 3000).
+-define(NB_MAX_ORDER, 3000).
 -define(NB_MAX_DISTRICT, 10).
 -define(S_DATA_MINN, 26).
 -define(S_DATA_MAXN, 50).
@@ -15,8 +15,9 @@
 -define(LIMIT_ORDER, 2101).
 -define(MIN_ITEM, 5).
 -define(MAX_ITEM, 15).
--define(NUM_NAMES, 7).
--define(NAMES, ["BAR","OUGHT","ABLE","PRI","PRES","ESE","ANTI"]).
+-define(NUM_NAMES, 10).
+-define(NAMES, ["BAR","OUGHT","ABLE","PRI","PRES","ESE","ANTI","CALLY","ATION","EING"]).
+%-define(NAMES, ["BAR","OUGHT","ABLE","PRI","PRES","ESE","ANTI"]).
 %-define(NUM_NAMES, 5).
 %-define(NAMES, ["BAR","OUGHT","ABLE","PRI","PRES"]).
 %-define(NAMES, ["BAR","OUGHT","ABLE"]).
