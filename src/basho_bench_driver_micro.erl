@@ -28,6 +28,7 @@
 -include("basho_bench.hrl").
 
 -define(TIMEOUT, 10000).
+-define(READ_TIMEOUT, 10000).
 
 -record(state, {worker_id,
                 time,
@@ -125,7 +126,7 @@ new(Id) ->
     AllNodes = [N || {N, _} <- PartList],
     NodeId = index(TargetNode, AllNodes),
     NumNodes = length(AllNodes),
-    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)),
+    MyTxServer = locality_fun:get_pid(list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
     %lager:info("MyTxServer is ~w", [MyTxServer]),
     %lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),
 
@@ -141,7 +142,8 @@ new(Id) ->
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     %lager:info("Ex list is ~w", [ExpandPartList]),
     HashLength = length(ExpandPartList),
-    {MyRepIds, NoRepIds, HashDict1} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
+    {MyRepIds, NoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
+    HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
     lager:info("MyRepIds ~w, No ~w, D ~w", [MyRepIds, NoRepIds, dict:to_list(HashDict1)]),
 
     %lager:info("Part list is ~w",[PartList]),
@@ -193,7 +195,7 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
     random:seed(os:timestamp()),
     Add = random:uniform(100),
 
-    TxId = gen_server:call({global, TxServer}, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx}),
 
     MasterKeys = unique_num(1, MNum, MRange),
     SlaveKeys = unique_num(MRange+1, SNum, SRange),
@@ -275,22 +277,22 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
     {ok, V} = case DcId of
         MyDcId ->
             {_, L} = lists:nth(DcId, PartList),
-            Index = Key rem length(L) + 1,
+            Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
             Part = lists:nth(Index, L),
-            tx_cert_sup:read(TxServer, TxId, Key, Part);
+            gen_server:call(TxServer, {read, Key, TxId, Part}, ?READ_TIMEOUT);
         _ ->
             case dict:find(DcId, HashDict) of
                 error ->
                     {_, L} = lists:nth(DcId, PartList),
-                    Index = Key rem length(L) + 1,
+                    Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
-                    {CacheServName, _} = lists:nth(MyDcId, PartList),
-                    cache_serv:read(CacheServName, Key, TxId, Part);
+                    CacheServName = dict:fetch(cache, HashDict),
+                    gen_server:call(CacheServName, {read, Key, TxId, Part}, ?READ_TIMEOUT);
                 {ok, N} ->
                     {_, L} = lists:nth(DcId, PartList),
-                    Index = Key rem length(L) + 1,
+                    Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
-                    data_repl_serv:read(N, Key, TxId, Part)
+                    gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT)
             end
     end,
     case V of

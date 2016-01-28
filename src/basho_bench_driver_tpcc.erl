@@ -62,6 +62,7 @@
                 payment_prep,
 		        payment_read,
                 node_id,
+                specula,
                 tx_server,
                 target_node}).
 
@@ -210,7 +211,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %lager:info("DistrictId is ~w, Customer Id is ~w, NumItems is ~w", [DistrictId, CustomerId, NumItems]),
 
     %TxId = {tx_id, tpcc_tool:now_nsec(), self()}, %,gen_server:call({global, TxServer}, {start_tx}),
-    TxId = gen_server:call({global, TxServer}, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     %lager:info("TxId is ~w", [TxId]),
     CustomerKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CustomerId}, customer), 
     _Customer = read_from_node(TxServer, TxId, CustomerKey, to_dc(WarehouseId, WPerNode), DcId, PartList, HashDict), 
@@ -361,7 +362,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 
     %% Only customer can be remote, everything else(Warehouse, District) should be local
 	%TxId = {tx_id, tpcc_tool:now_nsec(), self()},	
-    TxId = gen_server:call({global, TxServer}, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx}),
 	WarehouseKey = tpcc_tool:get_key_by_param({TWarehouseId}, warehouse),
     %% ************ read time *****************
     RT1 = os:timestamp(),
@@ -445,12 +446,12 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 %% @doc Payment transaction of TPC-C
 run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
         hash_dict=HashDict, node_id=DcId, w_per_dc=WPerNode, worker_id=WorkerId, 
-        c_c_id=C_C_ID, c_c_last = C_C_LAST}) ->
+        c_c_id=C_C_ID, c_c_last = C_C_LAST, specula=Specula}) ->
     TWarehouseId = WPerNode * (DcId-1) + WorkerId rem WPerNode +1, 
 	DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
 	
 	%TxId = {tx_id, tpcc_tool:now_nsec(), self()},
-    TxId = gen_server:call({global, TxServer}, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx}),
 	CW = case tpcc_tool:random_num(1, 100) =< 60 of
 			true ->
 				Rand = trunc(tpcc_tool:non_uniform_random(C_C_LAST, ?A_C_LAST, 0, ?MAX_C_LAST)),
@@ -493,7 +494,12 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
             OlKey = tpcc_tool:get_key_by_param({OWId, ODId, OId, Number}, orderline),
             _Ol = read_from_node(TxServer, TxId, OlKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict)
             end, Seq2),
-    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+    case Specula of 
+        true ->
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+        _ ->
+            ok
+    end,
     {ok, State}.
 
 get_partition(Key, PartList, HashLength) ->
