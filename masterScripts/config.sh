@@ -15,8 +15,10 @@ do
     AntNodeArray[$I]=$CurrentNode
     I=$((I+1))
 done
-Ip=`GET http://169.254.169.254/2014-11-05/meta-data/public-ipv4`
-LocalIp=`GET http://169.254.169.254/2014-11-05/meta-data/local-ipv4`
+#Ip=`GET http://169.254.169.254/2014-11-05/meta-data/public-ipv4`
+#LocalIp=`GET http://169.254.169.254/2014-11-05/meta-data/local-ipv4`
+Ip=`ifconfig eth0 2>/dev/null|awk '/inet addr:/ {print $2}'|sed 's/addr://'`
+LocalIp=`ifconfig eth0 2>/dev/null|awk '/inet addr:/ {print $2}'|sed 's/addr://'`
 echo $Ip
 echo $LocalIp
 CurrentNode="'antidote@"$Ip"'"
