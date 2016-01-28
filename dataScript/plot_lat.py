@@ -35,7 +35,8 @@ def draw_bar_if_need(index, width, val_list, color, prev_width, handler):
 # input data
 input_folder = sys.argv[1]
 output_folder = sys.argv[2]
-data_list = sys.argv[3:]
+bench_type = sys.argv[3]
+data_list = sys.argv[4:]
 plt.figure()
 ind = 0
 width = 0.15
@@ -49,7 +50,7 @@ specula_commit = 0
 data_list.sort()
 print("Sorted"+str(data_list))
 max_lat=0
-ytitle, new_name = get_title(data_list)
+ytitle, new_name = get_title(data_list, bench_type)
 for f in data_list:
     path = os.path.join(input_folder, f+'/total_duration')
     data = np.loadtxt(path, skiprows=1, usecols=range(1,10))

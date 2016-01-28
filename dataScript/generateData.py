@@ -10,7 +10,7 @@ from time import gmtime, strftime
 def get_nodes(str_list):
     nodes = []
     for file in str_list:
-        if file[0].isdigit() and file[-1].isdigit():
+        if file[0].isdigit() and file[-1].isdigit() and len(file) >= 8:
             nodes.append(file)
     return nodes
     
@@ -199,11 +199,12 @@ for f in sub_folders:
         config = config[:-1]
         config = config.replace(' ', '_')
         if config not in dict:
-            print(config+', folder is:'+f)
+            print(config)
             o = os.path.join(output_fold, config)
             os.mkdir(o)
             dict[config] = init_dict(nodes)
 
+        print("Folder: "+f)
         add_throughput(nodes, dict[config]['throughput'], dict[config]['total_throughput'], input_folder)
         add_duration(nodes, dict[config]['duration'], dict[config]['total_duration'], input_folder)
         add_latency(nodes, 'new-order', dict[config]['new-order'], input_folder)

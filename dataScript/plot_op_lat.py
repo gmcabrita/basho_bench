@@ -13,7 +13,8 @@ import pandas as pd
 # input data
 input_folder = sys.argv[1]
 output_folder = sys.argv[2]
-series = sys.argv[3:]
+bench_type = sys.argv[3]
+series = sys.argv[4:]
 index = 0
 width = 0.17
 xlabel = [1,2,3,4] 
@@ -29,7 +30,7 @@ xlabels=[]
 xminorlabels=[]
 series.sort()
 max_latency=0
-ytitle, new_name = get_title(series)
+ytitle, new_name = get_title(series, bench_type)
 for serie in series:
     folder = os.path.join(input_folder, serie)
     name = new_name[serie_index].replace('true','t').replace('false','f').replace('0000','0k')

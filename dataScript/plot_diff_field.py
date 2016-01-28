@@ -10,8 +10,9 @@ from time import gmtime, strftime
 
 # input data
 input_folder = sys.argv[1]
+bench_type = sys.argv[2]
 output_root = './figures'
-diff_fields = sys.argv[2:]
+diff_fields = sys.argv[3:]
 time = strftime("%Y-%m-%d-%H%M%S", gmtime())
 name=time+'_'.join(map(str, diff_fields))
 output_folder = os.path.join(output_root, name)
@@ -41,9 +42,9 @@ os.mkdir(op_lat_folder)
 os.mkdir(th_folder)
 for key, flist in field_dict.items():
     print(key+":"+str(flist))
-    os.system('./dataScript/plot_lat.py %s %s %s' % (input_folder, lat_folder, ' '.join(map(str, flist))))
-    os.system('./dataScript/plot_bar_th.py %s %s %s' % (input_folder, th_folder, ' '.join(map(str, flist))))
-    os.system('./dataScript/plot_op_lat.py %s %s %s' % (input_folder, op_lat_folder, ' '.join(map(str, flist))))
+    os.system('./dataScript/plot_lat.py %s %s %s %s' % (input_folder, lat_folder, bench_type, ' '.join(map(str, flist))))
+    os.system('./dataScript/plot_bar_th.py %s %s %s %s' % (input_folder, th_folder, bench_type, ' '.join(map(str, flist))))
+    os.system('./dataScript/plot_op_lat.py %s %s %s %s' % (input_folder, op_lat_folder, bench_type, ' '.join(map(str, flist))))
 
 #str_series = ' '.join(map(str, series))
 #for config in series:

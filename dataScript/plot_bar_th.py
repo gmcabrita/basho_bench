@@ -37,7 +37,8 @@ def draw_bar_if_need(index, width, val_list, color, handler):
 # input data
 input_folder = sys.argv[1]
 output_folder = sys.argv[2]
-data_list = sys.argv[3:]
+bench_type = sys.argv[3]
+data_list = sys.argv[4:]
 plt.figure()
 index = 0
 width = 0.35
@@ -50,7 +51,7 @@ specula_abort = 0
 specula_commit = 0
 handlers = [None, None, None, None, None]
 data_list.sort()
-ytitle, new_name = get_title(data_list)
+ytitle, new_name = get_title(data_list, bench_type)
 maxv=0
 for f in data_list:
     path = os.path.join(input_folder, f+'/total_throughput')
