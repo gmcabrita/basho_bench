@@ -117,7 +117,7 @@ new(Id) ->
 
     {PartList, ReplList, NumDcs} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
     %lager:info("NumDcs is ~w", [NumDcs]),
-    lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
+    %lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
 
     %lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
     AllNodes = [N || {N, _} <- PartList],
@@ -141,6 +141,7 @@ new(Id) ->
 
     {MyRepIds, NoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
+    lager:info("MyRepId is ~w, NoRep Id is ~w, HashDict is ~w", [MyRepIds, NoRepIds, dict:to_list(HashDict1)]),
 
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     %lager:info("Ex list is ~w", [ExpandPartList]),

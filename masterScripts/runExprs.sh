@@ -3,7 +3,7 @@
 ## Just to test.. 
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 seq="1 2"
-threads="16 8"
+threads="16 12 8"
 workloads="2"
 length="8 4 2"
 warehouse="6 4 2"
@@ -12,23 +12,17 @@ start_ind=1
 skip_len=139
 NO=5
 PM=5
-for wl in $workloads
-do 
-AM=70
-AS=20
+wl=1
+AM=80
+AS=10
 if [ $wl == 1 ]; then  NO=45  PM=45
 elif [ $wl == 2 ]; then  NO=5 PM=5
 fi
 ./script/preciseTime.sh
-./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 1 
-./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 1 
-./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 1 
-./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 2 
-./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 2 
-./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 2 
 ./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 3 
-./script/runSpeculaBench.sh 8 $AM $AS true true 2 specula_tests 2 $NO $PM 3 
-./script/runSpeculaBench.sh 8 $AM $AS false false 0 specula_tests 2 $NO $PM 3 
+./script/runSpeculaBench.sh 12 $AM $AS true true 4 specula_tests 2 $NO $PM 3 
+./script/runSpeculaBench.sh 16 $AM $AS false false 0 specula_tests 2 $NO $PM 3 
+exit
 AM=20
 AS=30
 ./script/preciseTime.sh
