@@ -53,7 +53,7 @@ echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
 MasterToSleep=$((NumNodes*500+5000))
-ToSleep=$(((1000 + 100*NumNodes) / ${1}))
+ToSleep=$(((5000 + 500*NumNodes) / ${1}))
 echo tpcc master_to_sleep $MasterToSleep >> config
 echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
