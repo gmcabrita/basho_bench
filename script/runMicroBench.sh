@@ -46,7 +46,8 @@ echo micro master_range $master_range >> config
 echo micro slave_range $slave_range >> config
 echo micro cache_range $cache_range >> config
 echo micro pattern $pattern >> config
-echo micro duration 180 >> config
+echo micro duration 90 >> config
+echo micro specula $do_specula >> config
 echo ant do_specula $do_specula  >> config
 echo ant fast_reply $fast_reply   >> config
 echo ant specula_length $specula_length  >> config

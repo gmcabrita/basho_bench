@@ -47,7 +47,8 @@ echo ant  do_specula $4  >> config
 echo ant fast_reply $5   >> config
 echo ant specula_length $6  >> config
 echo load concurrent 4 >> config
-echo tpcc duration 60 >> config
+echo tpcc duration 90 >> config
+echo tpcc specula $4 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
