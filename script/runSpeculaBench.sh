@@ -34,18 +34,10 @@ Time=`date +'%Y-%m-%d-%H%M%S'`
 Folder=$7/$Time
 echo "Folder to make is" $Folder
 mkdir $Folder
-Tpcc="./basho_bench/examples/tpcc.config"
-Load="./basho_bench/examples/load.config"
-Ant="./antidote/rel/antidote/antidote.config"
-AppConfig="./antidote/rel/antidote/etc/app.config"
 sudo rm -f config
 echo tpcc concurrent $1 >> config 
-echo ant concurrent $1 >> config 
 echo tpcc access_master $2  >> config
 echo tpcc access_slave $3 >> config
-echo ant  do_specula $4  >> config
-echo ant fast_reply $5   >> config
-echo ant specula_length $6  >> config
 echo load concurrent 4 >> config
 echo tpcc duration 90 >> config
 echo tpcc specula $4 >> config
@@ -57,8 +49,6 @@ ToSleep=$(((15000 + 500*NumNodes) / ${1}))
 echo tpcc master_to_sleep $MasterToSleep >> config
 echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
-echo ant num_dcs  `cat ./script/num_dcs` >> config 
-echo ant do_repl true >> config
 echo app_config ring_creation_size 32 >> config
 echo tpcc w_per_dc $WPerDc >> config
 echo load w_per_dc $WPerDc >> config
@@ -74,7 +64,7 @@ fi
 
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10} ${11}  > $Folder/config
-sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh && sudo ./script/configReplication.sh $repl_degree"
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 ./script/clean_data.sh
 sleep 10
