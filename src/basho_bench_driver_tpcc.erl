@@ -91,6 +91,7 @@ new(Id) ->
     IPs = basho_bench_config:get(antidote_pb_ips),
     ToSleep = basho_bench_config:get(to_sleep),
     MasterToSleep = basho_bench_config:get(master_to_sleep),
+    Specula = basho_bench_config:get(specula),
    
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
@@ -179,6 +180,7 @@ new(Id) ->
                item_ranges = ItemRanges,
                expand_part_list = ExpandPartList,
                hash_length = HashLength,   
+               specula = Specula,
                c_c_last = C_C_LAST,
                c_c_id = C_C_ID,
                c_ol_i_id = C_OL_I_ID, 
