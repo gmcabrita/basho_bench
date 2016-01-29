@@ -118,7 +118,9 @@ get_pid(TargetNode, Name) ->
 
 replace_name_by_pid(TargetNode, Dict) ->
     dict:fold(fun(Key, Value, NewDict) ->
-            Pid = rpc:call(TargetNode, tx_cert_sup, get_pid, [Value]),
+            Pid = case Key of cache -> rpc:call(TargetNode, tx_cert_sup, get_pid, [Value]);
+			      _ -> rpc:call(TargetNode, tx_cert_sup, get_global_pid, [Value])
+		  end,
             dict:store(Key, Pid, NewDict)
             end, dict:new(), Dict).
                     
