@@ -123,21 +123,11 @@ new(Id) ->
     AllNodes = [N || {N, _} <- PartList],
     NodeId = index(TargetNode, AllNodes),
     NumNodes = length(AllNodes),
+    case Id of 1 -> timer:sleep(MasterToSleep);
+    	       _ -> timer:sleep(ToSleep)
+    end,
     MyTxServer = locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode) 
             ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
-    %lager:info("MyTxServer is ~w", [MyTxServer]),
-
-    %lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),
-    %[M] = [L || {N, L} <- ReplList, N == TargetNode ],
-    %MyRepIds = get_indexes(M, AllNodes),
-    %NoRepList = (AllNodes -- M) -- [TargetNode],
-    %NoRepIds = get_indexes(NoRepList, AllNodes),
-    %HashDict = build_local_norep_dict(NodeId, ReplList, AllNodes, NoRepIds, NumDcs),
-    %HashDict1 =  lists:foldl(fun(N, D) ->
-    %                        dict:store(N, get_rep_name(TargetNode, lists:nth(N, AllNodes)), D)
-    %                    end, HashDict, MyRepIds),
-    %lager:info("My Rep Ids is ~w, my rep list is ~p", [MyRepIds, dict:to_list(HashDict1)]),
-    %lager:info("My Rep Ids are ~w, noRep list is ~w, no rep ids is ~w", [MyRepIds, NoRepList, NoRepIds]),
 
     {MyRepIds, NoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
@@ -151,9 +141,6 @@ new(Id) ->
     MyTable =ets:new(my_table, [private, set]),
     %ets:insert(MyTable, {payment, 0,0,0}),
     %ets:insert(MyTable, {new_order, 0,0,0}),
-    case Id of 1 -> timer:sleep(MasterToSleep);
-    	       _ -> timer:sleep(ToSleep)
-    end,
     Key1 = "C_C_LAST",
     Key2 = "C_C_ID",
     Key3 = "C_OL_I_ID",
