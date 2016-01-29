@@ -19,6 +19,7 @@ if [ $wl == 1 ]; then  NO=45  PM=45
 elif [ $wl == 2 ]; then  NO=5 PM=5
 fi
 #./script/preciseTime.sh
+sudo ./script/restartAndConnect.sh
 ./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 3 
 ./script/runSpeculaBench.sh 12 $AM $AS true true 4 specula_tests 2 $NO $PM 3 
 ./script/runSpeculaBench.sh 16 $AM $AS false false 0 specula_tests 2 $NO $PM 3 

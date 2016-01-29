@@ -76,7 +76,9 @@ sudo ./script/copy_to_all.sh ./config ./basho_bench/
 echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10} ${11}  > $Folder/config
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh && sudo ./script/configReplication.sh $repl_degree"
 
-./script/restartAndConnect.sh
+./script/clean_data.sh
+sleep 10
+#./script/restartAndConnect.sh
 #Change Load params
 #./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1 
 #./masterScripts/changeConfig.sh "$AllNodes" $Load duration 1 
