@@ -23,13 +23,14 @@
 
 -export([new/1,
         terminate/2,
-	read/5,
+	    read/5,
          run/4]).
 
 -include("basho_bench.hrl").
 -include("tpcc.hrl").
 
 -define(TIMEOUT, 10000).
+-define(READ_TIMEOUT, 15000).
 
 -record(state, {worker_id,
                 time,
@@ -57,10 +58,15 @@
                 no_local_abort,
                 no_remote_abort,
 		        no_read,
+                p_specula,
+                p_local,
+                p_remote,
+                p_local_abort,
+                p_remote_abort,
+		        p_read,
                 new_order_committed,
-                payment_prep,
-		        payment_read,
                 node_id,
+                specula,
                 tx_server,
                 target_node}).
 
@@ -111,26 +117,30 @@ new(Id) ->
 
     {PartList, ReplList, NumDcs} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
     %lager:info("NumDcs is ~w", [NumDcs]),
-    %lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
+    lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
 
-    [M] = [L || {N, L} <- ReplList, N == TargetNode ],
-    AllNodes = [N || {N, _} <- PartList],
-    MyRepIds = get_indexes(M, AllNodes),
     %lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
+    AllNodes = [N || {N, _} <- PartList],
     NodeId = index(TargetNode, AllNodes),
     NumNodes = length(AllNodes),
-    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)),
+    MyTxServer = locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode) 
+            ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
     %lager:info("MyTxServer is ~w", [MyTxServer]),
 
     %lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),
-    NoRepList = (AllNodes -- M) -- [TargetNode],
-    NoRepIds = get_indexes(NoRepList, AllNodes),
-    HashDict = build_local_norep_dict(NodeId, ReplList, AllNodes, NoRepIds, NumDcs),
-    HashDict1 =  lists:foldl(fun(N, D) ->
-                        dict:store(N, get_rep_name(TargetNode, lists:nth(N, AllNodes)), D)
-                        end, HashDict, MyRepIds),
+    %[M] = [L || {N, L} <- ReplList, N == TargetNode ],
+    %MyRepIds = get_indexes(M, AllNodes),
+    %NoRepList = (AllNodes -- M) -- [TargetNode],
+    %NoRepIds = get_indexes(NoRepList, AllNodes),
+    %HashDict = build_local_norep_dict(NodeId, ReplList, AllNodes, NoRepIds, NumDcs),
+    %HashDict1 =  lists:foldl(fun(N, D) ->
+    %                        dict:store(N, get_rep_name(TargetNode, lists:nth(N, AllNodes)), D)
+    %                    end, HashDict, MyRepIds),
     %lager:info("My Rep Ids is ~w, my rep list is ~p", [MyRepIds, dict:to_list(HashDict1)]),
-    lager:info("My Rep Ids are ~w, noRep list is ~w, no rep ids is ~w", [MyRepIds, NoRepList, NoRepIds]),
+    %lager:info("My Rep Ids are ~w, noRep list is ~w, no rep ids is ~w", [MyRepIds, NoRepList, NoRepIds]),
+
+    {MyRepIds, NoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
+    HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
 
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     %lager:info("Ex list is ~w", [ExpandPartList]),
@@ -138,8 +148,8 @@ new(Id) ->
 
     %lager:info("Part list is ~w",[PartList]),
     MyTable =ets:new(my_table, [private, set]),
-    ets:insert(MyTable, {payment, 0,0,0}),
-    ets:insert(MyTable, {new_order, 0,0,0}),
+    %ets:insert(MyTable, {payment, 0,0,0}),
+    %ets:insert(MyTable, {new_order, 0,0,0}),
     case Id of 1 -> timer:sleep(MasterToSleep);
     	       _ -> timer:sleep(ToSleep)
     end,
@@ -163,7 +173,7 @@ new(Id) ->
                w_per_dc=WPerNode,
                my_table=MyTable,
                my_rep_ids = MyRepIds,
-               no_rep_list = NoRepList,
+               %no_rep_list = NoRepList,
                to_sleep=ToSleep,
                no_specula={0,0},
                no_local={0,0},
@@ -171,8 +181,12 @@ new(Id) ->
                no_local_abort={0,0},
                no_remote_abort={0,0},
                no_read=0,
-               payment_prep={0,0}, 
-               payment_read={0,0}, 
+               p_specula={0,0},
+               p_local={0,0},
+               p_remote={0,0},
+               p_local_abort={0,0},
+               p_remote_abort={0,0},
+               p_read=0,
                no_rep_ids = NoRepIds,
                item_ranges = ItemRanges,
                expand_part_list = ExpandPartList,
@@ -189,7 +203,7 @@ new(Id) ->
 run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
         my_rep_ids=MyRepIds, hash_dict=HashDict, no_rep_ids=NoRepIds, node_id=DcId, 
         no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, worker_id=WorkerId,
-        no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, w_per_dc=WPerNode, my_table=MyTable, 
+        no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, w_per_dc=WPerNode,
         item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
     RS = dict:new(),
     WS = dict:new(),
@@ -205,7 +219,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %lager:info("DistrictId is ~w, Customer Id is ~w, NumItems is ~w", [DistrictId, CustomerId, NumItems]),
 
     %TxId = {tx_id, tpcc_tool:now_nsec(), self()}, %,gen_server:call({global, TxServer}, {start_tx}),
-    TxId = gen_server:call({global, TxServer}, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     %lager:info("TxId is ~w", [TxId]),
     CustomerKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CustomerId}, customer), 
     _Customer = read_from_node(TxServer, TxId, CustomerKey, to_dc(WarehouseId, WPerNode), DcId, PartList, HashDict), 
@@ -283,14 +297,14 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     OrderKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, OId}, order),
     WS4 = dict:store({WarehouseId, OrderKey}, Order, WS3),
     %LocalWS4 = add_to_writeset(OrderKey, Order, lists:nth(DcId, PartList), LocalWS3),
-    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerNode, new_order, MyTable),
+    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerNode),
     %lager:info("Local Write set is ~p", [LocalWriteList]),
     %lager:info("Remote Write set is ~p", [RemoteWriteList]),
     %DepsList = ets:lookup(dep_table, TxId),
     %% ************ read time *****************
     RT2 = os:timestamp(),
     %% ************ read time *****************
-    Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
+    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
     RT3 = os:timestamp(),
     case Response of
         {ok, {committed, _}} ->
@@ -312,17 +326,17 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
             lager:info("Timeout on client ~p",[TxServer]),
             {error, timeout, State};
         {aborted, local} ->
-	    random:seed(os:timestamp()),
+	        random:seed(RT3),
             {NOLTime, NOLCount} = NOLAbort,
             {error, aborted, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_local_abort={NOLTime+get_time_diff(RT2, RT3), 
                     NOLCount+1}}};
         {aborted, remote} ->
-	    random:seed(os:timestamp()),
+	        random:seed(RT3),
             {NORTime, NORCount} = NORAbort,
             {error, aborted, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_remote_abort={NORTime+get_time_diff(RT2, RT3), 
                     NORCount+1}}};
         {aborted, _} ->
-	    random:seed(os:timestamp()),
+	        random:seed(RT3),
             {error, aborted, State};
         {badrpc, Reason} ->
             {error, Reason, State}
@@ -330,9 +344,11 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
 %% @doc Payment transaction of TPC-C
 run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, worker_id=WorkerId,
-        hash_dict=HashDict, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds, w_per_dc=WPerNode, my_table=MyTable,
-        node_id=DcId, access_slave=AccessSlave, payment_prep=PaymentPrep, payment_read=PaymentRead,
+        hash_dict=HashDict, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds, w_per_dc=WPerNode, 
+        node_id=DcId, access_slave=AccessSlave, p_specula=PSpecula, p_local=PLocal,
+        p_remote=PRemote, p_local_abort=PLAbort, p_remote_abort=PRAbort, p_read=PRead,
         c_c_id=C_C_ID, c_c_last = C_C_LAST, access_master=AccessMaster}) ->
+
     WS = dict:new(),
     %LocalWS = dict:new(),
     %RemoteWS = dict:new(),
@@ -356,11 +372,12 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 
     %% Only customer can be remote, everything else(Warehouse, District) should be local
 	%TxId = {tx_id, tpcc_tool:now_nsec(), self()},	
-    TxId = gen_server:call({global, TxServer}, {start_tx}),
-	WarehouseKey = tpcc_tool:get_key_by_param({TWarehouseId}, warehouse),
     %% ************ read time *****************
     RT1 = os:timestamp(),
     %% ************ read time *****************
+
+    TxId = gen_server:call(TxServer, {start_tx}),
+	WarehouseKey = tpcc_tool:get_key_by_param({TWarehouseId}, warehouse),
     Warehouse = read_from_node(TxServer, TxId, WarehouseKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
 	WYtdKey = WarehouseKey++":w_ytd",
 	WYtd = read_from_node(TxServer, TxId, WYtdKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
@@ -395,57 +412,68 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 				CKey = tpcc_tool:get_key_by_param({CWId, CDId, CustomerID}, customer),
 				read_from_node(TxServer, TxId, CKey, to_dc(CWId, WPerNode), DcId, PartList, HashDict)
 		end,
-    case CW of
-        error ->
-            {error, not_found, State};
-        _ ->
-            CWBalanceKey = tpcc_tool:get_key(CW)++":c_balance",
-            CWBalance = read_from_node(TxServer, TxId, CWBalanceKey, to_dc(CWId, WPerNode), DcId, PartList, HashDict),
-	    %% ************ read time *****************
-	    RT2 = os:timestamp(),
-	    %% ************ read time *****************
-            CWBalance1 = CWBalance + PaymentAmount,
-            WS3 = dict:store({CWId, CWBalanceKey}, CWBalance1, WS2),
-            WName = Warehouse#warehouse.w_name,
-            DName = District#district.d_name,
-            HData = lists:sublist(WName, 1, 10) ++ "  " ++ lists:sublist(DName, 1, 10),
-            %% History should be local
-            History = tpcc_tool:create_history(TWarehouseId, DistrictId, CWId, CDId, 
-                                               CW#customer.c_id, tpcc_tool:now_nsec(), PaymentAmount, HData),
-            HistoryKey = tpcc_tool:get_key(History),
-            WS4 = dict:store({TWarehouseId, HistoryKey}, History, WS3),
-            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerNode, payment, MyTable),
-            %DepsList = ets:lookup(dep_table, TxId),
-            T1 = os:timestamp(),
-            Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
-            T2 = os:timestamp(),
-	    {AccT, AccN} = PaymentPrep,
-	    {AccRT, AccN} = PaymentRead, 
-            case Response of
-                {ok, _Value} ->
-                    {ok, State#state{payment_prep={get_time_diff(T1, T2)+AccT, AccN+1},
-				payment_read={get_time_diff(RT1, RT2)+AccRT, AccN+1}}};
-                {error,timeout} ->
-                    lager:info("Timeout on client ~p",[TxServer]),
-                    {error, timeout, State};
-                {aborted, _} ->
-	    	    random:seed(os:timestamp()),
-                    %lager:error("Aborted"),
-                    {error, aborted, State};
-                {badrpc, Reason} ->
-                    {error, Reason, State}
-            end
+    CWBalanceKey = tpcc_tool:get_key(CW)++":c_balance",
+    CWBalance = read_from_node(TxServer, TxId, CWBalanceKey, to_dc(CWId, WPerNode), DcId, PartList, HashDict),
+    CWBalance1 = CWBalance + PaymentAmount,
+    WS3 = dict:store({CWId, CWBalanceKey}, CWBalance1, WS2),
+    WName = Warehouse#warehouse.w_name,
+    DName = District#district.d_name,
+    HData = lists:sublist(WName, 1, 10) ++ "  " ++ lists:sublist(DName, 1, 10),
+    %% History should be local
+    History = tpcc_tool:create_history(TWarehouseId, DistrictId, CWId, CDId, 
+                                       CW#customer.c_id, tpcc_tool:now_nsec(), PaymentAmount, HData),
+    HistoryKey = tpcc_tool:get_key(History),
+    WS4 = dict:store({TWarehouseId, HistoryKey}, History, WS3),
+    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerNode),
+    %DepsList = ets:lookup(dep_table, TxId),
+    RT2 = os:timestamp(),
+    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
+    RT3 = os:timestamp(),
+    case Response of
+        {ok, {committed, _}} ->
+            case RemoteWriteList of
+                [] ->
+                    {PLTime, PLCount} = PLocal,
+                    {ok, State#state{p_read=PRead+get_time_diff(RT1, RT2), p_local={PLTime+get_time_diff(RT2, RT3),
+                            PLCount+1}}};
+                _ ->
+                    {PRTime, PRCount} = PRemote,
+                    {ok, State#state{p_read=PRead+get_time_diff(RT1, RT2), p_remote={PRTime+get_time_diff(RT2, RT3),
+                            PRCount+1}}}
+            end;
+        {ok, {specula_commit, _}} ->
+            {PSTime, PSCount} = PSpecula,
+            {ok, State#state{p_read=PRead+get_time_diff(RT1, RT2), p_specula={PSTime+get_time_diff(RT2, RT3),
+                    PSCount+1}}};
+        {error,timeout} ->
+            lager:info("Timeout on client ~p",[TxServer]),
+            {error, timeout, State};
+        {aborted, local} ->
+            random:seed(RT3),
+            {PLTime, PLCount} = PLAbort,
+            {error, aborted, State#state{p_read=PRead+get_time_diff(RT1, RT2), p_local_abort={PLTime+get_time_diff(RT2, RT3),
+                    PLCount+1}}};
+        {aborted, remote} ->
+            random:seed(RT3),
+            {PRTime, PRCount} = PRAbort,
+            {error, aborted, State#state{p_read=PRead+get_time_diff(RT1, RT2), p_remote_abort={PRTime+get_time_diff(RT2, RT3),
+                    PRCount+1}}};
+        {aborted, _} ->
+            random:seed(RT3),
+            {error, aborted, State};
+        {badrpc, Reason} ->
+            {error, Reason, State}
     end;
 
 %% @doc Payment transaction of TPC-C
 run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
         hash_dict=HashDict, node_id=DcId, w_per_dc=WPerNode, worker_id=WorkerId, 
-        c_c_id=C_C_ID, c_c_last = C_C_LAST}) ->
+        c_c_id=C_C_ID, c_c_last = C_C_LAST, specula=Specula}) ->
     TWarehouseId = WPerNode * (DcId-1) + WorkerId rem WPerNode +1, 
 	DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
 	
 	%TxId = {tx_id, tpcc_tool:now_nsec(), self()},
-    TxId = gen_server:call({global, TxServer}, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx}),
 	CW = case tpcc_tool:random_num(1, 100) =< 60 of
 			true ->
 				Rand = trunc(tpcc_tool:non_uniform_random(C_C_LAST, ?A_C_LAST, 0, ?MAX_C_LAST)),
@@ -488,7 +516,12 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
             OlKey = tpcc_tool:get_key_by_param({OWId, ODId, OId, Number}, orderline),
             _Ol = read_from_node(TxServer, TxId, OlKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict)
             end, Seq2),
-    _ =  gen_server:call({global, TxServer}, {certify, TxId, [], []}, ?TIMEOUT),
+    case Specula of 
+        true ->
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+        _ ->
+            ok
+    end,
     {ok, State}.
 
 get_partition(Key, PartList, HashLength) ->
@@ -511,20 +544,20 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
             {_, L} = lists:nth(DcId, PartList),
             Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
             Part = lists:nth(Index, L),
-            tx_cert_sup:read(TxServer, TxId, Key, Part);
+            gen_server:call(TxServer, {read, Key, TxId, Part}, ?READ_TIMEOUT);
         _ ->
             case dict:find(DcId, HashDict) of
                 error ->
                     {_, L} = lists:nth(DcId, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
-                    {CacheServName, _} = lists:nth(MyDcId, PartList),
-                    cache_serv:read(CacheServName, Key, TxId, Part);
+                    CacheServName = dict:fetch(cache, HashDict), 
+                    gen_server:call(CacheServName, {read, Key, TxId, Part}, ?READ_TIMEOUT);
                 {ok, N} ->
                     {_, L} = lists:nth(DcId, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
-                    data_repl_serv:read(N, Key, TxId, Part)
+                    gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT)
             end
     end,
     case V of
@@ -555,7 +588,7 @@ read_from_cache_or_node(ReadSet, TxServer, TxId, Key, DcId, MyDcId, PartList, Ha
  
 read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
     Part = get_partition(Key, ExpandPartList, HashLength),
-    {ok, V} = tx_cert_sup:read(TxServer, TxId, Key, Part),
+    {ok, V} = gen_server:call(TxServer, {read, Key, TxId, Part}, ?READ_TIMEOUT),
     case V of
         [] ->
             lager:error("Key ~p not found!!!!", [Key]),
@@ -566,7 +599,8 @@ read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
     end.
 
 terminate(_, _State=#state{no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, no_remote_abort=NORAbort, 
-            no_specula=NOSpecula, no_read=NORead, payment_prep=PaymentPrep, payment_read=PaymentRead, my_table=MyTable}) ->
+            no_specula=NOSpecula, no_read=NORead, p_local=PLocal, p_remote=PRemote, p_local_abort=PLAbort, p_remote_abort=PRAbort,
+            p_specula=PSpecula, p_read=PRead}) ->
     {T1, C1} = NOLocal,
     {T2, C2} = NORemote,
     {T3, C3} = NOLAbort,
@@ -578,27 +612,34 @@ terminate(_, _State=#state{no_local=NOLocal, no_remote=NORemote, no_local_abort=
     RA = T4 div max(1, C4),
     SCT = T5 div max(1, C5),
     NOR = NORead div max(1, C1+C2+C3+C4+C5),
-    {_PPrep, _PRead} = case PaymentPrep of
-			{0, 0} -> {0, 0};
-			{AccT1, AccN1} -> {AccRT1, AccN1} = PaymentRead,
-                                        {AccT1 div AccN1, AccRT1 div AccN1} 
-		     end,
-    File= "prep",
-    [{payment, PT, PP, PN}] = ets:lookup(MyTable, payment),
-    [{new_order, NT, NP, NN}] = ets:lookup(MyTable, new_order),
-    %lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead1, NORead2, NORead3, NOItem, PPrep, PRead]),
-    file:write_file(File, io_lib:fwrite("~p ~p ~p  ~p  ~p ~p ~p ~p ~p ~p\n", 
-            [NOR, LA,  RA, LCT, RCT, SCT, PP/PT ,PN/PT, NP/NT, NN/NT]), [append]).
 
-get_local_remote_writeset(WriteSet, PartList, LocalDcId, WPerNode, TxType, MyTable) ->
+    {PT1, PC1} = PLocal,
+    {PT2, PC2} = PRemote,
+    {PT3, PC3} = PLAbort,
+    {PT4, PC4} = PRAbort,
+    {PT5, PC5} = PSpecula,
+    PLCT = PT1 div max(1, PC1),
+    PRCT = PT2 div max(1, PC2),
+    PLA = PT3 div max(1, PC3),
+    PRA = PT4 div max(1, PC4),
+    PSCT = PT5 div max(1, PC5),
+    PR = PRead div max(1, PC1+PC2+PC3+PC4+PC5),
+    File= "prep",
+    %[{payment, PT, PP, PN}] = ets:lookup(MyTable, payment),
+    %[{new_order, NT, NP, NN}] = ets:lookup(MyTable, new_order),
+    %lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead1, NORead2, NORead3, NOItem, PPrep, PRead]),
+    file:write_file(File, io_lib:fwrite("~p ~p ~p ~p ~p ~p ~p ~p ~p ~p ~p ~p\n", 
+            [NOR, LA,  RA, LCT, RCT, SCT, PR, PLA,  PRA, PLCT, PRCT, PSCT]), [append]).
+
+get_local_remote_writeset(WriteSet, PartList, LocalDcId, WPerNode) ->
     {LWSD, RWSD} = dict:fold(fun({WId, Key}, Value, {LWS, RWS}) ->
                     Id = (WId-1) div WPerNode + 1, 
                     case Id of LocalDcId -> {add_to_writeset(Key, Value, lists:nth(LocalDcId, PartList), LWS), RWS};
                                _ -> {LWS, add_to_writeset(Key, Value, lists:nth(Id, PartList), RWS)}
                     end end, {dict:new(), dict:new()}, WriteSet),
-    L = dict:fetch_keys(RWSD),
-    NodeSet = lists:foldl(fun({_, N}, S) -> sets:add_element(N, S) end, sets:new(), L),
-    ets:update_counter(MyTable, TxType, [{2, 1}, {3, length(L)}, {4,sets:size(NodeSet)}]),
+    %L = dict:fetch_keys(RWSD),
+    %NodeSet = lists:foldl(fun({_, N}, S) -> sets:add_element(N, S) end, sets:new(), L),
+    %ets:update_counter(MyTable, TxType, [{2, 1}, {3, length(L)}, {4,sets:size(NodeSet)}]),
     {dict:to_list(LWSD), dict:to_list(RWSD)}.
 
 
@@ -613,10 +654,6 @@ add_to_writeset(Key, Value, {_, PartList}, WSet) ->
     %lager:info("Adding  ~p, ~p to ~w", [Key, Value, Part]),
     dict:append(Part, {Key, Value}, WSet).
 
-get_indexes(PL, List) ->
-    %lager:info("Trying to get index: PL ~w, List ~w", [PL, List]),
-    [index(X, List) || X <- PL ].
-
 pick_warehouse(MyId, RepIds, NoRepIds, WPerNode, AccessMaster, AccessRep) ->
     %lager:info("~w ~w ~w ~w ~w ~w", [MyId, RepIds, NoRepIds, WPerNode, AccessMaster, AccessRep]),
     R = random:uniform(100),
@@ -627,14 +664,24 @@ pick_warehouse(MyId, RepIds, NoRepIds, WPerNode, AccessMaster, AccessRep) ->
             case R =< AccessMaster + AccessRep of
                 true ->
                     L = length(RepIds),
-                    N = R rem (L * WPerNode),
-                    F = N div WPerNode +1, 
-                    S = N rem WPerNode,
-                    WPerNode*(lists:nth(F, RepIds)-1)+S+1;
+                    case L of 0 ->
+                                N = R rem (length(NoRepIds) * WPerNode) + 1,
+                                F = (N-1) div WPerNode +1,
+                                S = N rem WPerNode,
+                                WPerNode*(lists:nth(F, NoRepIds)-1)+S+1;
+                            _ ->
+                                N = R rem (L * WPerNode),
+                                F = N div WPerNode +1, 
+                                S = N rem WPerNode,
+                                WPerNode*(lists:nth(F, RepIds)-1)+S+1
+                    end;
                 false ->
                     L = length(NoRepIds),
                     case L of 0 ->
-                                WPerNode*(MyId-1) + R rem WPerNode +1;
+                                N = R rem (length(RepIds) * WPerNode),
+                                F = N div WPerNode +1,    
+                                S = N rem WPerNode,
+                                WPerNode*(lists:nth(F, RepIds)-1)+S+1;
                             _ ->
                                 N = R rem (L * WPerNode) + 1,
                                 F = (N-1) div WPerNode +1, 
@@ -686,10 +733,6 @@ get_district_info(Stock, 10) ->
 %    N;
 %get_replica(E, [_|L]) ->
 %    get_replica(E, L).
-
-get_rep_name(Target, Rep) ->
-    list_to_atom(atom_to_list(Target)++"repl"++atom_to_list(Rep)).
-
     
 get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
     ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.
@@ -697,27 +740,3 @@ get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
 to_dc(WId, WPerNode) ->
     (WId-1) div WPerNode + 1.
 
-build_local_norep_dict(NodeId, ReplList, AllNodes, _NoRepIds, NumDcs) ->
-    case length(AllNodes) of 
-		NumDcs -> dict:new();
-		_ -> 
-		    NodesPerDc = length(AllNodes) div NumDcs,
-		    DcId = (NodeId-1) div NodesPerDc+1,
-		    Base = (DcId-1)*NodesPerDc,
-			%lager:info("DcId ~w, base ~w", [DcId, Base]),
-		    DcNodes = lists:sublist(ReplList, Base+1, NodesPerDc),
-		    DcOtherNodes = delete_by_id(DcNodes, NodeId-Base), 
-		    %lager:info("DcOhternodes are ~w", [DcOtherNodes]),
-		    lists:foldl(fun({LocalNode, LocalRepNodes}, Dict) ->
-			    lists:foldl(fun(RepNode, D) ->
-				RepId = index(RepNode, AllNodes),
-			    	%lager:info("Local node ~w replicates ~w", [LocalNode, RepNode]),
-				dict:store(RepId, get_rep_name(LocalNode, RepNode), D)
-					end, Dict, LocalRepNodes)
-				end, dict:new(), DcOtherNodes)
-			    %lager:info("nEWdICT IS ~w", [Dict]),
-    end.
-
-delete_by_id(List, N) ->
-  {L1, [_|L2]} = lists:split(N-1, List),
-  L1 ++ L2.

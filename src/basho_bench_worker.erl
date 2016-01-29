@@ -171,7 +171,6 @@ handle_info({'CLEANUP', nothing}, State=#state{ worker_pid = WorkerPid }) ->
 	    (catch (State#state.driver):terminate(haha, State#state.driver_state)),
 	    {noreply, State};
 	 _ ->
-	    lager:info("Sending to child"),
 	    WorkerPid ! {'CLEANUP', nothing},
 	    {noreply, State}
     end.

@@ -44,11 +44,13 @@ def add_throughput(nodes, dict, total_dict, folder):
         th_lines = th_lines[1:]
         committed = 0
         aborted = 0
+	duration=0
         for line in th_lines:
             words = line.split(",")
             #print words[3]+words[4]
             committed += int(words[3])
             aborted += int(words[4])
+	    duration = max(duration, float(words[0]))
         stat_lines = [line.rstrip('\n') for line in open(os.path.join(folder, 'stat'))]
         [stat_line] = [x for x in stat_lines if x.startswith(node)]
         stat_data = stat_line.split()
@@ -85,7 +87,7 @@ def add_throughput(nodes, dict, total_dict, folder):
         all_r_invalid += read_invalid
         all_c_abort += cascade_abort
 
-    total_dict.append([all_committed/60, all_cert_abort/60, all_r_abort/60, all_r_invalid/60, all_c_abort/60])
+    total_dict.append([all_committed/duration, all_cert_abort/duration, all_r_abort/duration, all_r_invalid/duration, all_c_abort/duration])
     
 
 def update_counter(folder, length, key):
