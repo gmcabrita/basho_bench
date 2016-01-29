@@ -1,7 +1,7 @@
 #!/bin/bash
 
 sudo rm ./config
-repl_degree=5
+repl_degree=$5
 echo ant concurrent $1 >> config
 echo ant  do_specula $2  >> config
 echo ant fast_reply $3   >> config

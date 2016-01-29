@@ -21,6 +21,7 @@ fi
 #./script/preciseTime.sh
 sudo ./script/configBeforeRestart.sh 8 true true 4 3
 sudo ./script/restartAndConnect.sh
+sleep 10
 ./script/runSpeculaBench.sh 8 $AM $AS true true 4 specula_tests 2 $NO $PM 3 
 ./script/runSpeculaBench.sh 12 $AM $AS true true 4 specula_tests 2 $NO $PM 3 
 

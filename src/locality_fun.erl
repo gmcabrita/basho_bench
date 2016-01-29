@@ -14,6 +14,7 @@ get_locality_list(PartList, ReplList, NumDcs, MyNode, single_dc_read) ->
 
     %[M] = [L || {N, L} <- ReplList, N == MyNode],
     %MyRepIds = get_indexes(M, AllNodes),
+    lager:info("NoId is ~w, DcPRepId is ~w", [NodeId, DcPrimaryRepIds]),
     SlaveRepIds = get_replicas(DcPrimaryRepIds++[NodeId], ReplList, AllNodes), 
     HashDict1 = build_dc_srep_dict(ReplList, AllNodes, NodeId, NumDcs),
     %HashDict = build_local_norep_dict(NodeId, ReplList, AllNodes, NoRepIds, NumDcs),
@@ -109,8 +110,10 @@ get_replicas(NodesId, ReplList, AllNodes) ->
     RS = lists:foldl(fun(NodeId, Set) ->
                    Node = lists:nth(NodeId, AllNodes), 
                    [M] = [L || {N, L} <- ReplList, N == Node],
+		   lager:info("Rep of ~w is ~w", [Node, M]),
                    lists:foldl(fun(N, S) -> sets:add_element(index(N, AllNodes), S) end, Set, M)
             end, sets:new(), NodesId),
+    lager:info("Rs is ~w", [sets:to_list(RS)]),
     sets:to_list(RS).
 
 get_pid(TargetNode, Name) ->
