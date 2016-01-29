@@ -131,7 +131,7 @@ new(Id) ->
 
     {MyRepIds, NoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
-    lager:info("MyRepId is ~w, NoRep Id is ~w, HashDict is ~w", [MyRepIds, NoRepIds, dict:to_list(HashDict1)]),
+    lager:info("MyRepId is ~w, NoRep Id is ~w", [MyRepIds, NoRepIds]),
 
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     %lager:info("Ex list is ~w", [ExpandPartList]),
