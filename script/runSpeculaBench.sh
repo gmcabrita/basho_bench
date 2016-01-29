@@ -16,13 +16,14 @@ then
     new_order=45
     payment=45
     order_status=10
-elif [ $# == 11 ]
+elif [ $# == 12 ]
 then
     WPerDc=$8
     new_order=$9
     payment=${10}
     order_status=$((100-${9}-${10}))
     repl_degree=${11}
+    seq=${12}
 else
     echo "Wrong usage: concurrent, accessMaster, accessSlave, do_specula, fast_reply, specula_length, folder, [num_partitions]"
     exit
@@ -49,7 +50,6 @@ ToSleep=$(((10000 + 500*NumNodes) / ${1}))
 echo tpcc master_to_sleep $MasterToSleep >> config
 echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
-echo app_config ring_creation_size 32 >> config
 echo tpcc w_per_dc $WPerDc >> config
 echo load w_per_dc $WPerDc >> config
 if [ "$WPerDc" -eq 1 ]
@@ -64,6 +64,7 @@ fi
 
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10} ${11}  > $Folder/config
+touch $Folder/$seq
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 ./script/clean_data.sh
