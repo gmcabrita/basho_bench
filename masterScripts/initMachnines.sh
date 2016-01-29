@@ -39,7 +39,7 @@ sudo ./script/parallel_command.sh "sudo apt-get update && sudo apt-get -y instal
 sudo ./script/parallel_command.sh "sudo apt-get -y install sshpass"
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.email 'mars.leezm@gmail.com'"
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.name 'marsleezm'"
-./script/makeRel.sh local_read_with_fast_commit
+./script/makeRel.sh benchmark_ver 
 ./script/parallel_command.sh "cd basho_bench && git stash && git pull && sudo make"
 ./script/command_to_all.sh "./basho_bench/masterScripts/config.sh" 
 ./script/command_to_all.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"
