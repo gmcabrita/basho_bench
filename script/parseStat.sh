@@ -3,6 +3,7 @@
 Folder=$2
 AllNodes=$1
 FetchName=$3
+Good=false
 
 while [ $Good == false ]
 do
