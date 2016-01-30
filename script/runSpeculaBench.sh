@@ -40,7 +40,7 @@ echo tpcc concurrent $1 >> config
 echo tpcc access_master $2  >> config
 echo tpcc access_slave $3 >> config
 echo load concurrent 4 >> config
-echo tpcc duration 90 >> config
+echo tpcc duration 60 >> config
 echo tpcc specula $4 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 #ToSleep=$((40000 / ${1}))
@@ -114,6 +114,12 @@ wait
 #do
 #./script/parseStat.sh $N $Folder
 #done
-./script/fetchAndParseStat.sh $Folder
+timeout 60 ./script/fetchAndParseStat.sh $Folder
+if [ $? -eq 124 ]; then
+    timeout 60 ./script/fetchAndParseStat.sh $Folder
+    if [ $? -eq 124 ]; then
+        timeout 60 ./script/fetchAndParseStat.sh $Folder
+    fi
+fi
 
 sudo pkill -P $$

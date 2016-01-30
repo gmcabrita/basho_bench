@@ -10,7 +10,7 @@ warehouse="4 2"
 rep=3
 parts=36
 start_ind=1
-skip_len=33
+skip_len=0
 AM=80
 AS=10
 
@@ -63,7 +63,7 @@ do
                 for i in $seq
                 do
                     if [ $start_ind -gt $skip_len ]; then
-                        ./script/runSpeculaBench.sh $t $AM $AS true true $len specula_tests $wh $n $p $rep $start_ind
+                        ./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests $wh $n $p $rep $start_ind
                     else
                         echo "Skipped..."$start_ind
                     fi  

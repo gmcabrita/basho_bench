@@ -1,17 +1,14 @@
 #!/bin/bash
 
 ## Just to test.. 
-#./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
-seq="1"
+seq="1 2 3"
 threads="16 8"
 workloads="1 2 3 4"
 length="8 4 2"
-repl_degree="2"
+repl_degree="3"
 start_ind=1
 skip_len=0
 skip_mode=0
-only_run="8 12"
-#sudo ./script/restartAndConnect.sh
 MN=2 SN=2 CN=6 MR=10000 SR=10000 CR=5000
 #MN=8 SN=1 CN=1  MR=5000 SR=100000 CR=100000
 ./script/runMicroBench.sh 16  $MN $SN $CN $MR $SR $CR true 8 random 2 specula_tests false $start_ind
