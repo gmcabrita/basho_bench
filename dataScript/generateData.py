@@ -44,13 +44,14 @@ def add_throughput(nodes, dict, total_dict, folder):
         th_lines = th_lines[1:]
         committed = 0
         aborted = 0
-	duration=0
+        duration=0
         for line in th_lines:
             words = line.split(",")
             #print words[3]+words[4]
             committed += int(words[3])
             aborted += int(words[4])
-	    duration = max(duration, float(words[0]))
+            duration=max(duration,float(words[0]))
+            #print("Duration is"+str(int(duration)))
         stat_lines = [line.rstrip('\n') for line in open(os.path.join(folder, 'stat'))]
         [stat_line] = [x for x in stat_lines if x.startswith(node)]
         stat_data = stat_line.split()
@@ -78,6 +79,7 @@ def add_throughput(nodes, dict, total_dict, folder):
                 real_committed = int(stat_data[7])
         else:
             print("***WTF, data dimenstion is wrong!!!***")
+            print("Stat data is "+str(stat_data))
         
         #print str(committed)+' '+str(aborted) +' '+str(read_abort)+' '+str(specula_abort)+' '+str(cascade_abort) 
         dict[node].append([real_committed, cert_abort, read_abort, read_invalid, cascade_abort])
@@ -86,7 +88,7 @@ def add_throughput(nodes, dict, total_dict, folder):
         all_r_abort += read_abort
         all_r_invalid += read_invalid
         all_c_abort += cascade_abort
-
+    print('All committed is'+str(real_committed))
     total_dict.append([all_committed/duration, all_cert_abort/duration, all_r_abort/duration, all_r_invalid/duration, all_c_abort/duration])
     
 
@@ -106,7 +108,7 @@ def update_counter(folder, length, key):
 
 
 def add_duration(nodes, dict, total_dict, folder):
-    total_dur = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    total_dur = [0, 0, 0, 0, 0, 0, 0, 0]
     for node in nodes:
         dur_file = os.path.join(folder, node+'-prep')
         if os.path.isfile(dur_file) == False:
@@ -126,10 +128,10 @@ def add_duration(nodes, dict, total_dict, folder):
         stat_lines = [line.rstrip('\n') for line in open(os.path.join(folder, 'stat'))]
         [stat_line] = [x for x in stat_lines if x.startswith(node)]
         stat_data = stat_line.split()
-        local_cert_dur = float(stat_data[21])/1000
+        #local_cert_dur = float(stat_data[21])/1000
         specula_abort_dur = float(stat_data[23])/1000 
         specula_commit_dur = float(stat_data[25])/1000
-        dur_avg.append(local_cert_dur), 
+        #dur_avg.append(local_cert_dur), 
         dur_avg.append(specula_abort_dur), 
         dur_avg.append(specula_commit_dur)
         dict[node].append(dur_avg)
@@ -233,7 +235,7 @@ for config in dict:
     write_to_file(throughput, entry['throughput'], nodes, 'ip committed cert_aborted read_aborted read_invalid cascade_abort') 
     write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted read_invalid cascade_abort') 
     write_std(total_throughput, entry['total_throughput'])
-    write_to_file(duration, entry['duration'], nodes, 'ip read local_a remote_a local_c remote_c local_cert specula_c s_final_a s_final_c')
-    write_to_file(total_duration, entry, ['total_duration'], 'N/A read local_a remote_a local_c remote_c local_cert specula_c s_final_a s_final_c')
+    write_to_file(duration, entry['duration'], nodes, 'ip read local_a remote_a local_c remote_c specula_c s_final_a s_final_c')
+    write_to_file(total_duration, entry, ['total_duration'], 'N/A read local_a remote_a local_c remote_c specula_c s_final_a s_final_c')
     write_std(total_duration, entry['total_duration'])
     
