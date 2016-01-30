@@ -52,8 +52,8 @@ echo micro duration 60 >> config
 echo micro specula $do_specula >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*1000+8000))
-ToSleep=$(((10000 + 500*NumNodes) / ${1}))
+MasterToSleep=$((NumNodes*1000+5000))
+ToSleep=$(((8000 + 500*NumNodes) / ${1}))
 echo micro master_to_sleep $MasterToSleep >> config
 echo micro to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
@@ -62,11 +62,11 @@ sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 ./script/clean_data.sh
-sleep 10
+#sleep 10
 
-./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/micro.config" &
-./script/load.sh `head -1 ./script/allnodes` micro 3000000 
-wait
+./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/micro.config"
+#./script/load.sh `head -1 ./script/allnodes` micro 3000000 
+#wait
 
 ./script/gatherThroughput.sh $Folder &
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 

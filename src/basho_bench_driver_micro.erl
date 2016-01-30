@@ -148,7 +148,7 @@ new(Id) ->
     HashLength = length(ExpandPartList),
     {MyRepIds, NoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
-    lager:info("MyRepIds ~w, No ~w, D ~w", [MyRepIds, NoRepIds, dict:to_list(HashDict1)]),
+    lager:info("MyRepIds ~w, No ~w", [MyRepIds, NoRepIds]),
 
     %lager:info("Part list is ~w",[PartList]),
     MyTable = ets:new(my_table, [private, set]),
@@ -302,8 +302,7 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
     end,
     case V of
         [] ->
-            lager:error("Key ~p not found!!!! Should read from dc ~w, my dc is ~w", [Key, DcId, MyDcId]),
-            error;
+	    0;
         _ ->
             V
     end.

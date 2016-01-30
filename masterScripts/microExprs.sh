@@ -1,77 +1,96 @@
 #!/bin/bash
 
+function runNTimes {
+    for i in $seq
+    do
+        if [ $start_ind -gt $skip_len ]; then
+        ./script/runMicroBench.sh $t $MN $SN $CN $MR $SR $CR $do_specula $len random $rep $comp specula_tests $start_ind
+        #echo $t $MN $SN $CN $MR $SR $CR $do_specula $len random $rep $comp specula_tests $start_ind
+        else
+        echo "Skipped..."$start_index
+        fi
+        start_ind=$((start_ind+1))
+    done
+} 
+
+if [ $1 == true ]
+then
+    do_specula=true
+    fast_reply=true
+    length="8 4 2 1"
+else
+    do_specula=false
+    fast_reply=false
+    length="0"
+fi
 ## Just to test.. 
-seq="1"
-threads="16 8"
-workloads="1 2 3 5"
-local_comp="0 10 100"
-length="8 2"
-rep="3"
+seq="1 2"
+threads="8"
+#workloads="1 2 3 5"
+contentions="1 2 3"
+localities="1 2 3"
+local_comp="100 500 1000"
+replications="4 5 6 7 8"
 start_ind=1
 skip_len=0
-skip_mode=0
 parts=36
 BIG=1000000
-MID=50000
-SML=10000
-#./script/restartAndConnect.sh
+MID=100000
+SML=20000
+
+rep=3
 for len in $length
 do
-    for t in $threads
-    do
-	sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts
-        sudo ./script/restartAndConnect.sh
-        sleep 10
-        for wl in $workloads
-        do
-            if [ $wl == 1 ]; then MN=10  SN=3 CN=2  MR=$BIG SR=$BIG CR=$BIG
-            elif [ $wl == 2 ]; then MN=5 SN=5 CN=5  MR=$BIG SR=$SML CR=$SML
-            elif [ $wl == 3 ]; then MN=5 SN=0 CN=10  MR=$BIG SR=$SML CR=$MID
-            elif [ $wl == 4 ]; then MN=10 SN=3 CN=2  MR=$MID SR=$MID CR=$MID
-            elif [ $wl == 5 ]; then MN=10 SN=3 CN=2  MR=$SML SR=$SML CR=$SML
-            fi
-	    for comp in $local_comp
-	    do
-	    sudo ./script/preciseTime.sh
-	    for i in $seq
-	    do
-		if [ $start_ind -gt $skip_len ]; then
-		    ./script/runMicroBench.sh $t $MN $SN $CN $MR $SR $CR true $len random $rep $comp specula_tests $start_ind
-		else
-		    echo "Skipped..."$start_ind
-		fi
-		start_ind=$((start_ind+1))
-	    done
-	    done
-     done
-     done
-done
-
-for t in $threads
-do
-    sudo ./script/configBeforeRestart.sh $t false false 0 $rep $parts
+    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts
     sudo ./script/restartAndConnect.sh
     sleep 10
-    for wl in $workloads
+    for cont in $contentions
     do
-            if [ $wl == 1 ]; then MN=10  SN=3 CN=2  MR=$BIG SR=$BIG CR=$BIG
-            elif [ $wl == 2 ]; then MN=5 SN=5 CN=5  MR=$BIG SR=$SML CR=$SML
-            elif [ $wl == 3 ]; then MN=5 SN=0 CN=10  MR=$BIG SR=$SML CR=$MID
-            elif [ $wl == 4 ]; then MN=10 SN=3 CN=2  MR=$MID SR=$MID CR=$MID
-            elif [ $wl == 5 ]; then MN=10 SN=3 CN=2  MR=$SML SR=$SML CR=$SML
+        if [ $cont == 1 ]; then MR=$BIG SR=$BIG CR=$BIG
+        elif [ $cont == 2 ]; then MR=$MID SR=$MID CR=$MID
+        elif [ $cont == 3 ]; then  MR=$SML SR=$SML CR=$SML
+        fi
+        MN=12    SN=0    CN=3
+	    for comp in $local_comp
+	    do
+	        sudo ./script/preciseTime.sh
+            runNTimes
+        done
+	        
+        comp=0
+	    for locality in $localities
+        do
+		    if [ $locality == 1 ]; then MN=12 SN=0 CN=3
+            elif [ $locality == 2 ]; then MN=8 SN=0 CN=7 
+            elif [ $locality == 3 ]; then MN=3 SN=0 CN=12 
             fi
-	for comp iin $local_comp
-	do
-	sudo ./script/preciseTime.sh
-        for i in $seq 
-        do      
-            if [ $start_ind -gt $skip_len ]; then
-               ./script/runMicroBench.sh $t $MN $SN $CN $MR $SR $CR false 0 random $rep $comp specula_tests $start_ind
-            else
-               echo "Skipped..."$start_ind
-            fi
-            start_ind=$((start_ind+1))
-        done    
-	done
-     done    
+            sudo ./script/preciseTime.sh
+            runNTimes
+        done
+    done
 done
+
+
+comp=0
+MN=3   SN=0  CN=12
+for len in $length
+do
+    for rep in $replications
+    do
+        sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts
+        sudo ./script/restartAndConnect.sh
+        sleep 10
+        for cont in $contentions
+        do
+            if [ $cont == 1 ]; then MR=$BIG SR=$BIG CR=$BIG
+            elif [ $cont == 2 ]; then MR=$MID SR=$MID CR=$MID
+            elif [ $cont == 3 ]; then  MR=$SML SR=$SML CR=$SML
+            fi
+            sudo ./script/preciseTime.sh
+            runNTimes
+        done
+    done
+done
+
+
+echo "Finish speculation"
