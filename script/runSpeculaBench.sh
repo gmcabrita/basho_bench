@@ -69,28 +69,6 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 
 ./script/clean_data.sh
 sleep 10
-#./script/restartAndConnect.sh
-#Change Load params
-#./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1 
-#./masterScripts/changeConfig.sh "$AllNodes" $Load duration 1 
-#./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 8000 
-#./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 7000
-#./masterScripts/changeConfig.sh "$AllNodes" $Ant do_repl true
-
-#./script/restartAndConnect.sh "$AllNodes"  antidote 
-#./script/restartNodes.sh 
-#sleep 20
-
-#Time=`date +%s`
-#./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
-#NewTime=`date +%s`
-#Duration=$((NewTime-Time))
-#if [ "$Duration" -lt 60 ]
-#then
-#echo "Load failed... Trying again!"
-#sleep 5
-#./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
-#fi
 
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config" &
 ./script/load.sh `head -1 ./script/allnodes` tpcc $WPerDc
@@ -110,10 +88,6 @@ wait
 wait
 ./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
-#for N in $AllNodes
-#do
-#./script/parseStat.sh $N $Folder
-#done
 timeout 60 ./script/fetchAndParseStat.sh $Folder
 if [ $? -eq 124 ]; then
     timeout 60 ./script/fetchAndParseStat.sh $Folder
