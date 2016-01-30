@@ -63,8 +63,8 @@ for f in data_list:
     clc = ['#D3E54E', '#79E026']
     cra = ['#D3E54E', ('#EC5B56', '//')]
     crc = ['#D3E54E', ('#79E026', '//')]
-    csa = ['#D3E54E', '#FFFFFF', '#33CCB3', ('#EC5B56', 'xx')]
-    csc = ['#D3E54E', '#FFFFFF', '#33CCB3', ('#79E026', 'xx')]
+    csa = ['#D3E54E', '#33CCB3', ('#EC5B56', 'xx')]
+    csc = ['#D3E54E', '#33CCB3', ('#79E026', 'xx')]
     # if it is not specula
     if f.find('false') != -1:
         # has local abort
@@ -87,9 +87,9 @@ for f in data_list:
         # has remote commit 
         (inter_ind, remote_commit) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,4], data[1,4])], crc, inter_ind, remote_commit)
         # has remote specula abort
-        (inter_ind, specula_abort) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,6], data[1,6]), (data[0,5]-data[0,6], data[1,5]), (data[0,7], data[1,7])], csa, inter_ind, specula_abort)
+        (inter_ind, specula_abort) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err),(data[0,5],data[1,5]),(data[0,6], data[1,6])], csa, inter_ind, specula_abort)
         # has remote specula commit 
-        (inter_ind, specula_commit) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err), (data[0,6], data[1,6]), (data[0,5]-data[0,6], data[1,5]), (data[0,8], data[1,8])], csc, inter_ind, specula_commit)
+        (inter_ind, specula_commit) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err),(data[0,5],data[1,5]),(data[0,7], data[1,7])], csc, inter_ind, specula_commit)
         max_lat = max(max_lat, data[0,0]+data[0,3])
         max_lat = max(max_lat, data[0,0]+data[0,4])
         max_lat = max(max_lat, data[0,0]+data[0,5]++data[0,8])

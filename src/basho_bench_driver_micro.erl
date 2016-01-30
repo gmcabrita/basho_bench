@@ -33,7 +33,8 @@
 -record(state, {worker_id,
                 time,
                 part_list,
-		my_table,
+		        my_table,
+                process_time,
                 expand_part_list,
                 hash_length,
                 w_per_dc,
@@ -55,15 +56,12 @@
                 cache_range,
                 access_master,
                 access_slave,
-		specula,
+		        specula,
                 local,
                 remote,
                 local_abort,
                 remote_abort,
-		read,
-                new_order_committed,
-                payment_prep,
-		payment_read,
+		        read,
                 node_id,
                 tx_server,
                 target_node}).
@@ -89,6 +87,7 @@ new(Id) ->
     IPs = basho_bench_config:get(antidote_pb_ips),
     MasterToSleep = basho_bench_config:get(master_to_sleep),
     ToSleep = basho_bench_config:get(to_sleep),
+    ProcessTime = basho_bench_config:get(process_time),
    
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
@@ -126,7 +125,7 @@ new(Id) ->
     AllNodes = [N || {N, _} <- PartList],
     NodeId = index(TargetNode, AllNodes),
     NumNodes = length(AllNodes),
-    MyTxServer = locality_fun:get_pid(list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
+    MyTxServer = locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
     %lager:info("MyTxServer is ~w", [MyTxServer]),
     %lager:info("All Dcs is ~p, dc id is ~w", [AllDcs, DcId]),
 
@@ -158,6 +157,7 @@ new(Id) ->
                access_slave=AccessSlave,
                part_list = PartList,
 		       my_table=MyTable,
+               process_time=ProcessTime,
                %my_rep_list = MyRepList,
                my_rep_ids = MyRepIds,
                %no_rep_list = NoRepList,
@@ -169,12 +169,6 @@ new(Id) ->
                master_range=MasterRange,
                slave_range=SlaveRange,
                cache_range=CacheRange,
-               specula={0,0},
-               local={0,0},
-               remote={0,0},
-               local_abort={0,0},
-               remote_abort={0,0},
-               read=0,
                no_rep_ids = NoRepIds,
                expand_part_list = ExpandPartList,
                hash_length = HashLength,   
@@ -185,15 +179,15 @@ new(Id) ->
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
 run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
-        my_rep_ids=MyRepIds, no_rep_ids=NoRepIds, node_id=MyNodeId,  hash_dict=HashDict, local=Local, remote=Remote,
-	local_abort=LAbort, remote_abort=RAbort, specula=Specula, read=Read,
+        my_rep_ids=MyRepIds, no_rep_ids=NoRepIds, node_id=MyNodeId,  hash_dict=HashDict,  process_time=ProcessTime,
+        %local=Local, remote=Remote,local_abort=LAbort, remote_abort=RAbort, specula=Specula, read=Read, process_time=ProcessTime,
         master_num=MNum, slave_num=SNum, cache_num=CNum, master_range=MRange, slave_range=SRange, cache_range=CRange})->
     %LocalWS = dict:new(),
     %RemoteWS = dict:new(),
     MyRepSize = length(MyRepIds),
     NoRepSize = length(NoRepIds),
     random:seed(os:timestamp()),
-    Add = random:uniform(100),
+    Add = random:uniform(10),
 
     TxId = gen_server:call(TxServer, {start_tx}),
 
@@ -208,55 +202,62 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
                     V = read_from_node(TxServer, TxId, Key, MyNodeId, MyNodeId, PartList, HashDict),
                     dict:store({MyNodeId, Key}, V+Add, WS) 
                 end, dict:new(), MasterKeys),
-    WS2 = lists:foldl(fun(Key, WS) ->
-                NodeId = case MyRepSize of 0 -> lists:nth(random:uniform(NoRepSize), NoRepIds);
-                                      _ -> lists:nth(random:uniform(MyRepSize), MyRepIds)
-                 end,
+    {_,WS2} = lists:foldl(fun(Key, {Index, WS}) ->
+                    NodeId = case MyRepSize of 0 -> lists:nth(Index rem NoRepSize+1, NoRepIds);
+                                      _ -> lists:nth(Index rem MyRepSize +1, MyRepIds)
+                    end,
+                    %lager:info("DcRep id is ~w", [NodeId]),
                     V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
-                    dict:store({NodeId, Key}, V+Add, WS) 
-                end, WS1, SlaveKeys),
-    WS3 = lists:foldl(fun(Key, WS) ->
-		    NodeId = case NoRepSize of 0 -> lists:nth(random:uniform(MyRepSize), MyRepIds); 
-                    			      _ -> lists:nth(random:uniform(NoRepSize), NoRepIds)
-			     end,
+                    {Index+1, dict:store({NodeId, Key}, V+Add, WS)}
+                end, {0,WS1}, SlaveKeys),
+    {_,WS3} = lists:foldl(fun(Key, {Index, WS}) ->
+		            NodeId = case NoRepSize of 0 -> lists:nth(Index rem MyRepSize +1, MyRepIds); 
+                    			      _ -> lists:nth(Index rem NoRepSize+1, NoRepIds)
+			        end,
+                    %lager:info("Remote Rep Dc id is ~w", [NodeId]),
                     V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
-                    dict:store({NodeId, Key}, V+Add, WS) 
-                end, WS2, CacheKeys),
+                    {Index+1, dict:store({NodeId, Key}, V+Add, WS)} 
+                end, {0,WS2}, CacheKeys),
 
-    RT2 = os:timestamp(),
+    %RT2 = os:timestamp(),
                     
     {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS3, PartList, MyNodeId),
+    local_process(ProcessTime),
 
     %lager:info("LW is ~p, RW is ~p",  [LocalWriteList, RemoteWriteList]),
-    Response =  gen_server:call({global, TxServer}, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
-    RT3 = os:timestamp(),
+    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
+    %RT3 = os:timestamp(),
     case Response of
         {ok, {committed, _}} ->
-	    case RemoteWriteList of
-                [] ->
-                    {LTime, LCount} = Local,
-                    {ok, State#state{read=Read+get_time_diff(RT1, RT2), local={LTime+get_time_diff(RT2, RT3),
-                            LCount+1}}};
-                _ ->
-                    {RTime, RCount} = Remote,
-                    {ok, State#state{read=Read+get_time_diff(RT1, RT2), remote={RTime+get_time_diff(RT2, RT3),
-                            RCount+1}}}
-            end;
+            {ok, State};
+	        %case RemoteWriteList of
+            %    [] ->
+            %        {LTime, LCount} = Local,
+            %        {ok, State#state{read=Read+get_time_diff(RT1, RT2), local={LTime+get_time_diff(RT2, RT3),
+            %                LCount+1}}};
+            %    _ ->
+            %        {RTime, RCount} = Remote,
+            %        {ok, State#state{read=Read+get_time_diff(RT1, RT2), remote={RTime+get_time_diff(RT2, RT3),
+            %                RCount+1}}}
+            %end;
         {ok, {specula_commit, _}} ->
-	    {STime, SCount} = Specula,
-            {ok, State#state{read=Read+get_time_diff(RT1, RT2), specula={STime+get_time_diff(RT2, RT3),
-                    SCount+1}}};
+	        %{STime, SCount} = Specula,
+            %{ok, State#state{read=Read+get_time_diff(RT1, RT2), specula={STime+get_time_diff(RT2, RT3),
+            %        SCount+1}}};
+            {ok, State};
         {error,timeout} ->
             lager:info("Timeout on client ~p",[TxServer]),
             {error, timeout, State};
         {aborted, local} ->
-	    {LTime, LCount} = LAbort,
-            {error, aborted, State#state{read=Read+get_time_diff(RT1, RT2), local_abort={LTime+get_time_diff(RT2, RT3),
-                    LCount+1}}};
+	        %{LTime, LCount} = LAbort,
+            %{error, aborted, State#state{read=Read+get_time_diff(RT1, RT2), local_abort={LTime+get_time_diff(RT2, RT3),
+            %        LCount+1}}};
+            {error, aborted, State};
         {aborted, remote} ->
-	    {RTime, RCount} = RAbort,
-            {error, aborted, State#state{read=Read+get_time_diff(RT1, RT2), remote_abort={RTime+get_time_diff(RT2, RT3),
-                    RCount+1}}};
+	        %{RTime, RCount} = RAbort,
+            %{error, aborted, State#state{read=Read+get_time_diff(RT1, RT2), remote_abort={RTime+get_time_diff(RT2, RT3),
+            %        RCount+1}}};
+            {error, aborted, State};
         {aborted, _} ->
             {error, aborted, State};
         {badrpc, Reason} ->
@@ -277,20 +278,23 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
     {ok, V} = case DcId of
         MyDcId ->
             {_, L} = lists:nth(DcId, PartList),
-            Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
+            %Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
+            Index = Key rem length(L) + 1,
             Part = lists:nth(Index, L),
             gen_server:call(TxServer, {read, Key, TxId, Part}, ?READ_TIMEOUT);
         _ ->
             case dict:find(DcId, HashDict) of
                 error ->
                     {_, L} = lists:nth(DcId, PartList),
-                    Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
+                    %Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
+                    Index = Key rem length(L) + 1,
                     Part = lists:nth(Index, L),
                     CacheServName = dict:fetch(cache, HashDict),
                     gen_server:call(CacheServName, {read, Key, TxId, Part}, ?READ_TIMEOUT);
                 {ok, N} ->
                     {_, L} = lists:nth(DcId, PartList),
-                    Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
+                    %Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
+                    Index = Key rem length(L) + 1,
                     Part = lists:nth(Index, L),
                     gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT)
             end
@@ -356,5 +360,21 @@ unique_num(Base, Num, Range, Set) ->
     end.
 
 
-get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
-    ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.
+%get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
+ %   ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.
+
+
+local_process(0) ->
+    ok;
+local_process(N) ->
+    StartTime = os:timestamp(),
+    wait_until(StartTime, N*1000).
+
+wait_until(StartTime, Duration) ->
+    case timer:now_diff(os:timestamp(), StartTime) > Duration of
+        true ->
+            ok;
+        false ->
+            wait_until(StartTime, Duration)
+    end.
+
