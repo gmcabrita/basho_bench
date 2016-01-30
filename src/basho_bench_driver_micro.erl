@@ -27,8 +27,8 @@
 
 -include("basho_bench.hrl").
 
--define(TIMEOUT, 10000).
--define(READ_TIMEOUT, 10000).
+-define(TIMEOUT, 20000).
+-define(READ_TIMEOUT, 20000).
 
 -record(state, {worker_id,
                 time,

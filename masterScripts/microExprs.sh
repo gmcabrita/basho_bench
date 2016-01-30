@@ -25,7 +25,7 @@ else
 fi
 ## Just to test.. 
 seq="1 2"
-threads="8"
+t="8"
 #workloads="1 2 3 5"
 contentions="1 2 3"
 localities="1 2 3"
@@ -43,7 +43,7 @@ for len in $length
 do
     sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts
     sudo ./script/restartAndConnect.sh
-    sleep 10
+    sleep 25
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$BIG SR=$BIG CR=$BIG
@@ -77,9 +77,9 @@ for len in $length
 do
     for rep in $replications
     do
-        sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts
+        sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts 
         sudo ./script/restartAndConnect.sh
-        sleep 10
+        sleep 25
         for cont in $contentions
         do
             if [ $cont == 1 ]; then MR=$BIG SR=$BIG CR=$BIG
