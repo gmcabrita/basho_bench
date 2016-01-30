@@ -16,13 +16,14 @@ then
     specula_length=$9
     pattern=${10}
     repl_degree=${11}
-    folder=${12}
+    process_time=${12}
+    folder=${13}
     if [ "$do_specula" == true ]; then
 	fast_reply=true
     else
 	fast_reply=false
     fi
-    Seq=${13}
+    Seq=${14}
 else
     echo "Wrong usage: concurrent, master_num, slave_num, cache_num, master_range, slave_range, cache_range, do_specula, fast_reply, specula_length, pattern, repl_degree, folder"
     exit
@@ -45,7 +46,7 @@ echo micro cache_num $cache_num >> config
 echo micro master_range $master_range >> config
 echo micro slave_range $slave_range >> config
 echo micro cache_range $cache_range >> config
-echo micro process_time $local_comp >> config
+echo micro process_time $process_time >> config
 echo micro pattern $pattern >> config
 echo micro duration 60 >> config
 echo micro specula $do_specula >> config

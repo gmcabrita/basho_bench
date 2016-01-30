@@ -24,11 +24,11 @@ do
         sleep 10
         for wl in $workloads
         do
-            if [ $wl == 1 ]; then MN=10  SN=3 CN=2  MR=BIG SR=BIG CR=BIG
-            elif [ $wl == 2 ]; then MN=5 SN=5 CN=5  MR=BIG SR=SML CR=SML
-            elif [ $wl == 3 ]; then MN=5 SN=0 CN=10  MR=BIG SR=SML CR=MID
-            elif [ $wl == 4 ]; then MN=10 SN=3 CN=2  MR=MID SR=MID CR=MID
-            elif [ $wl == 5 ]; then MN=10 SN=3 CN=2  MR=SML SR=SML CR=SML
+            if [ $wl == 1 ]; then MN=10  SN=3 CN=2  MR=$BIG SR=$BIG CR=$BIG
+            elif [ $wl == 2 ]; then MN=5 SN=5 CN=5  MR=$BIG SR=$SML CR=$SML
+            elif [ $wl == 3 ]; then MN=5 SN=0 CN=10  MR=$BIG SR=$SML CR=$MID
+            elif [ $wl == 4 ]; then MN=10 SN=3 CN=2  MR=$MID SR=$MID CR=$MID
+            elif [ $wl == 5 ]; then MN=10 SN=3 CN=2  MR=$SML SR=$SML CR=$SML
             fi
 	    for comp in $local_comp
 	    do
@@ -54,12 +54,12 @@ do
     sleep 10
     for wl in $workloads
     do
-	if [ $wl == 1 ]; then MN=10  SN=3 CN=2  MR=BIG SR=BIG CR=BIG
-        elif [ $wl == 2 ]; then MN=5 SN=5 CN=5  MR=BIG SR=SML CR=SML
-        elif [ $wl == 3 ]; then MN=5 SN=0 CN=10  MR=BIG SR=SML CR=MID
-        elif [ $wl == 4 ]; then MN=10 SN=3 CN=2  MR=MID SR=MID CR=MID
-        elif [ $wl == 5 ]; then MN=10 SN=3 CN=2  MR=SML SR=SML CR=SML
-        fi
+            if [ $wl == 1 ]; then MN=10  SN=3 CN=2  MR=$BIG SR=$BIG CR=$BIG
+            elif [ $wl == 2 ]; then MN=5 SN=5 CN=5  MR=$BIG SR=$SML CR=$SML
+            elif [ $wl == 3 ]; then MN=5 SN=0 CN=10  MR=$BIG SR=$SML CR=$MID
+            elif [ $wl == 4 ]; then MN=10 SN=3 CN=2  MR=$MID SR=$MID CR=$MID
+            elif [ $wl == 5 ]; then MN=10 SN=3 CN=2  MR=$SML SR=$SML CR=$SML
+            fi
 	for comp iin $local_comp
 	do
 	sudo ./script/preciseTime.sh
