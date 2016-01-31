@@ -1,4 +1,4 @@
 #!/bin/bash
 
-./masterScripts/microExprs.sh true
-./masterScripts/microExprs.sh false 
+#./masterScripts/microExprs.sh true 241 
+./masterScripts/microExprs.sh false 38 
