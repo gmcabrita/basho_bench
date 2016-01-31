@@ -1,4 +1,4 @@
 #!/bin/bash
 
-./masterScripts/runSomeMicro.sh true "73 74 79 80 159 160 243 244 245 246 255 256 257 258" 
+./masterScripts/runSomeMicro.sh true "85 86 241 242 247 248"
 #./masterScripts/microExprs.sh false 38 
