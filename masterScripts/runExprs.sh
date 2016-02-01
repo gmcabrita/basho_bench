@@ -11,6 +11,7 @@ rep=3
 parts=36
 start_ind=1
 skip_len=0
+skipped=0
 AM=80
 AS=0
 
@@ -18,9 +19,12 @@ for t in $threads
 do
     for len in $length
     do
+    if [ $skipped -eq 1 ] 
+    then
 	sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts
 	sudo ./script/restartAndConnect.sh
-	sleep 10
+	sleep 20
+    fi
 	for wl in $workloads
 	do
 	    if [ $wl == 1 ]; then  n=9  p=1
@@ -35,6 +39,7 @@ do
 	        do
 		    if [ $start_ind -gt $skip_len ]; then
 			./script/runSpeculaBench.sh $t $AM $AS true true $len specula_tests $wh $n $p $rep $start_ind
+            skipped=1
 		    else
 			echo "Skipped..."$start_ind
 		    fi
@@ -49,7 +54,7 @@ for t in $threads
 do  
         sudo ./script/configBeforeRestart.sh $t false false 0 $rep $parts 
         sudo ./script/restartAndConnect.sh
-        sleep 10 
+        sleep 20 
         for wl in $workloads
         do
 	    if [ $wl == 1 ]; then  n=9  p=1
