@@ -3,7 +3,7 @@
 ## Just to test.. 
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 seq="1"
-threads="8"
+threads="2"
 #workloads="1 2 3 4"
 workloads="5"
 length="8"
@@ -51,6 +51,7 @@ do
 	done
     done
 done
+exit
 
 for t in $threads
 do  
