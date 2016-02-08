@@ -2,16 +2,17 @@
 
 ## Just to test.. 
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
-seq="1 2"
+seq="1"
 threads="8"
-workloads="1 2 3 4"
-length="8 4 2 1"
-warehouse="4 2"
-rep=3
-parts=36
+#workloads="1 2 3 4"
+workloads="5"
+length="8"
+warehouse="1"
+rep=1
+parts=4
 start_ind=1
 skip_len=0
-skipped=0
+skipped=1
 AM=80
 AS=0
 
@@ -31,6 +32,7 @@ do
 	    elif [ $wl == 2 ]; then  n=1 p=9
 	    elif [ $wl == 3 ]; then n=80 p=10
 	    elif [ $wl == 4 ]; then n=10 p=80
+	    elif [ $wl == 5 ]; then n=0 p=100
 	    fi
 	    for wh in $warehouse
 	    do
