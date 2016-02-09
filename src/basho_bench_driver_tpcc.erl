@@ -97,8 +97,8 @@ new(Id) ->
    
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
-    PaymentMaster = basho_bench_config:get(payment_master),
-    PaymentSlave = basho_bench_config:get(payment_slave),
+    PaymentMaster = math:pow(AccessMaster/100, 10)*100, %basho_bench_config:get(payment_master),
+    PaymentSlave = 100 - PaymentMaster, %basho_bench_config:get(payment_slave),
     WPerNode = basho_bench_config:get(w_per_dc),
 
     case net_kernel:start(MyNode) of
