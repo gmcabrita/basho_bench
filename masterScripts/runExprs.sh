@@ -4,10 +4,10 @@
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 seq="1"
 threads="8"
-workloads="5 6 7"
+workloads="5"
 #workloads="5"
-length="1 2 4 8"
-warehouse="4 8"
+length=""
+warehouse="4"
 rep=2
 parts=3
 start_ind=1
