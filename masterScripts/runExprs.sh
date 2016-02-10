@@ -4,10 +4,10 @@
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 seq="1"
 threads="8"
-workloads="1 2 3 4"
+workloads="5 6 7"
 #workloads="5"
-length=""
-warehouse="2 4"
+length="1 2 4 8"
+warehouse="4 8"
 rep=2
 parts=3
 start_ind=1
@@ -33,6 +33,8 @@ do
 	    elif [ $wl == 3 ]; then n=80 p=10
 	    elif [ $wl == 4 ]; then n=10 p=80
 	    elif [ $wl == 5 ]; then n=0 p=100
+	    elif [ $wl == 6 ]; then n=100 p=0
+	    elif [ $wl == 7 ]; then n=0 p=0
 	    fi
 	    for wh in $warehouse
 	    do
@@ -63,6 +65,9 @@ do
             elif [ $wl == 2 ]; then  n=1 p=9
             elif [ $wl == 3 ]; then n=80 p=10
             elif [ $wl == 4 ]; then n=10 p=80
+	        elif [ $wl == 5 ]; then n=0 p=100
+	        elif [ $wl == 6 ]; then n=100 p=0
+	        elif [ $wl == 7 ]; then n=0 p=0
             fi
             for wh in $warehouse
             do
