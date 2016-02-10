@@ -6,7 +6,7 @@ seq="1"
 threads="8"
 workloads="1 2 3 4"
 #workloads="5"
-length="1 2 4 8"
+length=""
 warehouse="2 4"
 rep=2
 parts=3
@@ -51,7 +51,6 @@ do
 	done
     done
 done
-exit
 
 for t in $threads
 do  
