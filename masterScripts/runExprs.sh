@@ -16,6 +16,11 @@ skipped=1
 AM=80
 AS=0
 
+sudo ./script/configBeforeRestart.sh 2 true true 1 1 1
+sudo ./script/restartAndConnect.sh
+./script/runSpeculaBench.sh 2 $AM $AS true true 1 specula_tests 1 0 100 1 1 
+exit
+
 for t in $threads
 do
     for len in $length
