@@ -11,8 +11,8 @@ if [ $Clean == 1 ]
 then
 echo "Only cleaning antidote"
 #./script/makeRel.sh local_specula_read 
-./script/makeRel.sh benchmark_ver 
-#./script/makeRel.sh separate_time 
+#./script/makeRel.sh benchmark_ver 
+./script/makeRel.sh separate_time_aggr_repl 
 #./script/makeRel.sh improve_commit 
 #./script/makeRel.sh integrate_repl 
 elif [ $Clean == 2 ]
