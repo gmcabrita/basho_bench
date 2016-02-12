@@ -97,3 +97,4 @@ if [ $? -eq 124 ]; then
 fi
 
 sudo pkill -P $$
+./script/verifySame.sh $Folder 
