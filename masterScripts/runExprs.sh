@@ -4,18 +4,25 @@
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 seq="1"
 threads="8"
-workloads="5 6 7"
+workloads="5 6"
 #workloads="5"
 length="1 2 4 8"
 warehouse="4 8"
 rep=2
 parts=3
 start_ind=1
-skip_len=21
-skipped=1
+skip_len=12
+skipped=0
 AM=80
 AS=0
 
+#th=8
+#len=1
+#wh=4
+#sudo ./script/configBeforeRestart.sh $th true true $len $rep $parts
+#sudo ./script/restartAndConnect.sh
+#./script/runSpeculaBench.sh $th $AM $AS true true $len specula_tests $wh 0 100 $rep 0
+#exit
 
 for t in $threads
 do
@@ -54,6 +61,11 @@ do
 	done
     done
 done
+
+./script/runSpeculaBench.sh $t $AM $AS true true 1 specula_tests 4 0 0 $rep $start_ind
+start_ind=$((start_ind+1))
+./script/runSpeculaBench.sh $t $AM $AS true true 1 specula_tests 8 0 0 $rep $start_ind
+start_ind=$((start_ind+1))
 
 for t in $threads
 do  

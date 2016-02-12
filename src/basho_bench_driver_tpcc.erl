@@ -439,6 +439,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
             end;
         {ok, {specula_commit, _}} ->
             {PSTime, PSCount} = PSpecula,
+            %lager:warning("Time diff is ~w", [get_time_diff(RT1, RT3)]),
             {ok, State#state{p_read=PRead+get_time_diff(RT1, RT2), p_specula={PSTime+get_time_diff(RT2, RT3),
                     PSCount+1}}};
         {error,timeout} ->

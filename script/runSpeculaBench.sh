@@ -68,9 +68,11 @@ touch $Folder/$seq
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config" &
+#./script/parallel_command.sh "`cat ./script/allnodes | head -2`" "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config" &
 ./script/clean_data.sh
 ./script/load.sh `head -1 ./script/allnodes` tpcc $WPerDc
 wait
+
 
 #sleep 5
 #if [ $ToSleep -lt 20000 ]
