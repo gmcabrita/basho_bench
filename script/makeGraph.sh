@@ -37,9 +37,9 @@ sed -i '' -e '/set title/d' ../script/plot/readlatencies.plot
 Title="Read-Latencies-${NumDCs}-DCs-${NumNodes}-Nodes-${NumBenchNodes}-Bench-Nodes-Branch-${Branch}"
 sed -i '' -e '3i\'$'\n set title \"'$Title'\"'$'\n' ../script/plot/readlatencies.plot
 for Read in $ReadPortion; do
-    AllFiles="summary"-$BenchFile-$Read"/read_latencies.csv "$AllFiles""
-    #echo summary-"$BenchFile"-"$Read"/read_latencies.csv
-    awk -f ../script/mergeLatencies.awk summary-"$BenchFile"-"$Read"/read_latencies.csv >> plots
+    AllFiles="summary"-$BenchFile-$Read"/read_all_latencies.csv "$AllFiles""
+    #echo summary-"$BenchFile"-"$Read"/read_all_latencies.csv
+    awk -f ../script/mergeLatencies.awk summary-"$BenchFile"-"$Read"/read_all_latencies.csv >> plots
     sed -i '' -e ''${I}' s/^/'${I}', /' plots
     I=$(($I + 1))
 done
@@ -57,14 +57,35 @@ sed -i '' -e '/set title/d' ../script/plot/readlatencies.plot
 Title="Write-Latencies-${NumDCs}-DCs-${NumNodes}-Nodes-${NumBenchNodes}-Bench-Nodes-Branch-${Branch}"
 sed -i '' -e '3i\'$'\n set title \"'$Title'\"'$'\n' ../script/plot/readlatencies.plot
 for Read in $ReadPortion; do
-    AllFiles="summary"-$BenchFile-$Read"/append_latencies.csv "$AllFiles""
-    #echo summary-"$BenchFile"-"$Read"/read_latencies.csv
-    awk -f ../script/mergeLatencies.awk summary-"$BenchFile"-"$Read"/append_latencies.csv >> plots
+    AllFiles="summary"-$BenchFile-$Read"/write_all_latencies.csv "$AllFiles""
+    #echo summary-"$BenchFile"-"$Read"/read_all_latencies.csv
+    awk -f ../script/mergeLatencies.awk summary-"$BenchFile"-"$Read"/write_all_latencies.csv >> plots
     sed -i '' -e ''${I}' s/^/'${I}', /' plots
     I=$(($I + 1))
 done
 sed -i '' -e '1i\'$'\n # read_ratio, min, mean, median, 95th, 99th, 99_9th, max'$'\n' plots
 gnuplot ../script/plot/readlatencies.plot
+
+# Reads and Writes latencies
+rm plots
+AllFiles=""
+I=1
+sed -i '' -e '/output/d' ../script/plot/readlatencies.plot
+OutName="results-"$Branch"-"$NumDCs"dcs-"$NumNodes"nodes-"$NumBenchNodes"benchNodes/write_latencies.png"
+sed -i '' -e '2i\'$'\n set output \"'$OutName'\"'$'\n' ../script/plot/readlatencies.plot
+sed -i '' -e '/set title/d' ../script/plot/readlatencies.plot
+Title="Write-Latencies-${NumDCs}-DCs-${NumNodes}-Nodes-${NumBenchNodes}-Bench-Nodes-Branch-${Branch}"
+sed -i '' -e '3i\'$'\n set title \"'$Title'\"'$'\n' ../script/plot/readlatencies.plot
+for Read in $ReadPortion; do
+    AllFiles="summary"-$BenchFile-$Read"/read_all_write_all_latencies.csv "$AllFiles""
+    #echo summary-"$BenchFile"-"$Read"/read_all_write_all_latencies.csv
+    awk -f ../script/mergeLatencies.awk summary-"$BenchFile"-"$Read"/read_all_write_all_latencies.csv >> plots
+    sed -i '' -e ''${I}' s/^/'${I}', /' plots
+    I=$(($I + 1))
+done
+sed -i '' -e '1i\'$'\n # read_ratio, min, mean, median, 95th, 99th, 99_9th, max'$'\n' plots
+gnuplot ../script/plot/readlatencies.plot
+
 
 # Throughput
 rm plots
@@ -78,7 +99,7 @@ Title="Throughput-${NumDCs}-DCs-${NumNodes}-Nodes-${NumBenchNodes}-Bench-Nodes-B
 sed -i '' -e '3i\'$'\n set title \"'$Title'\"'$'\n' ../script/plot/summary.plot
 for Read in $ReadPortion; do
     AllFiles="summary"-$BenchFile-$Read"/summary.csv "$AllFiles""
-    #echo summary-"$BenchFile"-"$Read"/read_latencies.csv
+    #echo summary-"$BenchFile"-"$Read"/read_all_latencies.csv
     awk -f ../script/mergeSummaries.awk summary-"$BenchFile"-"$Read"/summary.csv >> plots
     sed -i '' -e ''${I}' s/^/'${I}', /' plots
     I=$(($I + 1))

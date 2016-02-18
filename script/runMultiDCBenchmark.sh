@@ -36,11 +36,13 @@ fi
 
 BenchmarkType=1
 
-ReadsNumber=( 1 )
-WritesNumber=( 0 )
+ReadsNumber=( 1 0 2 )
+WritesNumber=( 0 1 2 )
+ReadsWritesNumber=( 0 0 100000 )
 
+TestCount=${#ReadsNumber[@]}
 #loop for number of reads
-for ReadWrite in $(seq 0 5); do
+for ReadWrite in $(seq 0 $TestCount); do
 
     echo Stopping nodes
     ./script/stopNodes.sh  >> logs/"$GridJob"/stop_nodes-"$Time"
@@ -70,10 +72,10 @@ for ReadWrite in $(seq 0 5); do
 		echo "${NodeArray[$DCNum]}" > ./tmp
 		echo scp -o StrictHostKeyChecking=no -i key ./tmp root@"$Item":/root/basho_bench"$I"/basho_bench/script/runnodes
 		scp -o StrictHostKeyChecking=no -i key ./tmp root@"$Item":/root/basho_bench"$I"/basho_bench/script/runnodes
-    		echo ssh -t -o StrictHostKeyChecking=no -i key root@$Item /root/basho_bench"$I"/basho_bench/script/runSimpleBenchmark.sh $BenchmarkType $I $BenchmarkFile ${ReadsNumber[$ReadWrite]} ${WritesNumber[$ReadWrite]} $NumberDC $NodesPerDC $DCNum
+    		echo ssh -t -o StrictHostKeyChecking=no -i key root@$Item /root/basho_bench"$I"/basho_bench/script/runSimpleBenchmark.sh $BenchmarkType $I $BenchmarkFile ${ReadsNumber[$ReadWrite]} ${WritesNumber[$ReadWrite]} ${ReadsWritesNumber[$ReadWrite]} $NumberDC $NodesPerDC $DCNum
 
 		echo for job $GridJob on time $Time
-    		ssh -t -o StrictHostKeyChecking=no -i key root@$Item /root/basho_bench"$I"/basho_bench/script/runSimpleBenchmark.sh $BenchmarkType $I $BenchmarkFile ${ReadsNumber[$ReadWrite]} ${WritesNumber[$ReadWrite]} $NumberDC $NodesPerDC $DCNum >> logs/"$GridJob"/runBench-"$Item"-"$I"-"$Time"-Reads"${ReadsNumber[$ReadWrite]}" &
+    		ssh -t -o StrictHostKeyChecking=no -i key root@$Item /root/basho_bench"$I"/basho_bench/script/runSimpleBenchmark.sh $BenchmarkType $I $BenchmarkFile ${ReadsNumber[$ReadWrite]} ${WritesNumber[$ReadWrite]} ${ReadsWritesNumber[$ReadWrite]} $NumberDC $NodesPerDC $DCNum >> logs/"$GridJob"/runBench-"$Item"-"$I"-"$Time"-Reads"${ReadsNumber[$ReadWrite]}" &
 	    done
 	done
     done

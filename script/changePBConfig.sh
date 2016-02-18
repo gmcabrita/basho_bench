@@ -5,9 +5,10 @@ Cookie=$2
 File="./"$3
 Reads=$4
 Writes=$5
-NumDCs=$6
-NodesPerDC=$7
-DcId=$8
+ReadsWrites=$6
+NumDCs=$7
+NodesPerDC=$8
+DcId=$9
 
 if [ $File = "./examples/orset_pb.config" ]; then
     Type="set"
@@ -39,9 +40,9 @@ echo "$BenchConfig" >> $File
 sed -i "5i {concurrent, $Thread}." $File
 
 if [ $Type = "counter" ]; then
-    sed -i "6i {operations, [{append, $Writes}, {read, $Reads}]}." $File
+    sed -i "6i {operations, [{write_all, $Writes}, {read_all, $Reads}, {read_all_write_all, $ReadsWrites}]}." $File
 else
-    sed -i "6i {operations, [{update, $Writes}, {read, $Reads}]}." $File
+    sed -i "6i {operations, [{write_all, $Writes}, {read_all, $Reads}, {read_all_write_all, $ReadsWrites}]}." $File
 fi
 
 #sed -i '/key_generator/d' $File
