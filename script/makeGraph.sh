@@ -31,7 +31,7 @@ rm plots
 AllFiles=""
 I=1
 sed -i '' -e '/output/d' ../script/plot/readlatencies.plot
-OutName="results-"$Branch"-"$NumDCs"dcs-"$NumNodes"nodes-"$NumBenchNodes"benchNodes/read_latencies.png"
+OutName="results-"$Branch"-"$NumDCs"dcs-"$NumNodes"nodes-"$NumBenchNodes"benchNodes/read_all_latencies.png"
 sed -i '' -e '2i\'$'\n set output \"'$OutName'\"'$'\n' ../script/plot/readlatencies.plot
 sed -i '' -e '/set title/d' ../script/plot/readlatencies.plot
 Title="Read-Latencies-${NumDCs}-DCs-${NumNodes}-Nodes-${NumBenchNodes}-Bench-Nodes-Branch-${Branch}"
@@ -51,7 +51,7 @@ rm plots
 AllFiles=""
 I=1
 sed -i '' -e '/output/d' ../script/plot/readlatencies.plot
-OutName="results-"$Branch"-"$NumDCs"dcs-"$NumNodes"nodes-"$NumBenchNodes"benchNodes/write_latencies.png"
+OutName="results-"$Branch"-"$NumDCs"dcs-"$NumNodes"nodes-"$NumBenchNodes"benchNodes/write_all_latencies.png"
 sed -i '' -e '2i\'$'\n set output \"'$OutName'\"'$'\n' ../script/plot/readlatencies.plot
 sed -i '' -e '/set title/d' ../script/plot/readlatencies.plot
 Title="Write-Latencies-${NumDCs}-DCs-${NumNodes}-Nodes-${NumBenchNodes}-Bench-Nodes-Branch-${Branch}"
