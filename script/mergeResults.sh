@@ -52,8 +52,8 @@ for File in $Files; do
     AllFiles=""$File"/tests/"${TestDate[$I]}"/read_latencies.csv "$AllFiles""
     I=$(($I + 1))
 done
-echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/read_latencies.csv
-awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/read_latencies.csv
+echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/read_all_latencies.csv
+awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/read_all_latencies.csv
 
 # Append latencies
 AllFiles=""
@@ -62,8 +62,19 @@ for File in $Files; do
     AllFiles=""$File"/tests/"${TestDate[$I]}"/"$AppendFile" "$AllFiles""
     I=$(($I + 1))
 done
-echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/append_latencies.csv
-awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/append_latencies.csv
+echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/write_all_latencies.csv
+awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/write_all_latencies.csv
+
+# Append read latencies
+AllFiles=""
+I=1
+for File in $Files; do
+    AllFiles=""$File"/tests/"${TestDate[$I]}"/read_all_write_all.csv "$AllFiles""
+    I=$(($I + 1))
+done
+echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/read_all_write_all_latencies.csv
+awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/read_all_write_all_latencies.csv
+
 
 
 # Summary latencies

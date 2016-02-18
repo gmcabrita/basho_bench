@@ -190,7 +190,7 @@ cd ~
 mkdir antidote_bench-"$Time"
 touch ~/antidote_bench-"$Time"/filenames
 
-for ReadWrite in $(seq 0 5); do
+for ReadWrite in $(seq 0 $((${#Reads[*]} - 1))); do
 #tar cvzf ./test.tar tests-$FileName-$Reads
 
     rm ~/antidote_bench-"$Time"/filenames
