@@ -40,7 +40,7 @@ ReadsNumber=( 1 0 2 )
 WritesNumber=( 0 1 2 )
 ReadsWritesNumber=( 0 0 100000 )
 
-TestCount=${#ReadsNumber[@]}
+TestCount=$((${#ReadsNumber[@]}-1))
 #loop for number of reads
 for ReadWrite in $(seq 0 $TestCount); do
 

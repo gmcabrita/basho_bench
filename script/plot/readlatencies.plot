@@ -1,7 +1,7 @@
 set term png 
 set output "results-CONS_nocert-1dcs-1nodes-1benchNodes/write_latencies.png"
 set title "Write-Latencies-1-DCs-1-Nodes-1-Bench-Nodes-Branch-CONS_nocert"
-set xtics ("99.99(.01)" 1, "99(1)" 2, "90(10)" 3, "75(25)" 4, "50(50)" 5, "1(99)" 6)
+#set xtics ("99.99(.01)" 1, "99(1)" 2, "90(10)" 3, "75(25)" 4, "50(50)" 5, "1(99)" 6)
 set tics out
 set logscale y
 set xlabel "Percentage of Read(Update) Operations"

@@ -71,10 +71,10 @@ rm plots
 AllFiles=""
 I=1
 sed -i '' -e '/output/d' ../script/plot/readlatencies.plot
-OutName="results-"$Branch"-"$NumDCs"dcs-"$NumNodes"nodes-"$NumBenchNodes"benchNodes/write_latencies.png"
+OutName="results-"$Branch"-"$NumDCs"dcs-"$NumNodes"nodes-"$NumBenchNodes"benchNodes/read_write_latencies.png"
 sed -i '' -e '2i\'$'\n set output \"'$OutName'\"'$'\n' ../script/plot/readlatencies.plot
 sed -i '' -e '/set title/d' ../script/plot/readlatencies.plot
-Title="Write-Latencies-${NumDCs}-DCs-${NumNodes}-Nodes-${NumBenchNodes}-Bench-Nodes-Branch-${Branch}"
+Title="Read-Write-Latencies-${NumDCs}-DCs-${NumNodes}-Nodes-${NumBenchNodes}-Bench-Nodes-Branch-${Branch}"
 sed -i '' -e '3i\'$'\n set title \"'$Title'\"'$'\n' ../script/plot/readlatencies.plot
 for Read in $ReadPortion; do
     AllFiles="summary"-$BenchFile-$Read"/read_all_write_all_latencies.csv "$AllFiles""
