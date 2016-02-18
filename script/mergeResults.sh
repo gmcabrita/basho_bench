@@ -69,7 +69,7 @@ awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/wr
 AllFiles=""
 I=1
 for File in $Files; do
-    AllFiles=""$File"/tests/"${TestDate[$I]}"/read_all_write_all.csv "$AllFiles""
+    AllFiles=""$File"/tests/"${TestDate[$I]}"/read_all_write_all_latencies.csv "$AllFiles""
     I=$(($I + 1))
 done
 echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/read_all_write_all_latencies.csv
