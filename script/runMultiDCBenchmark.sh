@@ -36,9 +36,9 @@ fi
 
 BenchmarkType=1
 
-ReadsNumber=( 1 0 2 )
-WritesNumber=( 0 1 2 )
-ReadsWritesNumber=( 0 0 100000 )
+ReadsNumber=( 64 128 )
+WritesNumber=( 1 1 )
+ReadsWritesNumber=( 0 0 )
 
 TestCount=$((${#ReadsNumber[@]}-1))
 #loop for number of reads

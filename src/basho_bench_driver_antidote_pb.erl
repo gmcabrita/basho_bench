@@ -78,9 +78,86 @@ new(Id) ->
         num_reads=NumReads, num_updates=NumUpdates,
         measure_staleness=MeasureStaleness}}.
 
+%% @doc Read a key
+run(readall, KeyGen, _ValueGen, State=#state{pb_pid = Pid, worker_id = Id,
+    pb_port=_Port, target_node=_Node,
+    type_dict=_TypeDict, commit_time=OldCommitTime,
+    measure_staleness=MS}) ->
+    KeyInt = KeyGen(),
+    Key = list_to_binary(integer_to_list(KeyInt)),
+    %% Type = get_key_type(KeyInt, TypeDict),
+    StartTime = now_microsec(), %% For staleness calc
+    %Bound_object = {Key, riak_dt_pncounter, <<"bucket">>},
+    Bound_object = {Key, riak_dt_lwwreg, <<"bucket">>},
+    case antidotec_pb:start_transaction(Pid, term_to_binary(OldCommitTime), [{static, true}]) of
+        {ok, TxId} ->
+            case antidotec_pb:read_objects(Pid, [Bound_object], TxId) of
+                {ok, [_Val]} ->
+                    case antidotec_pb:commit_transaction(Pid, TxId) of
+                        {ok, CT} ->
+                            report_staleness(MS, CT, StartTime),
+                            NewCT = binary_to_term(CT),
+                            {ok, State#state{commit_time=NewCT}};
+                        _ ->
+                            lager:info("Error read1 on client ~p",[Id]),
+                            {error, timeout, State}
+                    end;
+                Error ->
+                    lager:info("Error read2 on client ~p : ~p",[Id, Error]),
+                    {error, timeout, State}
+            end;
+        _ ->
+            lager:info("Error read3 on client ~p",[Id]),
+            {error, timeout, State}
+    end;
+
+
+%% @doc Write to a key
+run(append, KeyGen, _ValueGen,
+  State=#state{type_dict=_TypeDict,
+      pb_pid = Pid,
+      worker_id = Id,
+      pb_port=_Port,
+      target_node=_Node,
+      commit_time=OldCommitTime,
+      measure_staleness=MS}) ->
+    %%TODO: Support for different data types
+    %% Type = get_key_type(KeyInt, TypeDict),
+    %% {Mod, Op, Param} = get_random_param(TypeDict, Type, ValueGen()),
+    %% Obj = Mod:Op(Param, Mod:new(Key)),
+
+    IntKey = KeyGen(),
+    BKey = list_to_binary(integer_to_list(IntKey)),
+    BObj = {{BKey, riak_dt_lwwreg, <<"bucket">>}, assign, random_string(10)},
+
+    StartTime=now_microsec(), %% For staleness
+    case antidotec_pb:start_transaction(Pid, term_to_binary(OldCommitTime), [{static, true}]) of
+        {ok, TxId} ->
+            case antidotec_pb:update_objects(Pid,
+                [BObj],
+                TxId) of
+                ok ->
+                    case antidotec_pb:commit_transaction(Pid, TxId) of
+                        {ok, BCT} ->
+                            report_staleness(MS, BCT, StartTime),
+                            CT = binary_to_term(BCT),
+                            {ok, State#state{commit_time=CT}};
+                        Error ->
+                            {error, Error, State}
+                    end;
+                Error ->
+                    lager:info("Error append2 on client ~p : ~p",[Id, Error]),
+                    {error, Error, State}
+            end;
+        Error ->
+            lager:info("Error append3 on client ~p",[Id]),
+            {error, Error, State}
+    end;
+
+
 
 %% @doc Read and write from and to every vnode
-run(readall, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id = Id, num_partitions=NumPart, pb_port=_Port, target_node=_Node, type_dict=TypeDict}) ->
+run(readallold, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id = Id, num_partitions=NumPart, pb_port=_Port, target_node=_Node, type_dict=TypeDict}) ->
     KeyInt = KeyGen(),
     KeyList = lists:seq(KeyInt, KeyInt+NumPart-1),
     KeyTypeList = get_list_key_type(KeyList, TypeDict, []),
