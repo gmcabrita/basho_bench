@@ -40,9 +40,9 @@ echo "$BenchConfig" >> $File
 sed -i "5i {concurrent, $Thread}." $File
 
 if [ $Type = "counter" ]; then
-    sed -i "6i {operations, [{write_all, $Writes}, {read_all, $Reads}, {read_all_write_all, $ReadsWrites}]}." $File
+    sed -i "6i {operations, [{writeall, $Writes}, {readall, $Reads}, {readallwriteall, $ReadsWrites}]}." $File
 else
-    sed -i "6i {operations, [{write_all, $Writes}, {read_all, $Reads}, {read_all_write_all, $ReadsWrites}]}." $File
+    sed -i "6i {operations, [{writeall, $Writes}, {readall, $Reads}, {readallwriteall, $ReadsWrites}]}." $File
 fi
 
 #sed -i '/key_generator/d' $File

@@ -49,31 +49,31 @@ AllFiles=""
 I=1
 for File in $Files; do
     echo The test date for $File is ${TestDate[$I]}
-    AllFiles=""$File"/tests/"${TestDate[$I]}"/read_all_latencies.csv "$AllFiles""
+    AllFiles=""$File"/tests/"${TestDate[$I]}"/readall_latencies.csv "$AllFiles""
     I=$(($I + 1))
 done
-echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/read_all_latencies.csv
-awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/read_all_latencies.csv
+echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/readall_latencies.csv
+awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/readall_latencies.csv
 
 # Append latencies
 AllFiles=""
 I=1
 for File in $Files; do
-    AllFiles=""$File"/tests/"${TestDate[$I]}"/write_all_latencies.csv "$AllFiles""
+    AllFiles=""$File"/tests/"${TestDate[$I]}"/writeall_latencies.csv "$AllFiles""
     I=$(($I + 1))
 done
-echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/write_all_latencies.csv
-awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/write_all_latencies.csv
+echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/writeall_latencies.csv
+awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/writeall_latencies.csv
 
 # Append read latencies
 AllFiles=""
 I=1
 for File in $Files; do
-    AllFiles=""$File"/tests/"${TestDate[$I]}"/read_all_write_all_latencies.csv "$AllFiles""
+    AllFiles=""$File"/tests/"${TestDate[$I]}"/readallwriteall_latencies.csv "$AllFiles""
     I=$(($I + 1))
 done
-echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/read_all_write_all_latencies.csv
-awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/read_all_write_all_latencies.csv
+echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/readallwriteall_latencies.csv
+awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/readallwriteall_latencies.csv
 
 
 
