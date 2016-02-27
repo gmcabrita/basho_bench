@@ -12,7 +12,13 @@ then
 echo "Only cleaning antidote"
 #./script/makeRel.sh local_specula_read 
 #./script/makeRel.sh benchmark_ver 
-./script/makeRel.sh $2 
+if [ $# -eq 1 ]
+then
+    branch=benchmark_no_specula
+else
+    branch=$2
+fi
+./script/makeRel.sh $branch
 #./script/makeRel.sh benchmark_agg_repl 
 #./script/makeRel.sh improve_commit 
 #./script/makeRel.sh integrate_repl 
@@ -41,7 +47,7 @@ sudo ./script/parallel_command.sh "sudo apt-get update && sudo apt-get -y instal
 sudo ./script/parallel_command.sh "sudo apt-get -y install sshpass"
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.email 'mars.leezm@gmail.com'"
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.name 'marsleezm'"
-./script/makeRel.sh benchmark_ver 
+./script/makeRel.sh benchmark_precise_fast_repl 
 ./script/parallel_command.sh "cd basho_bench && git stash && git pull && sudo make"
 ./script/command_to_all.sh "./basho_bench/masterScripts/config.sh" 
 ./script/command_to_all.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"
