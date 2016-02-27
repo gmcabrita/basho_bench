@@ -6,12 +6,12 @@ seq="1"
 threads="8"
 workloads="5 6"
 #workloads="5"
-length="1 2 4 8 16"
+length="1 2 4 8 16 32"
 warehouse="4 8"
 rep=2
 parts=3
 start_ind=1
-skip_len=18
+skip_len=0
 skipped=0
 AM=80
 AS=0
@@ -65,7 +65,7 @@ do
             fi
 
 			./script/runSpeculaBench.sh $t $AM $AS true true $len specula_tests $wh $n $p $rep $start_ind
-            skipped=1
+            		skipped=1
 		    else
 			echo "Skipped..."$start_ind
 		    fi
@@ -76,13 +76,14 @@ do
     done
 done
 
-exit
 
 ./script/runSpeculaBench.sh $t $AM $AS true true 1 specula_tests 4 0 0 $rep $start_ind
 start_ind=$((start_ind+1))
 ./script/runSpeculaBench.sh $t $AM $AS true true 1 specula_tests 8 0 0 $rep $start_ind
 start_ind=$((start_ind+1))
 
+
+sudo ./masterScripts/initMachines.sh 1 benchmark_no_specula
 for t in $threads
 do  
         sudo ./script/configBeforeRestart.sh $t false false 0 $rep $parts 
