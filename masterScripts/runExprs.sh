@@ -3,9 +3,8 @@
 ## Just to test.. 
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 seq="1"
-threads="8"
+threads="8 12"
 workloads="5 6"
-#workloads="5"
 length="1 2 4 8 16 32"
 warehouse="4 8"
 rep=2
@@ -65,7 +64,7 @@ do
             fi
 
 			./script/runSpeculaBench.sh $t $AM $AS true true $len specula_tests $wh $n $p $rep $start_ind
-            		skipped=1
+            skipped=1
 		    else
 			echo "Skipped..."$start_ind
 		    fi
@@ -83,6 +82,7 @@ start_ind=$((start_ind+1))
 start_ind=$((start_ind+1))
 
 
+sudo ./masterScripts/initMachines.sh 1 benchmark_no_specula
 sudo ./masterScripts/initMachines.sh 1 benchmark_no_specula
 for t in $threads
 do  

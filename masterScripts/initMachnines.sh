@@ -2,7 +2,7 @@
 
 
 
-if [ $# -eq 1 ]; then
+if [ $# -ge 1 ]; then
     Clean=$1
 else
     Clean=5
@@ -19,9 +19,6 @@ else
     branch=$2
 fi
 ./script/makeRel.sh $branch
-#./script/makeRel.sh benchmark_agg_repl 
-#./script/makeRel.sh improve_commit 
-#./script/makeRel.sh integrate_repl 
 elif [ $Clean == 2 ]
 then
 echo "Only cleaning basho_bench"
