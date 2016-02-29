@@ -10,13 +10,23 @@ warehouse="4 8"
 rep=2
 parts=3
 start_ind=1
-skip_len=0
+skip_len=29
 skipped=0
 AM=80
 AS=0
 
-#th=8
 #len=0
+#t=8
+#wh=8
+#start_ind=0
+#n=0
+#p=100
+#sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts
+#sudo ./script/restartAndConnect.sh
+#sleep 20
+#./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests $wh $n $p $rep $start_ind
+#exit
+
 #n=0
 #p=100
 #wh=8
