@@ -3,37 +3,18 @@
 ## Just to test.. 
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 seq="1"
-threads="8 12"
-workloads="5 6"
-length="1 2 4 8 16 32"
+threads="8"
+workloads="1 2 3 4 8"
+length="1 2 4 8 16"
 warehouse="4 8"
 rep=2
 parts=3
 start_ind=1
-skip_len=29
+skip_len=0
 skipped=0
 AM=80
 AS=0
 
-#len=0
-#t=8
-#wh=8
-#start_ind=0
-#n=0
-#p=100
-#sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts
-#sudo ./script/restartAndConnect.sh
-#sleep 20
-#./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests $wh $n $p $rep $start_ind
-#exit
-
-#n=0
-#p=100
-#wh=8
-#sudo ./script/configBeforeRestart.sh $th false false $len $rep $parts
-#sudo ./script/restartAndConnect.sh
-#./script/runSpeculaBench.sh $th $AM $AS false false $len specula_tests $wh 0 100 $rep 0
-#exit
 
 for t in $threads
 do
@@ -54,6 +35,7 @@ do
 	    elif [ $wl == 5 ]; then n=0 p=100
 	    elif [ $wl == 6 ]; then n=100 p=0
 	    elif [ $wl == 7 ]; then n=0 p=0
+	    elif [ $wl == 8 ]; then n=25 p=25
 	    fi
 	    for wh in $warehouse
 	    do
@@ -86,10 +68,10 @@ do
 done
 
 
-./script/runSpeculaBench.sh $t $AM $AS true true 1 specula_tests 4 0 0 $rep $start_ind
-start_ind=$((start_ind+1))
-./script/runSpeculaBench.sh $t $AM $AS true true 1 specula_tests 8 0 0 $rep $start_ind
-start_ind=$((start_ind+1))
+#./script/runSpeculaBench.sh $t $AM $AS true true 1 specula_tests 4 0 0 $rep $start_ind
+#start_ind=$((start_ind+1))
+#./script/runSpeculaBench.sh $t $AM $AS true true 1 specula_tests 8 0 0 $rep $start_ind
+#start_ind=$((start_ind+1))
 
 
 sudo ./masterScripts/initMachines.sh 1 benchmark_no_specula
@@ -108,10 +90,11 @@ do
 	        elif [ $wl == 5 ]; then n=0 p=100
 	        elif [ $wl == 6 ]; then n=100 p=0
 	        elif [ $wl == 7 ]; then n=0 p=0
+	        elif [ $wl == 8 ]; then n=25 p=25
             fi
             for wh in $warehouse
             do
-		sudo ./script/preciseTime.sh
+		        sudo ./script/preciseTime.sh
                 for i in $seq
                 do
                     if [ $start_ind -gt $skip_len ]; then
@@ -125,7 +108,7 @@ do
         done
 done
 
-./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests 4 0 0 $rep $start_ind
-start_ind=$((start_ind+1))
-./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests 8 0 0 $rep $start_ind
-start_ind=$((start_ind+1))
+#./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests 4 0 0 $rep $start_ind
+#start_ind=$((start_ind+1))
+#./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests 8 0 0 $rep $start_ind
+#start_ind=$((start_ind+1))
