@@ -40,6 +40,8 @@
                  driver_state,
                  shutdown_on_error,
                  ops,
+                 last_op,
+                 retry,
                  ops_len,
                  rng_seed,
                  parent_pid,
@@ -95,7 +97,10 @@ init([SupChild, Id]) ->
     Driver  = basho_bench_config:get(driver),
     Ops     = ops_tuple(),
     ShutdownOnError = basho_bench_config:get(shutdown_on_error, false),
-
+    Retry = case basho_bench_config:get(retry, false) of
+                true -> true;
+                _ -> false
+            end,
     %% Finally, initialize key and value generation. We pass in our ID to the
     %% initialization to enable (optional) key/value space partitioning
     KeyGen = basho_bench_keygen:new(basho_bench_config:get(key_generator), Id),
@@ -106,6 +111,8 @@ init([SupChild, Id]) ->
                      shutdown_on_error = ShutdownOnError,
                      ops = Ops, ops_len = size(Ops),
                      rng_seed = RngSeed,
+                     retry = Retry,
+                     last_op = false,
                      parent_pid = self(),
                      sup_id = SupChild},
 
@@ -260,7 +267,15 @@ worker_next_op2(State, OpTag) ->
    catch (State#state.driver):run(OpTag, State#state.keygen, State#state.valgen,
                                   State#state.driver_state).
 worker_next_op(State) ->
-    Next = element(random:uniform(State#state.ops_len), State#state.ops),
+    Next = case State#state.retry of 
+                true ->
+                    case State#state.last_op of
+                        false -> element(random:uniform(State#state.ops_len), State#state.ops);
+                        Op ->  Op
+                    end;
+                false ->
+                    element(random:uniform(State#state.ops_len), State#state.ops)
+            end,
     {_Label, OpTag} = Next,
     Start = os:timestamp(),
     Result = worker_next_op2(State, OpTag),
@@ -268,10 +283,10 @@ worker_next_op(State) ->
     case Result of
         {Res, DriverState} when Res == ok orelse element(1, Res) == ok ->
             basho_bench_stats:op_complete(Next, Res, ElapsedUs),
-            {ok, State#state { driver_state = DriverState}};
+            {ok, State#state { driver_state = DriverState, last_op=false}};
 
         {Res, DriverState} when Res == silent orelse element(1, Res) == silent ->
-            {ok, State#state { driver_state = DriverState}};
+            {ok, State#state { driver_state = DriverState, last_op=false}};
 
         {error, Reason, DriverState} ->
             %% Driver encountered a recoverable error
@@ -279,7 +294,7 @@ worker_next_op(State) ->
             State#state.shutdown_on_error andalso
                 erlang:send_after(500, basho_bench,
                                   {shutdown, "Shutdown on errors requested", 1}),
-            {ok, State#state { driver_state = DriverState}};
+            {ok, State#state { driver_state = DriverState, last_op=Next}};
 
         {'EXIT', Reason} ->
             %% Driver crashed, generate a crash error and terminate. This will take down

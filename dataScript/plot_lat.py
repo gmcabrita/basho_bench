@@ -53,7 +53,7 @@ max_lat=0
 ytitle, new_name = get_title(data_list, bench_type)
 for f in data_list:
     path = os.path.join(input_folder, f+'/total_duration')
-    data = np.loadtxt(path, skiprows=1, usecols=range(1,10))
+    data = np.loadtxt(path, skiprows=1, usecols=range(1,9))
     read_lat = data[0,0]
     read_err = data[1,0]
     inter_ind = ind
@@ -92,7 +92,7 @@ for f in data_list:
         (inter_ind, specula_commit) = draw_bar_if_need(inter_ind, width, [(read_lat, read_err),(data[0,5],data[1,5]),(data[0,7], data[1,7])], csc, inter_ind, specula_commit)
         max_lat = max(max_lat, data[0,0]+data[0,3])
         max_lat = max(max_lat, data[0,0]+data[0,4])
-        max_lat = max(max_lat, data[0,0]+data[0,5]++data[0,8])
+        max_lat = max(max_lat, data[0,0]+data[0,5]++data[0,7])
 
     ind += 1
 

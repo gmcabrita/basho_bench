@@ -94,7 +94,7 @@ get_dc_other_node_ids(NodeId, AllNodes, NumDcs) ->
                             DcId = (NodeId-1) div NodesPerDc+1,
                             Base = (DcId-1)*NodesPerDc,
                             DcNodes = lists:seq(Base+1, Base+NodesPerDc),
-			    lists:delete(DcId, DcNodes)
+			                lists:delete(DcId, DcNodes)
     end.
 
 get_dc_other_reps(NodeId, ReplList, AllNodes, NumDcs) ->

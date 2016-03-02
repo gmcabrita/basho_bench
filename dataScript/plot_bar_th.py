@@ -58,9 +58,11 @@ for f in data_list:
     data = np.loadtxt(path, skiprows=1, usecols=range(1,6))
     name = new_name[index].replace('true','t').replace('false','f').replace('0000','0k')
     xlabel.append(name)
-    colors = ['#EC5B56', ('#EC5B56', 'xx'), ('#EC5B56', '..'), ('#EC5B56', '//')]
+    #colors = ['#EC5B56', ('#EC5B56', 'xx'), ('#EC5B56', '..'), ('#EC5B56', '//')]
+    #colors = ['#F26D21', ('#F26D21', 'x'), ('#F26D21', '.'), ('#F26D21', '/')]
+    colors = ['red', ('red', 'xx'), ('red', '..'), ('red', '//')]
     # if it is not specula
-    h = plt.bar(index, data[0,0], width, yerr=data[1,0], color='#79E026')
+    h = plt.bar(index, data[0,0], width, yerr=data[1,0], color='green')
     handlers[0] = h
     newmaxv = max(data[0,0], data[0,1]+data[0,2]+data[0,3]+data[0,4])
     maxv=max(maxv, newmaxv)

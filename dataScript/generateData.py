@@ -82,14 +82,16 @@ def add_throughput(nodes, dict, total_dict, folder):
             print("Stat data is "+str(stat_data))
         
         #print str(committed)+' '+str(aborted) +' '+str(read_abort)+' '+str(specula_abort)+' '+str(cascade_abort) 
-        dict[node].append([real_committed, cert_abort, read_abort, read_invalid, cascade_abort])
+        if node in dict:
+            dict[node].append([real_committed, cert_abort, read_abort, read_invalid, cascade_abort])
         all_committed += real_committed
         all_cert_abort += cert_abort
         all_r_abort += read_abort
         all_r_invalid += read_invalid
         all_c_abort += cascade_abort
+        all_abort += cert_abort + read_abort + read_invalid + cascade_abort
     print('All committed is'+str(real_committed))
-    total_dict.append([all_committed/duration, all_cert_abort/duration, all_r_abort/duration, all_r_invalid/duration, all_c_abort/duration])
+    total_dict.append([all_committed/duration, all_cert_abort/duration, all_r_abort/duration, all_r_invalid/duration, all_c_abort/duration, all_abort/duration])
     
 
 def update_counter(folder, length, key):
@@ -134,7 +136,8 @@ def add_duration(nodes, dict, total_dict, folder):
         #dur_avg.append(local_cert_dur), 
         dur_avg.append(specula_abort_dur), 
         dur_avg.append(specula_commit_dur)
-        dict[node].append(dur_avg)
+        if node in dict:
+            dict[node].append(dur_avg)
         total_dur = list(map(add, total_dur, dur_avg))
     total_avg_dur = [x/len(nodes) for x in total_dur]
     total_dict.append(total_avg_dur)
@@ -161,16 +164,14 @@ def write_to_file(file_name, dict, keys, title):
     file = open(file_name, 'w')
     file.write(title+'\n')
     for key in keys:
-        data_list = dict[key]
-        data_array = np.array(data_list).astype(np.float)
-        if data_array.ndim == 2:
-            #(lines, num_elem) = data_array.shape
-            #data_sum = data_array.sum(axis=0)
-            #data_avg = [x/lines for x in data_sum]
-            data_avg = list(np.average(data_array, axis=0))
-        else:
-            data_avg = list(data_array)
-        file.write(key+' '+' '.join(map(str, data_avg))+'\n')
+        if key in dict:
+            data_list = dict[key]
+            data_array = np.array(data_list).astype(np.float)
+            if data_array.ndim == 2:
+                data_avg = list(np.average(data_array, axis=0))
+            else:
+                data_avg = list(data_array)
+            file.write(key+' '+' '.join(map(str, data_avg))+'\n')
     file.close()
 
 def write_std(file_name, data_list):
@@ -233,7 +234,7 @@ for config in dict:
     write_to_file(order_status_latency, entry, ['order-status'], 'N/A min mean median 95th 99th 99_9th max')
 
     write_to_file(throughput, entry['throughput'], nodes, 'ip committed cert_aborted read_aborted read_invalid cascade_abort') 
-    write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted read_invalid cascade_abort') 
+    write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted read_invalid cascade_abort all_abort') 
     write_std(total_throughput, entry['total_throughput'])
     write_to_file(duration, entry['duration'], nodes, 'ip read local_a remote_a local_c remote_c specula_c s_final_a s_final_c')
     write_to_file(total_duration, entry, ['total_duration'], 'N/A read local_a remote_a local_c remote_c specula_c s_final_a s_final_c')

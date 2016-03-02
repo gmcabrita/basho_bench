@@ -90,10 +90,11 @@ new(Id) ->
     ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
     Result = net_adm:ping(TargetNode),
     ?INFO("Result of ping is ~p \n", [Result]),
-    MyTxServer = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div NumPartitions+1)),
+    MyTxServerName = list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div NumPartitions+1)),
+    MyTxServer = locality_fun:get_pid(TargetNode, MyTxServerName), 
     %{ok, Pid} = antidotec_pb_socket:start_link(TargetNode, PbPort),
     %{ok, PartList} = antidotec_pb_socket:get_hash_fun(Pid),
-    {PartList, RepList} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), %gen_server:call({global, MyTxServer}, {get_hash_fun}),
+    {PartList, RepList, _} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), %gen_server:call({global, MyTxServer}, {get_hash_fun}),
 
     lager:info("My tx server is ~w, part list is ~w, rep list is ~w", [MyTxServer, PartList, RepList]),
     [ReplicaNodes] = [ Part    ||{N, Part}   <- RepList, TargetNode == N],
@@ -209,7 +210,7 @@ run(start_tx, _KeyGen, _ValueGen, State=#state{pb_pid = Pid, worker_id = Id, pb_
     end;
 
 run(certify, _KeyGen, _ValueGen, State=#state{my_tx_server=MyTxServer, part_list=PartList, worker_id = Id, num_updates=NumUpdates, target_index=TargetIndex, key_range=Range, num_reads=NumReads, m_parts=MParts, s_parts=SParts, c_parts=CParts, target_node=TargetNode}) ->
-    TxId = gen_server:call({global, MyTxServer}, {start_tx}),
+    TxId = gen_server:call(MyTxServer, {start_tx}),
     %lager:info("TxId is ~w", [TxId]),
     Keys = generate_read_keys(PartList, NumReads, Range),
     lists:foreach(fun({Key, _}) ->
@@ -235,7 +236,7 @@ run(certify, _KeyGen, _ValueGen, State=#state{my_tx_server=MyTxServer, part_list
             
             FRemoteUps = lists:flatten(RemoteUps),
             %lager:info("Local ups are ~p, Remote up ~p", [LocalUps, FRemoteUps]),
-            Response =  gen_server:call({global, MyTxServer}, {certify, TxId, LocalUps, FRemoteUps}),
+            Response =  gen_server:call(MyTxServer, {certify, TxId, LocalUps, FRemoteUps}),
             %lager:info("Got response is ~w", [Response]),
             %Response =  antidotec_pb_socket:certify(Pid, {now_microsec(), self()}, LocalUps, FRemoteUps, Id),
             case Response of

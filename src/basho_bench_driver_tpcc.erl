@@ -130,9 +130,9 @@ new(Id) ->
     MyTxServer = locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode) 
             ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
 
-    {MyRepIds, NoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
+    {MyRepIds, SlaveRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
-    lager:info("MyRepId is ~w, NoRep Id is ~w", [MyRepIds, NoRepIds]),
+    lager:info("MyRepId is ~w, SlaveRep Id is ~w", [MyRepIds, SlaveRepIds]),
 
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     %lager:info("Ex list is ~w", [ExpandPartList]),
@@ -162,7 +162,7 @@ new(Id) ->
                w_per_dc=WPerNode,
                my_table=MyTable,
                my_rep_ids = MyRepIds,
-               %no_rep_list = NoRepList,
+               %no_rep_list = SlaveRepList,
                to_sleep=ToSleep,
                no_specula={0,0},
                no_local={0,0},
@@ -176,7 +176,7 @@ new(Id) ->
                p_local_abort={0,0},
                p_remote_abort={0,0},
                p_read=0,
-               no_rep_ids = NoRepIds,
+               no_rep_ids = SlaveRepIds,
                item_ranges = ItemRanges,
                expand_part_list = ExpandPartList,
                hash_length = HashLength,   
@@ -191,9 +191,9 @@ new(Id) ->
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
 run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
-        my_rep_ids=MyRepIds, hash_dict=HashDict, no_rep_ids=NoRepIds, node_id=DcId, 
+        my_rep_ids=MyRepIds, hash_dict=HashDict, no_rep_ids=SlaveRepIds, node_id=DcId, 
         no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, worker_id=WorkerId,
-        no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, w_per_dc=WPerNode,
+        no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, w_per_dc=WPerNode, 
         item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
     RS = dict:new(),
     WS = dict:new(),
@@ -235,7 +235,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
     Seq = lists:seq(1, NumItems),
     {WS3, _, AllLocal} = lists:foldl(fun(OlNumber, {TWS, TRS, AL}) ->
-                    WId = pick_warehouse(DcId, MyRepIds, NoRepIds, WPerNode, AccessMaster, AccessSlave),
+                    WId = pick_warehouse(DcId, MyRepIds, SlaveRepIds, WPerNode, AccessMaster, AccessSlave),
                     {Min, Max} = lists:nth(to_dc(WId, WPerNode), ItemRanges),
                     %ItemId = case tpcc_tool:random_num(1, 100) of
                     %            1 ->
@@ -294,7 +294,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %% ************ read time *****************
     RT2 = os:timestamp(),
     %% ************ read time *****************
-    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
+    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, new_order}, ?TIMEOUT),%, length(DepsList)}),
     RT3 = os:timestamp(),
     case Response of
         {ok, {committed, _}} ->
@@ -314,17 +314,15 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
                     NOSCount+1}}};
         {error,timeout} ->
             lager:info("Timeout on client ~p",[TxServer]),
-            {error, timeout, State};
+            {error, aborted, State};
         {aborted, local} ->
 	        random:seed(RT3),
             {NOLTime, NOLCount} = NOLAbort,
-            {error, aborted, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_local_abort={NOLTime+get_time_diff(RT2, RT3), 
-                    NOLCount+1}}};
+            {error, aborted, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_local_abort={NOLTime+get_time_diff(RT2, RT3), NOLCount+1}}};
         {aborted, remote} ->
 	        random:seed(RT3),
             {NORTime, NORCount} = NORAbort,
-            {error, aborted, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_remote_abort={NORTime+get_time_diff(RT2, RT3), 
-                    NORCount+1}}};
+            {error, aborted, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_remote_abort={NORTime+get_time_diff(RT2, RT3), NORCount+1}}};
         {aborted, _} ->
 	        random:seed(RT3),
             {error, aborted, State};
@@ -334,7 +332,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
 %% @doc Payment transaction of TPC-C
 run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, worker_id=WorkerId,
-        hash_dict=HashDict, my_rep_ids=MyRepIds, no_rep_ids=NoRepIds, w_per_dc=WPerNode, 
+        hash_dict=HashDict, my_rep_ids=MyRepIds, no_rep_ids=SlaveRepIds, w_per_dc=WPerNode, 
         node_id=DcId, access_slave=AccessSlave, p_specula=PSpecula, p_local=PLocal,
         p_remote=PRemote, p_local_abort=PLAbort, p_remote_abort=PRAbort, p_read=PRead,
         c_c_id=C_C_ID, c_c_last = C_C_LAST, access_master=AccessMaster}) ->
@@ -356,7 +354,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 	%							true -> {N+1, RId};  false -> {N, RId}
 	%						end
 	%			  	end,
-    CWId = pick_warehouse(DcId, MyRepIds, NoRepIds, WPerNode, AccessMaster, AccessSlave),
+    CWId = pick_warehouse(DcId, MyRepIds, SlaveRepIds, WPerNode, AccessMaster, AccessSlave),
     CDId = DistrictId,
 	PaymentAmount = tpcc_tool:random_num(100, 500000) / 100.0,
 
@@ -417,7 +415,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
     {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerNode),
     %DepsList = ets:lookup(dep_table, TxId),
     RT2 = os:timestamp(),
-    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
+    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, payment}, ?TIMEOUT),%, length(DepsList)}),
     RT3 = os:timestamp(),
     case Response of
         {ok, {committed, _}} ->
@@ -437,7 +435,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
                     PSCount+1}}};
         {error,timeout} ->
             lager:info("Timeout on client ~p",[TxServer]),
-            {error, timeout, State};
+            {error, aborted, State};
         {aborted, local} ->
             random:seed(RT3),
             {PLTime, PLCount} = PLAbort,
@@ -508,7 +506,7 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
             end, Seq2),
     case Specula of 
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], [], order_status}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -644,8 +642,8 @@ add_to_writeset(Key, Value, {_, PartList}, WSet) ->
     %lager:info("Adding  ~p, ~p to ~w", [Key, Value, Part]),
     dict:append(Part, {Key, Value}, WSet).
 
-pick_warehouse(MyId, RepIds, NoRepIds, WPerNode, AccessMaster, AccessRep) ->
-    %lager:info("~w ~w ~w ~w ~w ~w", [MyId, RepIds, NoRepIds, WPerNode, AccessMaster, AccessRep]),
+pick_warehouse(MyId, RepIds, SlaveRepIds, WPerNode, AccessMaster, AccessRep) ->
+    %lager:info("~w ~w ~w ~w ~w ~w", [MyId, RepIds, SlaveRepIds, WPerNode, AccessMaster, AccessRep]),
     R = random:uniform(100),
     case R =< AccessMaster of
         true ->
@@ -655,10 +653,10 @@ pick_warehouse(MyId, RepIds, NoRepIds, WPerNode, AccessMaster, AccessRep) ->
                 true ->
                     L = length(RepIds),
                     case L of 0 ->
-                                N = R rem (length(NoRepIds) * WPerNode) + 1,
+                                N = R rem (length(SlaveRepIds) * WPerNode) + 1,
                                 F = (N-1) div WPerNode +1,
                                 S = N rem WPerNode,
-                                WPerNode*(lists:nth(F, NoRepIds)-1)+S+1;
+                                WPerNode*(lists:nth(F, SlaveRepIds)-1)+S+1;
                             _ ->
                                 N = R rem (L * WPerNode),
                                 F = N div WPerNode +1, 
@@ -666,7 +664,7 @@ pick_warehouse(MyId, RepIds, NoRepIds, WPerNode, AccessMaster, AccessRep) ->
                                 WPerNode*(lists:nth(F, RepIds)-1)+S+1
                     end;
                 false ->
-                    L = length(NoRepIds),
+                    L = length(SlaveRepIds),
                     case L of 0 ->
                                 N = R rem (length(RepIds) * WPerNode),
                                 F = N div WPerNode +1,    
@@ -676,7 +674,7 @@ pick_warehouse(MyId, RepIds, NoRepIds, WPerNode, AccessMaster, AccessRep) ->
                                 N = R rem (L * WPerNode) + 1,
                                 F = (N-1) div WPerNode +1, 
                                 S = N rem WPerNode,
-                                WPerNode*(lists:nth(F, NoRepIds)-1)+S+1
+                                WPerNode*(lists:nth(F, SlaveRepIds)-1)+S+1
                     end
             end
     end.

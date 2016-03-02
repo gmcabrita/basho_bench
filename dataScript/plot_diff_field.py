@@ -44,7 +44,8 @@ for key, flist in field_dict.items():
     print(key+":"+str(flist))
     os.system('./dataScript/plot_lat.py %s %s %s %s' % (input_folder, lat_folder, bench_type, ' '.join(map(str, flist))))
     os.system('./dataScript/plot_bar_th.py %s %s %s %s' % (input_folder, th_folder, bench_type, ' '.join(map(str, flist))))
-    os.system('./dataScript/plot_op_lat.py %s %s %s %s' % (input_folder, op_lat_folder, bench_type, ' '.join(map(str, flist))))
+    if bench_type == 'tpcc':
+        os.system('./dataScript/plot_op_lat.py %s %s %s %s' % (input_folder, op_lat_folder, bench_type, ' '.join(map(str, flist))))
 
 #str_series = ' '.join(map(str, series))
 #for config in series:

@@ -78,9 +78,9 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #./script/clean_data.sh
 #fi
 
-./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/micro.config" &
-./script/load.sh `head -1 ./script/allnodes` micro 500000 
-wait
+./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/micro.config"
+#./script/load.sh `head -1 ./script/allnodes` micro 500000 
+#wait
 
 ./script/gatherThroughput.sh $Folder &
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 

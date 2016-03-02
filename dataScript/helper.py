@@ -2,11 +2,93 @@
 
 import matplotlib.pyplot as plt
 from pylab import *
+import glob
 import sys
 import random
 from itertools import chain
+from os.path import basename
 import os
 import numpy as np
+
+def get_matching_series(args):
+    input_folder = args[0]
+    bench_type = args[1]
+    length = len(args)
+    field_len = int((length-3)/2)
+    field_end = 2 + field_len
+    value_begin = field_end
+    value_end = value_begin + field_len
+    diff_fields = args[2:field_end]
+    field_values = args[value_begin:value_end]
+    rotate_field = args[value_end]
+    diff_fields.append(rotate_field)
+
+    rotate_field_set = set()
+    sub_folders = glob.glob(input_folder+'/*')
+    split_names={}
+    for f in sub_folders:
+        bname = basename(f)
+        split_names[bname] = bname.split("_")
+
+    field_dict={}
+    for key,value in split_names.items():
+        fields=""
+        if isinstance(value[int(rotate_field)], int): 
+            rotate_field_set.add(int(value[int(rotate_field)]))
+        else:
+            rotate_field_set.add(value[int(rotate_field)])
+        for f in diff_fields:
+            fields+="_"+str(value[int(f)]) 
+        if fields in field_dict:
+            field_dict[fields].append(key) 
+        else:
+            field_dict[fields] = [key]
+
+    #print(field_dict)
+
+    #print(str(rotate_field_set))
+    #print(str(field_values))
+    field_value_str = '_'+'_'.join(str(v) for v in field_values) 
+    rotate_values=list(rotate_field_set)
+    rotate_values.sort()
+    rotate_values.reverse()
+    to_plot_params=[field_value_str+'_'+str(x)  for x in rotate_values]
+    to_plot_list=[]
+    for key in to_plot_params:
+        #print(key)
+        to_plot_list.append(field_dict[key])
+    #print("List is"+str(to_plot_list))
+    return to_plot_list
+
+
+
+def get_legend(str_value, type, postfix):
+    if type == 'locality':
+        value = int(str_value) 
+        if value == 12:
+            return 'High locality '+postfix
+        elif value == 8:
+            return 'Medium locality '+postfix
+        else:
+            return 'Low locality '+postfix
+    elif type == 'process':
+        value = int(str_value) 
+        if value == 0:
+            return '0ms '+postfix
+        elif value == 100:
+            return '100ms '+postfix
+        elif value == 500:
+            return '500ms '+postfix
+        else:
+            return '1000ms '+postfix
+    elif type == 'range':
+        return str_value+' partitions '+postfix
+    elif type == 'thread':
+        return str_value+' threads'
+    elif type == 'warehouse':
+        return str_value+' warehouse'
+    elif type == 'clock':
+        return str_value+' clock'
 
 def get_same(list1, list2):
     index=0
@@ -29,8 +111,8 @@ def get_title(param_list, type):
 
 def get_tpcc_title(param_list):
     split_f=[]
-    params=[' threads','% m','% s', 'do_specula', 'fast_reply', ' length', ' Ws', '% NewOrder', '% Payment', 'rep']
-    name_params=['T','%M','%S', 'Spec', 'Fast', 'SL', 'W', '%N', '%P', 'R']
+    params=[' threads','% m','% s', 'do_specula', 'fast_reply', ' length',' Ws', '% NewOrder', '% Payment', 'rep', '']
+    name_params=['T','%M','%S', 'Spec', 'Fast', 'SL', 'W', '%N', '%P', 'R', '']
     for f in param_list:
         f=f.replace('false','f').replace('true','t')
         split_f.append(f.split("_"))
@@ -76,13 +158,29 @@ def get_tpcc_title(param_list):
             title+=str(split_f[0][f])+str(params[f])+", "
     return title[:-2], new_split_f
 
+def sort_by_num(l):
+    d = []
+    for s in l:
+        sl = s.split('_')
+        ssl = []
+        for x in sl:
+            if is_int(x):
+                ssl.append(int(x)) 
+            else:
+                ssl.append(x)
+        d.append((ssl, s))
+    d.sort()
+    sorted_l = [ y for (x, y) in d ]
+    return sorted_l 
+
 def get_micro_title(param_list):
     split_f=[]
-    params=[' threads',' mk',' sk',' ck',' mr', ' sr', ' cr', ' spec', ' spec length', '', 'rep']
-    name_params=['T','MK','SK','CK','MR', 'SR', 'CR', 'SPEC', 'SL', 'ap', 'R']
+    params=[' threads',' mk',' sk',' ck',' mr', ' sr', ' cr', ' spec', ' spec length', '', 'rep', 'lp']
+    name_params=['T','MK','SK','CK','MR', 'SR', 'CR', 'SPEC', 'SL', 'ap', 'R', 'LP']
     for f in param_list:
         f=f.replace('false','f').replace('true','t')
-        f=rreplace(f, '000', 'k', 3)
+        f=rreplace(f, '000000', 'm', 4)
+        f=rreplace(f, '000', 'k', 4)
         split_f.append(f.split("_"))
     common=split_f[0]
     old_same=set(range(0, len(params)))
@@ -127,3 +225,10 @@ def get_micro_title(param_list):
         else:
             title+=str(split_f[0][f])+str(params[f])+", "
     return title[:-2], new_split_f
+
+def is_int(s):
+    try: 
+        int(s)
+        return True
+    except ValueError:
+        return False
