@@ -40,13 +40,13 @@ echo tpcc concurrent $1 >> config
 echo tpcc access_master $2  >> config
 echo tpcc access_slave $3 >> config
 echo load concurrent 4 >> config
-echo tpcc duration 90 >> config
+echo tpcc duration 60 >> config
 echo tpcc specula $4 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*1000+8000))
-ToSleep=$(((10000 + 500*NumNodes) / ${1}))
+MasterToSleep=$((NumNodes*1000*WPerDc+22000))
+ToSleep=$(((8000 + 500*NumNodes) / ${1}))
 echo tpcc master_to_sleep $MasterToSleep >> config
 echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
@@ -67,34 +67,12 @@ echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10} ${11}  > $Folder/config
 touch $Folder/$seq
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-./script/clean_data.sh
-sleep 10
-#./script/restartAndConnect.sh
-#Change Load params
-#./masterScripts/changeConfig.sh "$AllNodes" $Tpcc duration 1 
-#./masterScripts/changeConfig.sh "$AllNodes" $Load duration 1 
-#./masterScripts/changeConfig.sh "$AllNodes" $Tpcc to_sleep 8000 
-#./masterScripts/changeConfig.sh "$AllNodes" $Load to_sleep 7000
-#./masterScripts/changeConfig.sh "$AllNodes" $Ant do_repl true
-
-#./script/restartAndConnect.sh "$AllNodes"  antidote 
-#./script/restartNodes.sh 
-#sleep 20
-
-#Time=`date +%s`
-#./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
-#NewTime=`date +%s`
-#Duration=$((NewTime-Time))
-#if [ "$Duration" -lt 60 ]
-#then
-#echo "Load failed... Trying again!"
-#sleep 5
-#./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/load.config"
-#fi
-
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config" &
+#./script/parallel_command.sh "`cat ./script/allnodes | head -2`" "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config" &
+./script/clean_data.sh
 ./script/load.sh `head -1 ./script/allnodes` tpcc $WPerDc
 wait
+
 
 #sleep 5
 #if [ $ToSleep -lt 20000 ]
@@ -111,10 +89,13 @@ wait
 wait
 #./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
-#for N in $AllNodes
-#do
-#./script/parseStat.sh $N $Folder
-#done
-./script/fetchAndParseStat.sh $Folder
+timeout 60 ./script/fetchAndParseStat.sh $Folder
+if [ $? -eq 124 ]; then
+    timeout 60 ./script/fetchAndParseStat.sh $Folder
+    if [ $? -eq 124 ]; then
+        timeout 60 ./script/fetchAndParseStat.sh $Folder
+    fi
+fi
 
 sudo pkill -P $$
+./script/verifySame.sh $Folder 

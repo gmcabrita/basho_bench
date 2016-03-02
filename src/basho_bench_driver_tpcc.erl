@@ -52,6 +52,8 @@
                 num_nodes,
                 access_master,
                 access_slave,
+                payment_master,
+                payment_slave,
 		        no_specula,
                 no_local,
                 no_remote,
@@ -95,6 +97,8 @@ new(Id) ->
    
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
+    PaymentMaster = math:pow(AccessMaster/100, 10)*100, %basho_bench_config:get(payment_master),
+    PaymentSlave = 100 - PaymentMaster, %basho_bench_config:get(payment_slave),
     WPerNode = basho_bench_config:get(w_per_dc),
 
     case net_kernel:start(MyNode) of
@@ -157,6 +161,8 @@ new(Id) ->
                tx_server=MyTxServer,
                access_master=AccessMaster,
                access_slave=AccessSlave,
+               payment_master=PaymentMaster,
+               payment_slave=PaymentSlave,
                part_list = PartList,
                hash_dict = HashDict1,
                w_per_dc=WPerNode,
@@ -333,9 +339,9 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 %% @doc Payment transaction of TPC-C
 run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, worker_id=WorkerId,
         hash_dict=HashDict, my_rep_ids=MyRepIds, no_rep_ids=SlaveRepIds, w_per_dc=WPerNode, 
-        node_id=DcId, access_slave=AccessSlave, p_specula=PSpecula, p_local=PLocal,
+        node_id=DcId, payment_master=PaymentMaster, payment_slave=PaymentSlave, p_specula=PSpecula, p_local=PLocal,
         p_remote=PRemote, p_local_abort=PLAbort, p_remote_abort=PRAbort, p_read=PRead,
-        c_c_id=C_C_ID, c_c_last = C_C_LAST, access_master=AccessMaster}) ->
+        c_c_id=C_C_ID, c_c_last = C_C_LAST}) ->
 
     WS = dict:new(),
     %LocalWS = dict:new(),
@@ -354,7 +360,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 	%							true -> {N+1, RId};  false -> {N, RId}
 	%						end
 	%			  	end,
-    CWId = pick_warehouse(DcId, MyRepIds, SlaveRepIds, WPerNode, AccessMaster, AccessSlave),
+    CWId = pick_warehouse(DcId, MyRepIds, SlaveRepIds, WPerNode, PaymentMaster, PaymentSlave),
     CDId = DistrictId,
 	PaymentAmount = tpcc_tool:random_num(100, 500000) / 100.0,
 
@@ -431,6 +437,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
             end;
         {ok, {specula_commit, _}} ->
             {PSTime, PSCount} = PSpecula,
+            %lager:warning("Time diff is ~w", [get_time_diff(RT1, RT3)]),
             {ok, State#state{p_read=PRead+get_time_diff(RT1, RT2), p_specula={PSTime+get_time_diff(RT2, RT3),
                     PSCount+1}}};
         {error,timeout} ->

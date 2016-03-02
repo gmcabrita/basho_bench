@@ -27,8 +27,8 @@
 
 -include("basho_bench.hrl").
 
--define(TIMEOUT, 10000).
--define(READ_TIMEOUT, 10000).
+-define(TIMEOUT, 20000).
+-define(READ_TIMEOUT, 20000).
 
 -record(state, {worker_id,
                 time,
@@ -123,6 +123,11 @@ new(Id) ->
     _Result = net_adm:ping(TargetNode),
     %?INFO("Result of ping is ~p \n", [Result]),
 
+    case Id of 1 ->
+                    timer:sleep(MasterToSleep);
+              _ ->  timer:sleep(ToSleep)
+    end,
+
     {PartList, ReplList, NumDcs} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
     %lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
 
@@ -138,10 +143,6 @@ new(Id) ->
     lager:info("MyRepIds ~w, No ~w, D ~w", [MyRepIds, SlaveRepIds, dict:to_list(HashDict1)]),
 
     %lager:info("Part list is ~w",[PartList]),
-    case Id of 1 -> 
-		    timer:sleep(MasterToSleep);
-	      _ ->  timer:sleep(ToSleep) 
-    end,
     MyTable = ets:new(my_table, [private, set]),
     {ok, #state{time={1,1,1}, worker_id=Id,
                local_commit= {0,0},
@@ -290,8 +291,7 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
     end,
     case V of
         [] ->
-            lager:error("Key ~p not found!!!! Should read from dc ~w, my dc is ~w", [Key, DcId, MyDcId]),
-            error;
+	    0;
         _ ->
             V
     end.
