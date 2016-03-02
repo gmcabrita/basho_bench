@@ -22,9 +22,4 @@ else
 fi
 done
 
-if [ ! -f $Folder/stat ]
-then
-    Header="ReadAborted,ReadInvalid,CertAborted,CascadeAborted,Committed,Whatever,SpeculaRead,Whatever,NOCommitLP,NOCommitRP,NOAbortLP,NOAbortRP,PCommitLP,PCommitRP,PAbortLP,PAbortRP,GCommitLP,GCommitRP,GAbortLP,GAbortRP"
-    echo "$Header" >> $Folder/stat
-fi
 echo "$Results" >> $Folder/stat
