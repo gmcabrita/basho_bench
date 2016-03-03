@@ -16,7 +16,7 @@ then
     specula_length=$9
     pattern=${10}
     repl_degree=${11}
-    process_time=${12}
+    prob_access=${12}
     folder=${13}
     if [ "$do_specula" == true ]; then
 	fast_reply=true
@@ -46,7 +46,7 @@ echo micro cache_num $cache_num >> config
 echo micro master_range $master_range >> config
 echo micro slave_range $slave_range >> config
 echo micro cache_range $cache_range >> config
-echo micro process_time $process_time >> config
+echo micro prob_access $prob_access >> config
 echo micro pattern $pattern >> config
 echo micro duration 60 >> config
 echo micro specula $do_specula >> config

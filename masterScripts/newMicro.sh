@@ -4,7 +4,7 @@ function runNTimes {
     for i in $seq
     do
         if [ $start_ind -gt $skip_len ]; then
-        ./script/runMicroBench.sh $t $MN $SN $CN $MR $SR $CR $do_specula $len $specula_read $rep $comp specula_tests $start_ind
+        ./script/runMicroBench.sh $t $MN $SN $CN $MR $SR $CR $do_specula $len $specula_read $rep $prob_access specula_tests $start_ind
         #echo $t $MN $SN $CN $MR $SR $CR $do_specula $len random $rep $comp specula_tests $start_ind
         skipped=1
         else
@@ -31,6 +31,7 @@ t="8"
 contentions="1 2 3 4"
 localities="1"
 local_comp="0"
+prob_access=false
 replications="2"
 start_ind=1
 skipped=0
@@ -114,4 +115,56 @@ do
     sudo ./script/preciseTime.sh
     fi
     runNTimes
+done
+
+
+spcula_read=true
+prob_access=true
+locals="1 2 3"
+for len in $length
+do
+    if [ $skip_len == 0 ] || [ $skipped == 1 ]
+    then
+    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/restartAndConnect.sh
+    sleep 25
+    fi
+    MR=$BIG CR=$BIG
+    for lo in $locals
+    do
+        if [ $lo == 1]; then MN=80 SN=19 CN=1
+        elif [ $lo == 2 ]; then MN=70 SN=15 CN=10
+        elif [ $lo == 3 ]; then  MN=50 SN=25 CN=25
+        fi
+        MN=12    SN=0    CN=3
+        if [ $skip_len == 0 ] || [ $skipped == 1 ]
+        then
+        sudo ./script/preciseTime.sh
+        fi
+        runNTimes
+    done
+done
+
+for len in $length
+do
+    if [ $skip_len == 0 ] || [ $skipped == 1 ]
+    then
+    sudo ./script/configBeforeRestart.sh $t false false 0 $rep $parts false 
+    sudo ./script/restartAndConnect.sh
+    sleep 25
+    fi
+    MR=$BIG CR=$BIG
+    for lo in $locals
+    do
+        if [ $lo == 1]; then MN=80 SN=19 CN=1
+        elif [ $lo == 2 ]; then MN=70 SN=15 CN=10
+        elif [ $lo == 3 ]; then  MN=50 SN=25 CN=25
+        fi
+        MN=12    SN=0    CN=3
+        if [ $skip_len == 0 ] || [ $skipped == 1 ]
+        then
+        sudo ./script/preciseTime.sh
+        fi
+        runNTimes
+    done
 done
