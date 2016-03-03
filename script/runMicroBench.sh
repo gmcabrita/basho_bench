@@ -47,7 +47,7 @@ echo micro master_range 1000000 >> config
 echo micro slave_range 1000000 >> config
 echo micro cache_range 1000000 >> config
 echo micro local_hot_range $local_hot_range >> config
-echo micro remote_hot_range $dc_rep_hot_range >> config
+echo micro remote_hot_range $remote_hot_range >> config
 echo micro prob_access $prob_access >> config
 echo micro pattern $pattern >> config
 echo micro duration 60 >> config

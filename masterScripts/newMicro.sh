@@ -8,26 +8,19 @@ function runNTimes {
         #echo $t $MN $SN $CN $MR $SR $CR $do_specula $len random $rep $comp specula_tests $start_ind
         skipped=1
         else
-        echo "Skipped..."$start_index
+        echo "Skipped..."$start_ind
         fi
         start_ind=$((start_ind+1))
     done
 } 
 
-#if [ $1 == true ]
-#then
+#################################### Keep in mind to change the order of the last specula experiment...
+
 do_specula=true
 fast_reply=true
-#    length="8 4 2 1"
-#else
-#    do_specula=false
-#    fast_reply=false
-#    length="0"
-#fi
 ## Just to test.. 
 seq="1"
 t="8"
-#workloads="1 2 3 5"
 contentions="1 2 3 4"
 length="1 2 4 8 16"
 localities="1"
@@ -35,14 +28,19 @@ local_comp="0"
 prob_access=f
 replications="2"
 start_ind=1
-skipped=1
-skip_len=0
+skipped=0
+skip_len=44
 parts=3
 BIG=10000
 SML=1000
 SR=10000
 specula_read=specula
 rep=1
+
+if [ $skip_len -eq 0]; then
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+fi
+
 for len in $length
 do
     if [  $skipped == 1 ]
@@ -67,7 +65,8 @@ do
     done
 done
 
-specula_read=no_specula
+#Same, but no specula read
+specula_read=nospecula
 for len in $length
 do
     if [ $skip_len == 0 ] || [ $skipped == 1 ]
@@ -92,7 +91,9 @@ do
     done
 done
 
-specula_read=no_specula
+
+#No speculation
+specula_read=nospecula
 do_specula=false
 fast_reply=false
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
@@ -120,7 +121,11 @@ do
 done
 
 
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 spcula_read=specula
+do_specula=true
+fast_reply=true
 prob_access="t"
 locals="1 2 3"
 for len in $length
@@ -134,7 +139,7 @@ do
     MR=$BIG CR=$BIG
     for lo in $locals
     do
-        if [ $lo == 1]; then MN=80 SN=19 CN=1
+        if [ $lo == 1 ]; then MN=80 SN=19 CN=1
         elif [ $lo == 2 ]; then MN=70 SN=15 CN=10
         elif [ $lo == 3 ]; then  MN=50 SN=25 CN=25
         fi
@@ -147,26 +152,33 @@ do
     done
 done
 
-for len in $length
+
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+spcula_read=nospecula
+do_specula=false
+fast_reply=false
+prob_access="t"
+locals="1 2 3"
+if [ $skip_len == 0 ] || [ $skipped == 1 ]
+then
+    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read 
+    sudo ./script/restartAndConnect.sh
+sleep 25
+fi
+MR=$BIG CR=$BIG
+for lo in $locals
 do
+    if [ $lo == 1 ]; then MN=80 SN=19 CN=1
+    elif [ $lo == 2 ]; then MN=70 SN=15 CN=10
+    elif [ $lo == 3 ]; then  MN=50 SN=25 CN=25
+    fi
+    MN=12    SN=0    CN=3
     if [ $skip_len == 0 ] || [ $skipped == 1 ]
     then
-    sudo ./script/configBeforeRestart.sh $t false false 0 $rep $parts false 
-    sudo ./script/restartAndConnect.sh
-    sleep 25
-    fi
-    MR=$BIG CR=$BIG
-    for lo in $locals
-    do
-        if [ $lo == 1]; then MN=80 SN=19 CN=1
-        elif [ $lo == 2 ]; then MN=70 SN=15 CN=10
-        elif [ $lo == 3 ]; then  MN=50 SN=25 CN=25
-        fi
-        MN=12    SN=0    CN=3
-        if [ $skip_len == 0 ] || [ $skipped == 1 ]
-        then
         sudo ./script/preciseTime.sh
-        fi
-        runNTimes
-    done
+    fi
+    runNTimes
 done
+
+#Still need scalability test
