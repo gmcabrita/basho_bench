@@ -14,24 +14,25 @@ function runNTimes {
     done
 } 
 
-if [ $1 == true ]
-then
-    do_specula=true
-    fast_reply=true
-    length="8 4 2 1"
-else
-    do_specula=false
-    fast_reply=false
-    length="0"
-fi
+#if [ $1 == true ]
+#then
+#    do_specula=true
+#    fast_reply=true
+#    length="8 4 2 1"
+#else
+#    do_specula=false
+#    fast_reply=false
+#    length="0"
+#fi
 ## Just to test.. 
 seq="1"
 t="8"
 #workloads="1 2 3 5"
 contentions="1 2 3 4"
+length="1 2 4 8 16"
 localities="1"
 local_comp="0"
-prob_access=false
+prob_access=f
 replications="2"
 start_ind=1
 skipped=0
@@ -39,8 +40,8 @@ skip_len=0
 parts=3
 BIG=10000
 SML=1000
-specula_read=true
-rep=3
+specula_read=specula
+rep=1
 for len in $length
 do
     if [ $skip_len == 0 ] || [ $skipped == 1 ]
@@ -65,7 +66,7 @@ do
     done
 done
 
-spcula_read=false
+specula_read=no_specula
 for len in $length
 do
     if [ $skip_len == 0 ] || [ $skipped == 1 ]
@@ -90,7 +91,7 @@ do
     done
 done
 
-spcula_read=false
+specula_read=no_specula
 do_specula=false
 fast_reply=false
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
@@ -118,8 +119,8 @@ do
 done
 
 
-spcula_read=true
-prob_access=true
+spcula_read=specula
+prob_access="t"
 locals="1 2 3"
 for len in $length
 do
