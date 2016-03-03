@@ -10,7 +10,7 @@ warehouse="4 8"
 rep=2
 parts=3
 start_ind=1
-skip_len=0
+skip_len=50
 skipped=0
 AM=80
 AS=0
@@ -74,8 +74,8 @@ done
 #start_ind=$((start_ind+1))
 
 
-sudo ./masterScripts/initMachines.sh 1 benchmark_no_specula
-sudo ./masterScripts/initMachines.sh 1 benchmark_no_specula
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 for t in $threads
 do  
         sudo ./script/configBeforeRestart.sh $t false false 0 $rep $parts 
