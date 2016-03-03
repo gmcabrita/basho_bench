@@ -25,7 +25,7 @@ do
 	    Type=1
     else
 	    File="../antidote/rel/antidote/antidote.config"
-        File2=$File
+        File2="../antidote/rel/files/antidote.config"
     fi
     Key=${List[1]}
     Value=${List[2]}
