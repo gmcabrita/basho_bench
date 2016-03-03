@@ -16,8 +16,8 @@ function runNTimes {
 
 #if [ $1 == true ]
 #then
-#    do_specula=true
-#    fast_reply=true
+do_specula=true
+fast_reply=true
 #    length="8 4 2 1"
 #else
 #    do_specula=false
@@ -35,16 +35,17 @@ local_comp="0"
 prob_access=f
 replications="2"
 start_ind=1
-skipped=0
+skipped=1
 skip_len=0
 parts=3
 BIG=10000
 SML=1000
+SR=10000
 specula_read=specula
 rep=1
 for len in $length
 do
-    if [ $skip_len == 0 ] || [ $skipped == 1 ]
+    if [  $skipped == 1 ]
     then
     sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh

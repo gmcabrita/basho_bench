@@ -18,12 +18,12 @@ then
     repl_degree=${11}
     prob_access=${12}
     folder=${13}
+    Seq=${14}
     if [ "$do_specula" == true ]; then
 	fast_reply=true
     else
 	fast_reply=false
     fi
-    Seq=${14}
 else
     echo "Wrong usage: concurrent, master_num, slave_num, cache_num, master_range, slave_range, cache_range, do_specula, fast_reply, specula_length, pattern, repl_degree, folder"
     exit

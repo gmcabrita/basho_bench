@@ -231,7 +231,7 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
     RT2 = os:timestamp(),
                     
     {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WriteSet, PartList, MyNodeId),
-    lager:warning("LocalWS is ~w, RemoteWS is ~w", [LocalWriteList, RemoteWriteList]),
+    %lager:warning("LocalWS is ~w, RemoteWS is ~w", [LocalWriteList, RemoteWriteList]),
     local_process(ProcessTime),
 
     %lager:info("LW is ~p, RW is ~p",  [LocalWriteList, RemoteWriteList]),
