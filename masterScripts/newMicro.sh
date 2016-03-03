@@ -55,7 +55,7 @@ do
     do
         if [ $cont == 1 ]; then MR=$BIG CR=$BIG
         elif [ $cont == 2 ]; then MR=$SML CR=$BIG
-        elif [ $cont == 3 ]; then  MR=$SML CR=$SML
+        elif [ $cont == 3 ]; then  MR=$BIG CR=$SML
         elif [ $cont == 4 ]; then  MR=$SML CR=$SML
         fi
         MN=12    SN=0    CN=3
@@ -80,7 +80,7 @@ do
     do
         if [ $cont == 1 ]; then MR=$BIG CR=$BIG
         elif [ $cont == 2 ]; then MR=$SML CR=$BIG
-        elif [ $cont == 3 ]; then  MR=$SML CR=$SML
+        elif [ $cont == 3 ]; then  MR=$BIG CR=$SML
         elif [ $cont == 4 ]; then  MR=$SML CR=$SML
         fi
         MN=12    SN=0    CN=3
@@ -108,7 +108,7 @@ for cont in $contentions
 do
     if [ $cont == 1 ]; then MR=$BIG CR=$BIG
     elif [ $cont == 2 ]; then MR=$SML CR=$BIG
-    elif [ $cont == 3 ]; then  MR=$SML CR=$SML
+    elif [ $cont == 3 ]; then  MR=$BIG CR=$SML
     elif [ $cont == 4 ]; then  MR=$SML CR=$SML
     fi
     MN=12    SN=0    CN=3

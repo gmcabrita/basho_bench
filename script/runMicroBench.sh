@@ -9,9 +9,9 @@ then
     master_num=$2
     slave_num=$3
     cache_num=$4
-    master_range=$5
-    slave_range=$6
-    cache_range=$7
+    local_hot_range=$5
+    other_master_hot_range=$6
+    remote_hot_range=$7
     do_specula=$8
     specula_length=$9
     pattern=${10}
@@ -43,9 +43,11 @@ echo micro concurrent $1 >> config
 echo micro master_num $master_num  >> config
 echo micro slave_num $slave_num >> config
 echo micro cache_num $cache_num >> config
-echo micro master_range $master_range >> config
-echo micro slave_range $slave_range >> config
-echo micro cache_range $cache_range >> config
+echo micro master_range 1000000 >> config
+echo micro slave_range 1000000 >> config
+echo micro cache_range 1000000 >> config
+echo micro local_hot_range $local_hot_range >> config
+echo micro remote_hot_range $dc_rep_hot_range >> config
 echo micro prob_access $prob_access >> config
 echo micro pattern $pattern >> config
 echo micro duration 60 >> config
