@@ -196,7 +196,7 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
 
     RT1 = os:timestamp(),
     WriteSet = case ProbAccess of 
-                    false ->
+                    f ->
                         MasterKeys = unique_keys(1, LocalHotRange, MRange,  MNum, LocalHotRate, MyNodeId),
                         SlaveRepKeys = unique_keys(MRange+1, RemoteHotRange, SRange, SNum, RemoteHotRate, DcRepIds),
                         WS1 = lists:foldl(fun({NodeId, Key}, WS) ->
@@ -208,7 +208,7 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
                                 V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
                                 dict:store({NodeId, Key}, V+Add, WS)
                                     end, WS1, SlaveRepKeys);
-                    true ->
+                    t ->
                         NumKeys = 15,
                         DcRepLen = length(DcRepIds),
                         NoRepLen = length(NoRepIds),
