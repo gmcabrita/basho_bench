@@ -10,18 +10,22 @@ get_locality_list(PartList, ReplList, NumDcs, MyNode, single_dc_read) ->
     %[M] = [L || {N, L} <- ReplList, N == MyNode],
     AllNodes = [N || {N, _} <- PartList],
     NodeId = index(MyNode, AllNodes),
-    DcPrimaryRepIds = get_dc_other_node_ids(NodeId, AllNodes, NumDcs),
+    OtherPrimaryIds = get_dc_other_node_ids(NodeId, AllNodes, NumDcs),
 
     %[M] = [L || {N, L} <- ReplList, N == MyNode],
     %MyRepIds = get_indexes(M, AllNodes),
     %lager:info("NoId is ~w, DcPRepId is ~w", [NodeId, DcPrimaryRepIds]),
-    SlaveRepIds = get_replicas(DcPrimaryRepIds++[NodeId], ReplList, AllNodes), 
+    DcRepIds = get_replicas(OtherPrimaryIds++[NodeId], ReplList, AllNodes), 
+    AllNodeIds = lists:seq(1, length(AllNodes)),
+    DcNonRepIds = AllNodeIds -- ([NodeId] ++ OtherPrimaryIds ++ DcRepIds),
+    %lager:info("NodeiD ~w, OthePId ~w, RepId ~w", [NodeId, OtherPrimaryIds, DcRepIds]),
+    
     HashDict1 = build_dc_srep_dict(ReplList, AllNodes, NodeId, NumDcs),
     %HashDict = build_local_norep_dict(NodeId, ReplList, AllNodes, NoRepIds, NumDcs),
     %HashDict1 =  lists:foldl(fun(N, D) ->
     %                    dict:store(N, get_rep_name(MyNode, lists:nth(N, AllNodes)), D)
     %                    end, HashDict, MyRepIds),
-    {DcPrimaryRepIds, SlaveRepIds, HashDict1};
+    {OtherPrimaryIds, DcRepIds, DcNonRepIds, HashDict1};
 
 
 get_locality_list(PartList, ReplList, NumDcs, MyNode, node_aware) ->

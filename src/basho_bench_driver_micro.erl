@@ -37,6 +37,7 @@
                 process_time,
                 expand_part_list,
                 hash_length,
+                prob_access,
                 w_per_dc,
                 c_c_last,
                 c_c_id,
@@ -45,7 +46,8 @@
                 to_sleep,
                 hash_dict,
                 no_rep_list,
-                my_rep_ids,
+                other_master_ids,
+                dc_rep_ids,
                 no_rep_ids,
                 num_nodes,
                 master_num,
@@ -56,8 +58,8 @@
                 cache_range,
                 local_hot_range,
                 local_hot_rate,
-                slave_hot_range,
-                slave_hot_rate,
+                remote_hot_range,
+                remote_hot_rate,
 		        specula,
                 local_commit,
                 remote_commit,
@@ -99,10 +101,12 @@ new(Id) ->
     SlaveRange = basho_bench_config:get(slave_range),
     CacheRange = basho_bench_config:get(cache_range),
 
+    ProbAccess = basho_bench_config:get(prob_access),
+
     LocalHotRange = basho_bench_config:get(local_hot_range),
     LocalHotRate = basho_bench_config:get(local_hot_rate),
-    SlaveHotRange = basho_bench_config:get(slave_hot_range),
-    SlaveHotRate = basho_bench_config:get(slave_hot_rate),
+    RemoteHotRange = basho_bench_config:get(remote_hot_range),
+    RemoteHotRate = basho_bench_config:get(remote_hot_rate),
 
     case net_kernel:start(MyNode) of
         {ok, _} ->
@@ -138,9 +142,9 @@ new(Id) ->
     MyTxServer = locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     HashLength = length(ExpandPartList),
-    {MyRepIds, SlaveRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
+    {OtherMasterIds, DcRepIds, DcNoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
-    lager:info("MyRepIds ~w, No ~w, D ~w", [MyRepIds, SlaveRepIds, dict:to_list(HashDict1)]),
+    lager:info("OtherMasterIds ~w, DcRepIds ~w, NoRepIds ~w, D ~w", [OtherMasterIds, DcRepIds, DcNoRepIds, dict:to_list(HashDict1)]),
 
     %lager:info("Part list is ~w",[PartList]),
     MyTable = ets:new(my_table, [private, set]),
@@ -151,11 +155,14 @@ new(Id) ->
                remote_abort = {0,0},
                specula= {0,0},
                read = 0,
+               prob_access=ProbAccess,
                tx_server=MyTxServer,
                part_list = PartList,
 		       my_table=MyTable,
                process_time=ProcessTime,
-               my_rep_ids = MyRepIds,
+               other_master_ids=OtherMasterIds,
+               dc_rep_ids = DcRepIds,
+               no_rep_ids = DcNoRepIds,
                hash_dict = HashDict1,
                to_sleep=ToSleep,
                master_num=MasterNum,
@@ -166,9 +173,8 @@ new(Id) ->
                cache_range=CacheRange,
                local_hot_range=LocalHotRange,
                local_hot_rate=LocalHotRate,
-               slave_hot_range=SlaveHotRange,
-               slave_hot_rate=SlaveHotRate,
-               no_rep_ids = SlaveRepIds,
+               remote_hot_range=RemoteHotRange,
+               remote_hot_rate=RemoteHotRate,
                expand_part_list = ExpandPartList,
                hash_length = HashLength,   
                num_nodes = NumNodes,
@@ -178,8 +184,8 @@ new(Id) ->
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
 run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
-        no_rep_ids=SlaveRepIds, node_id=MyNodeId,  hash_dict=HashDict,  process_time=ProcessTime,
-        local_hot_rate=LocalHotRate, local_hot_range=LocalHotRange, slave_hot_rate=SlaveHotRate, slave_hot_range=SlaveHotRange,
+        dc_rep_ids=DcRepIds, node_id=MyNodeId,  hash_dict=HashDict, no_rep_ids=NoRepIds, process_time=ProcessTime, prob_access=ProbAccess,
+        local_hot_rate=LocalHotRate, local_hot_range=LocalHotRange, remote_hot_rate=RemoteHotRate, remote_hot_range=RemoteHotRange,
         master_num=MNum, slave_num=SNum, master_range=MRange, slave_range=SRange, local_commit=LocalCommit, local_abort=LocalAbort,
         remote_commit=RemoteCommit, remote_abort=RemoteAbort, specula=Specula, read=Read})->
     random:seed(os:timestamp()),
@@ -187,31 +193,45 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
 
     TxId = gen_server:call(TxServer, {start_tx}),
 
-    MasterKeys = unique_keys(1, LocalHotRange, MRange,  MNum, LocalHotRate, MyNodeId),
-    %lager:warning("Master keys are ~w", [MasterKeys]),
-    SlaveRepKeys = unique_keys(MRange+1, SlaveHotRange, SRange, SNum, SlaveHotRate, SlaveRepIds),
-    %SlavePrimaryKeys = unique_keys(MRange+1, SlaveHotRange, SRange, SNum, SlaveHotRate, MyRepIds),
- 
+
     RT1 = os:timestamp(),
-    
-    WS1 = lists:foldl(fun({NodeId, Key}, WS) ->
-                    V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
-                    dict:store({NodeId, Key}, V+Add, WS) 
-                end, dict:new(), MasterKeys),
-    %WS2 = lists:foldl(fun({NodeId, Key}, WS) ->
-    %                lager:info("DcRep id is ~w, partlis is ~w", [NodeId, PartList]),
-    %                V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
-    %                dict:store({NodeId, Key}, V+Add, WS)
-    %            end, WS1, SlaveKeys),
-    WS2 = lists:foldl(fun({NodeId, Key}, WS) ->
-                    %lager:info("Remote Rep Dc id is ~w", [NodeId]),
-                    V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
-                    dict:store({NodeId, Key}, V+Add, WS)
-                end, WS1, SlaveRepKeys),
+    WriteSet = case ProbAccess of 
+                    false ->
+                        MasterKeys = unique_keys(1, LocalHotRange, MRange,  MNum, LocalHotRate, MyNodeId),
+                        SlaveRepKeys = unique_keys(MRange+1, RemoteHotRange, SRange, SNum, RemoteHotRate, DcRepIds),
+                        WS1 = lists:foldl(fun({NodeId, Key}, WS) ->
+                                    V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
+                                    dict:store({NodeId, Key}, V+Add, WS) 
+                                end, dict:new(), MasterKeys),
+                        lists:foldl(fun({NodeId, Key}, WS) ->
+                                %lager:info("Remote Rep Dc id is ~w", [NodeId]),
+                                V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
+                                dict:store({NodeId, Key}, V+Add, WS)
+                                    end, WS1, SlaveRepKeys);
+                    true ->
+                        NumKeys = 15,
+                        DcRepLen = length(DcRepIds),
+                        NoRepLen = length(NoRepIds),
+                        lists:foldl(fun(_, WS) ->
+                                    random:seed(os:timestamp()),  Rand = random:uniform(100),
+                                    {NodeId, Key}  = case Rand =< MNum of
+                                                true -> {MyNodeId, hot_or_not(1, LocalHotRange, MRange, LocalHotRate)}; 
+                                                false -> case Rand =< MNum+SNum of
+                                                            true -> DcNode = lists:nth(Rand rem DcRepLen +1, DcRepIds),
+                                                                    {DcNode, hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate)};
+                                                            false ->OtherDcNode = lists:nth(Rand rem NoRepLen +1, NoRepIds),
+                                                                    {OtherDcNode, hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate)}
+                                                         end
+                                             end,
+                                    V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
+                                    dict:store({NodeId, Key}, V+Add, WS)
+                                  end, dict:new(), lists:seq(1, NumKeys))
+               end,
 
     RT2 = os:timestamp(),
                     
-    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS2, PartList, MyNodeId),
+    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WriteSet, PartList, MyNodeId),
+    lager:warning("LocalWS is ~w, RemoteWS is ~w", [LocalWriteList, RemoteWriteList]),
     local_process(ProcessTime),
 
     %lager:info("LW is ~p, RW is ~p",  [LocalWriteList, RemoteWriteList]),
@@ -342,12 +362,7 @@ unique_keys(Start, HotRange, UniformRange, NumKeys, HotRate, Nodes) ->
 unique_keys(_, _, _, 0, _, Set, _) ->
     sets:to_list(Set);
 unique_keys(Start, HotRange, UniformRange, NumKeys, HotRate, Set, Nodes) ->
-    random:seed(os:timestamp()),
-    Rand = random:uniform(100),
-    Key = case Rand =< HotRate of
-            true -> random:uniform(HotRange) + Start-1;
-            false -> random:uniform(UniformRange-HotRange) + Start+HotRange-1
-          end,
+    Key = hot_or_not(Start, HotRange, UniformRange, HotRate), 
     Node = case Nodes of [_|_] -> L = length(Nodes), Id = random:uniform(L), lists:nth(Id, Nodes);
                      _ ->  Nodes end,
     case sets:is_element({Node, Key}, Set) of
@@ -355,6 +370,14 @@ unique_keys(Start, HotRange, UniformRange, NumKeys, HotRate, Set, Nodes) ->
         true -> 
                 unique_keys(Start, HotRange, UniformRange, NumKeys, HotRate, Set, Nodes)
     end.
+
+hot_or_not(Start, HotRange, UniformRange, HotRate) ->
+      random:seed(os:timestamp()),
+      Rand = random:uniform(100),
+      case Rand =< HotRate of
+          true -> random:uniform(HotRange) + Start-1;
+          false -> random:uniform(UniformRange-HotRange) + Start+HotRange-1
+      end.
 
 %unique_num(Base, Num, Range) ->
 %    unique_num(Base, Num, Range, sets:new()).

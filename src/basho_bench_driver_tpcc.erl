@@ -41,12 +41,11 @@
                 c_c_last,
                 c_c_id,
                 c_ol_i_id,
-                my_rep_list,
                 my_table,
                 to_sleep,
                 hash_dict,
-                no_rep_list,
-                my_rep_ids,
+                other_master_ids,
+                dc_rep_ids,
                 no_rep_ids,
                 item_ranges,
                 num_nodes,
@@ -134,9 +133,9 @@ new(Id) ->
     MyTxServer = locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode) 
             ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
 
-    {MyRepIds, SlaveRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
+    {OtherMasterIds, DcRepIds, DcNoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
-    lager:info("MyRepId is ~w, SlaveRep Id is ~w", [MyRepIds, SlaveRepIds]),
+    lager:info("OtherMasterId is ~w, DcRep Id is ~w", [OtherMasterIds, DcRepIds]),
 
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     %lager:info("Ex list is ~w", [ExpandPartList]),
@@ -167,7 +166,9 @@ new(Id) ->
                hash_dict = HashDict1,
                w_per_dc=WPerNode,
                my_table=MyTable,
-               my_rep_ids = MyRepIds,
+               other_master_ids = OtherMasterIds,
+               dc_rep_ids = DcRepIds,
+               no_rep_ids = DcNoRepIds,
                %no_rep_list = SlaveRepList,
                to_sleep=ToSleep,
                no_specula={0,0},
@@ -182,7 +183,6 @@ new(Id) ->
                p_local_abort={0,0},
                p_remote_abort={0,0},
                p_read=0,
-               no_rep_ids = SlaveRepIds,
                item_ranges = ItemRanges,
                expand_part_list = ExpandPartList,
                hash_length = HashLength,   
@@ -197,7 +197,7 @@ new(Id) ->
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
 run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
-        my_rep_ids=MyRepIds, hash_dict=HashDict, no_rep_ids=SlaveRepIds, node_id=DcId, 
+        other_master_ids=OtherMasterIds, dc_rep_ids=DcRepIds, hash_dict=HashDict, no_rep_ids=SlaveRepIds, node_id=DcId, 
         no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, worker_id=WorkerId,
         no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, w_per_dc=WPerNode, 
         item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
@@ -241,7 +241,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
     Seq = lists:seq(1, NumItems),
     {WS3, _, AllLocal} = lists:foldl(fun(OlNumber, {TWS, TRS, AL}) ->
-                    WId = pick_warehouse(DcId, MyRepIds, SlaveRepIds, WPerNode, AccessMaster, AccessSlave),
+                    WId = pick_warehouse(DcId, OtherMasterIds, DcRepIds, WPerNode, AccessMaster, AccessSlave),
                     {Min, Max} = lists:nth(to_dc(WId, WPerNode), ItemRanges),
                     %ItemId = case tpcc_tool:random_num(1, 100) of
                     %            1 ->
@@ -338,7 +338,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
 %% @doc Payment transaction of TPC-C
 run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, worker_id=WorkerId,
-        hash_dict=HashDict, my_rep_ids=MyRepIds, no_rep_ids=SlaveRepIds, w_per_dc=WPerNode, 
+        hash_dict=HashDict, dc_rep_ids=DcRepIds, other_master_ids=OtherMasterIds, w_per_dc=WPerNode, 
         node_id=DcId, payment_master=PaymentMaster, payment_slave=PaymentSlave, p_specula=PSpecula, p_local=PLocal,
         p_remote=PRemote, p_local_abort=PLAbort, p_remote_abort=PRAbort, p_read=PRead,
         c_c_id=C_C_ID, c_c_last = C_C_LAST}) ->
@@ -360,7 +360,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 	%							true -> {N+1, RId};  false -> {N, RId}
 	%						end
 	%			  	end,
-    CWId = pick_warehouse(DcId, MyRepIds, SlaveRepIds, WPerNode, PaymentMaster, PaymentSlave),
+    CWId = pick_warehouse(DcId, OtherMasterIds, DcRepIds, WPerNode, PaymentMaster, PaymentSlave),
     CDId = DistrictId,
 	PaymentAmount = tpcc_tool:random_num(100, 500000) / 100.0,
 
