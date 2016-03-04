@@ -232,3 +232,27 @@ def is_int(s):
         return True
     except ValueError:
         return False
+
+def draw_bar_if_need(plot, index, width, val_list, color, prev_width, handler):
+    base = 0
+    i = 0
+    if val_list[-1][0] != 0.0:
+        for v in val_list:
+            if base == 0:
+                if isinstance(color[i], tuple):
+                    (col, hat) = color[i]
+                    plot.bar(index, v[0], width, color=col, hatch=hat)
+                else:
+                    plot.bar(index, v[0], width, color=color[i])
+                base = v[0]
+            else:
+                if isinstance(color[i], tuple):
+                    (col, hat) = color[i]
+                    hr = plot.bar(index, v[0], width, color=col, hatch=hat, bottom=base, yerr=v[1])
+                else:
+                    hr = plot.bar(index, v[0], width, color=color[i], bottom=base, yerr=v[1])
+                base += v[0]
+            i += 1
+        return (prev_width+width, hr)
+    else:
+        return (prev_width, handler)

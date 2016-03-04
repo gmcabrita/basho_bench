@@ -38,6 +38,8 @@ def add_throughput(nodes, dict, total_dict, folder):
     all_cert_abort = 0
     all_c_abort = 0
     all_abort = 0
+    index = 1
+    stat_lines = [line.rstrip('\n') for line in open(os.path.join(folder, 'stat'))]
     for node in nodes:
         th_file = os.path.join(folder, node)
         th_lines = [line.rstrip('\n') for line in open(th_file)]
@@ -52,34 +54,34 @@ def add_throughput(nodes, dict, total_dict, folder):
             aborted += int(words[4])
             duration=max(duration,float(words[0]))
             #print("Duration is"+str(int(duration)))
-        stat_lines = [line.rstrip('\n') for line in open(os.path.join(folder, 'stat'))]
-        [stat_line] = [x for x in stat_lines if x.startswith(node)]
-        stat_data = stat_line.split()
-        if len(stat_data) == 28:
-            read_abort = int(stat_data[1])
-            read_invalid = int(stat_data[3])
-            cert_abort = int(stat_data[5])
-            cascade_abort = int(stat_data[7])
-            if int(stat_data[9]) == 0:
+        stat_line = stat_lines[index] #[x for x in stat_lines if x[0].isdigit()]
+        stat_data = stat_line.split(',')
+        if len(stat_data) == 20:
+            read_abort = int(stat_data[0])
+            read_invalid = int(stat_data[1])
+            cert_abort = int(stat_data[2])
+            cascade_abort = int(stat_data[3])
+            if int(stat_data[4]) == 0:
                 # This is specula!
                 real_committed = committed
                 cert_abort = aborted
             else:
-                real_committed = int(stat_data[9])
-        elif len(stat_data) == 26:
-            read_abort = int(stat_data[1])
-            read_invalid = 0 
-            cert_abort = int(stat_data[3])
-            cascade_abort = int(stat_data[5])
-            if int(stat_data[7]) == 0:
-                # This is specula!
-                real_committed = committed
-                cert_abort = aborted
-            else:
-                real_committed = int(stat_data[7])
+                real_committed = int(stat_data[4])
+        #elif len(stat_data) == 26:
+        #    read_abort = int(stat_data[1])
+        #    read_invalid = 0 
+        #    cert_abort = int(stat_data[3])
+        #    cascade_abort = int(stat_data[5])
+        #    if int(stat_data[7]) == 0:
+        #        # This is specula!
+        #        real_committed = committed
+        #        cert_abort = aborted
+        #    else:
+        #        real_committed = int(stat_data[7])
         else:
             print("***WTF, data dimenstion is wrong!!!***")
             print("Stat data is "+str(stat_data))
+        index += 1 
         
         #print str(committed)+' '+str(aborted) +' '+str(read_abort)+' '+str(specula_abort)+' '+str(cascade_abort) 
         if node in dict:
@@ -110,7 +112,11 @@ def update_counter(folder, length, key):
 
 
 def add_duration(nodes, dict, total_dict, folder):
-    total_dur = [0, 0, 0, 0, 0, 0, 0, 0]
+    #total_dur = [0, 0, 0, 0, 0, 0, 0, 0]
+    #print("**************** Add totoal duration***************")
+    total_dur = []
+    index = 1
+    stat_lines = [line.rstrip('\n') for line in open(os.path.join(folder, 'stat'))]
     for node in nodes:
         dur_file = os.path.join(folder, node+'-prep')
         if os.path.isfile(dur_file) == False:
@@ -126,19 +132,31 @@ def add_duration(nodes, dict, total_dict, folder):
             dur_avg = list(data)
         # convert to ms
         dur_avg = [x/1000 for x in dur_avg]
+        print("Dua avg is "+str(dur_avg))
         #print dur_avg
-        stat_lines = [line.rstrip('\n') for line in open(os.path.join(folder, 'stat'))]
-        [stat_line] = [x for x in stat_lines if x.startswith(node)]
-        stat_data = stat_line.split()
+        stat_line = stat_lines[index] #[x for x in stat_lines if x.startswith(node)]
+        stat_data = stat_line.split(',')
         #local_cert_dur = float(stat_data[21])/1000
-        specula_abort_dur = float(stat_data[23])/1000 
-        specula_commit_dur = float(stat_data[25])/1000
+        dur_avg.append(float(stat_data[8])/1000) 
+        dur_avg.append(float(stat_data[9])/1000)
+        dur_avg.append(float(stat_data[10])/1000)
+        dur_avg.append(float(stat_data[11])/1000)
+        dur_avg.append(float(stat_data[12])/1000) 
+        dur_avg.append(float(stat_data[13])/1000)
+        dur_avg.append(float(stat_data[14])/1000)
+        dur_avg.append(float(stat_data[15])/1000)
+        dur_avg.append(float(stat_data[16])/1000) 
+        dur_avg.append(float(stat_data[17])/1000)
+        dur_avg.append(float(stat_data[18])/1000)
+        dur_avg.append(float(stat_data[19])/1000)
         #dur_avg.append(local_cert_dur), 
-        dur_avg.append(specula_abort_dur), 
-        dur_avg.append(specula_commit_dur)
         if node in dict:
             dict[node].append(dur_avg)
-        total_dur = list(map(add, total_dur, dur_avg))
+        if total_dur == []:
+            total_dur = dur_avg[:]
+        else:
+            total_dur = list(map(add, total_dur, dur_avg))
+        index += 1
     total_avg_dur = [x/len(nodes) for x in total_dur]
     total_dict.append(total_avg_dur)
         
@@ -167,6 +185,8 @@ def write_to_file(file_name, dict, keys, title):
         if key in dict:
             data_list = dict[key]
             data_array = np.array(data_list).astype(np.float)
+            print("Key is"+str(key))
+            print("Data array is"+str(data_array))
             if data_array.ndim == 2:
                 data_avg = list(np.average(data_array, axis=0))
             else:
@@ -236,7 +256,7 @@ for config in dict:
     write_to_file(throughput, entry['throughput'], nodes, 'ip committed cert_aborted read_aborted read_invalid cascade_abort') 
     write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted read_invalid cascade_abort all_abort') 
     write_std(total_throughput, entry['total_throughput'])
-    write_to_file(duration, entry['duration'], nodes, 'ip read local_a remote_a local_c remote_c specula_c s_final_a s_final_c')
-    write_to_file(total_duration, entry, ['total_duration'], 'N/A read local_a remote_a local_c remote_c specula_c s_final_a s_final_c')
+    write_to_file(duration, entry['duration'], nodes, 'ip no_read no_local_a no_remote_a no_local_c no_remote_c no_specula_c p_read p_local_a p_remote_a p_local_c p_remote_c p_specula_c nc_local nc_remote na_local na_remote pc_local pc_remote pa_local pa_remote gc_local gc_remote ga_local ga_remote')
+    write_to_file(total_duration, entry, ['total_duration'], 'N/A ip no_read no_local_a no_remote_a no_local_c no_remote_c no_specula_c p_read p_local_a p_remote_a p_local_c p_remote_c p_specula_c nc_local nc_remote na_local na_remote pc_local pc_remote pa_local pa_remote gc_local gc_remote ga_local ga_remote') 
     write_std(total_duration, entry['total_duration'])
     

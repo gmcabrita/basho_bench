@@ -5,6 +5,7 @@ import sys
 import glob
 import os
 from os.path import basename
+from helper import *
 import numpy as np
 from time import gmtime, strftime
 
@@ -41,11 +42,13 @@ os.mkdir(lat_folder)
 os.mkdir(op_lat_folder)
 os.mkdir(th_folder)
 for key, flist in field_dict.items():
-    print(key+":"+str(flist))
-    os.system('./dataScript/plot_lat.py %s %s %s %s' % (input_folder, lat_folder, bench_type, ' '.join(map(str, flist))))
-    os.system('./dataScript/plot_bar_th.py %s %s %s %s' % (input_folder, th_folder, bench_type, ' '.join(map(str, flist))))
+    sflist = sort_by_num(flist)
+    joined = ' '.join(map(str, sflist))
+    #print("Joined is"+str(joined))
+    os.system('./dataScript/plot_lat.py %s %s %s %s' % (input_folder, lat_folder, bench_type, joined))
+    os.system('./dataScript/plot_bar_th.py %s %s %s %s' % (input_folder, th_folder, bench_type, joined))
     if bench_type == 'tpcc':
-        os.system('./dataScript/plot_op_lat.py %s %s %s %s' % (input_folder, op_lat_folder, bench_type, ' '.join(map(str, flist))))
+        os.system('./dataScript/plot_op_lat.py %s %s %s %s' % (input_folder, op_lat_folder, bench_type, joined))
 
 #str_series = ' '.join(map(str, series))
 #for config in series:
