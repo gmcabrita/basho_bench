@@ -37,7 +37,7 @@ Folder=$folder/$Time
 echo "Folder to make is" $Folder
 mkdir $Folder
 touch $Folder/$Seq
-echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} > $Folder/config
+echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} > $Folder/config
 sudo rm -f config
 echo ant concurrent $1 >> config 
 echo micro concurrent $1 >> config 
