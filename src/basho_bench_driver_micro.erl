@@ -187,12 +187,12 @@ new(Id) ->
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
 run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter,
-        dc_rep_ids=DcRepIds, node_id=MyNodeId,  hash_dict=HashDict, no_rep_ids=NoRepIds, process_time=ProcessTime, prob_access=ProbAccess,
+        dc_rep_ids=DcRepIds, node_id=MyNodeId,  hash_dict=HashDict, no_rep_ids=NoRepIds, prob_access=ProbAccess,
         local_hot_rate=LocalHotRate, local_hot_range=LocalHotRange, remote_hot_rate=RemoteHotRate, remote_hot_range=RemoteHotRange,
         master_num=MNum, slave_num=SNum, master_range=MRange, slave_range=SRange, local_commit=LocalCommit, local_abort=LocalAbort,
         remote_commit=RemoteCommit, remote_abort=RemoteAbort, specula=Specula, read=Read})->
     random:seed(os:timestamp()),
-    Add = random:uniform(10)-10,
+    Add = random:uniform(3)-2,
 
     TxId = gen_server:call(TxServer, {start_tx}),
 
@@ -225,14 +225,14 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
                                                             true ->     
                                                                         Key = hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate),
                                                                         case Deter of
-                                                                            true ->
-                                                                            DcNode = lists:nth(Ind rem DcRepLen +1, DcRepIds),
-                                                                            V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
-                                                                            {Ind+1, dict:store({DcNode, Key}, V+Add, WS)};
                                                                             false ->
                                                                                 DcNode = lists:nth(Rand rem DcRepLen +1, DcRepIds),
                                                                                 V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
-                                                                                {Ind+1, dict:store({DcNode, Key}, V+Add, WS)}
+                                                                                {Ind+1, dict:store({DcNode, Key}, V+Add, WS)};
+                                                                            _ ->
+                                                                            DcNode = lists:nth(Ind rem Deter +1, DcRepIds),
+                                                                            V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
+                                                                            {Ind+1, dict:store({DcNode, Key}, V+Add, WS)}
                                                                         end;
                                                             false -> OtherDcNode = lists:nth(Rand rem NoRepLen +1, NoRepIds),
                                                                      Key = hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate),
@@ -247,7 +247,8 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
     RT2 = os:timestamp(),
                     
     {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WriteSet, PartList, MyNodeId),
-    local_process(ProcessTime),
+    %%%%% WARNING: Local processing is turned off!!
+    %local_process(ProcessTime),
 
     %lager:info("LW is ~p, RW is ~p",  [LocalWriteList, RemoteWriteList]),
     Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
@@ -411,19 +412,19 @@ hot_or_not(Start, HotRange, UniformRange, HotRate) ->
  %   ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.
 
 
-local_process(0) ->
-    ok;
-local_process(N) ->
-    StartTime = os:timestamp(),
-    wait_until(StartTime, N*1000).
+%local_process(0) ->
+%    ok;
+%local_process(N) ->
+%    StartTime = os:timestamp(),
+%    wait_until(StartTime, N*1000).
 
-wait_until(StartTime, Duration) ->
-    case timer:now_diff(os:timestamp(), StartTime) > Duration of
-        true ->
-            ok;
-        false ->
-            wait_until(StartTime, Duration)
-    end.
+%wait_until(StartTime, Duration) ->
+%    case timer:now_diff(os:timestamp(), StartTime) > Duration of
+%        true ->
+%            ok;
+%        false ->
+%            wait_until(StartTime, Duration)
+%    end.
 
 get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
     ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.
