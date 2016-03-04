@@ -2,19 +2,18 @@
 
 ## Just to test.. 
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
-seq="1"
+seq="1 2"
 threads="8"
 workloads="1 2 3 4 8"
 length="1 2 4 8 16"
 warehouse="4 8"
-rep=2
-parts=3
+rep=5
+parts=28
 start_ind=1
-skip_len=50
+skip_len=0
 skipped=0
 AM=80
 AS=0
-
 
 for t in $threads
 do

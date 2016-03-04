@@ -29,15 +29,17 @@ prob_access=f
 replications="2"
 start_ind=1
 skipped=0
-skip_len=44
+skip_len=5
 parts=3
-BIG=10000
-SML=1000
+MBIG=10000
+MSML=500
+CBIG=2000
+CSML=200
 SR=10000
 specula_read=specula
 rep=1
 
-if [ $skip_len -eq 0]; then
+if [ $skip_len -eq 0 ]; then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 fi
 
@@ -51,10 +53,10 @@ do
     fi
     for cont in $contentions
     do
-        if [ $cont == 1 ]; then MR=$BIG CR=$BIG
-        elif [ $cont == 2 ]; then MR=$SML CR=$BIG
-        elif [ $cont == 3 ]; then  MR=$BIG CR=$SML
-        elif [ $cont == 4 ]; then  MR=$SML CR=$SML
+        if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
+        elif [ $cont == 2 ]; then MR=$MSML CR=$CBIG
+        elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
+        elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
         fi
         MN=12    SN=0    CN=3
         if [ $skip_len == 0 ] || [ $skipped == 1 ]
@@ -67,6 +69,8 @@ done
 
 #Same, but no specula read
 specula_read=nospecula
+if [ $skipped == 1 ]
+then
 for len in $length
 do
     if [ $skip_len == 0 ] || [ $skipped == 1 ]
@@ -77,10 +81,10 @@ do
     fi
     for cont in $contentions
     do
-        if [ $cont == 1 ]; then MR=$BIG CR=$BIG
-        elif [ $cont == 2 ]; then MR=$SML CR=$BIG
-        elif [ $cont == 3 ]; then  MR=$BIG CR=$SML
-        elif [ $cont == 4 ]; then  MR=$SML CR=$SML
+        if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
+        elif [ $cont == 2 ]; then MR=$MSML CR=$CBIG
+        elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
+        elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
         fi
         MN=12    SN=0    CN=3
         if [ $skip_len == 0 ] || [ $skipped == 1 ]
@@ -90,39 +94,9 @@ do
         runNTimes
     done
 done
-
-
-#No speculation
-specula_read=nospecula
-do_specula=false
-fast_reply=false
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-len=0
-if [ $skip_len == 0 ] || [ $skipped == 1 ]
-  then
-  sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
-  sudo ./script/restartAndConnect.sh
-  sleep 25
 fi
-for cont in $contentions
-do
-    if [ $cont == 1 ]; then MR=$BIG CR=$BIG
-    elif [ $cont == 2 ]; then MR=$SML CR=$BIG
-    elif [ $cont == 3 ]; then  MR=$BIG CR=$SML
-    elif [ $cont == 4 ]; then  MR=$SML CR=$SML
-    fi
-    MN=12    SN=0    CN=3
-    if [ $skip_len == 0 ] || [ $skipped == 1 ]
-    then
-    sudo ./script/preciseTime.sh
-    fi
-    runNTimes
-done
 
-
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+skipped=1
 spcula_read=specula
 do_specula=true
 fast_reply=true
@@ -136,14 +110,13 @@ do
     sudo ./script/restartAndConnect.sh
     sleep 25
     fi
-    MR=$BIG CR=$BIG
+    MR=$MBIG CR=$CBIG
     for lo in $locals
     do
         if [ $lo == 1 ]; then MN=80 SN=19 CN=1
         elif [ $lo == 2 ]; then MN=70 SN=15 CN=10
         elif [ $lo == 3 ]; then  MN=50 SN=25 CN=25
         fi
-        MN=12    SN=0    CN=3
         if [ $skip_len == 0 ] || [ $skipped == 1 ]
         then
         sudo ./script/preciseTime.sh
@@ -153,11 +126,38 @@ do
 done
 
 
+#No speculation
+specula_read=nospecula
+do_specula=false
+fast_reply=false
+len=0
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+if [ $skip_len == 0 ] || [ $skipped == 1 ]
+  then
+  sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+  sudo ./script/restartAndConnect.sh
+  sleep 25
+fi
+for cont in $contentions
+do
+    if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
+    elif [ $cont == 2 ]; then MR=$MSML CR=$CBIG
+    elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
+    elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
+    fi
+    MN=12    SN=0    CN=3
+    if [ $skip_len == 0 ] || [ $skipped == 1 ]
+    then
+    sudo ./script/preciseTime.sh
+    fi
+    runNTimes
+done
+
 spcula_read=nospecula
 do_specula=false
 fast_reply=false
+len=0
 prob_access="t"
 locals="1 2 3"
 if [ $skip_len == 0 ] || [ $skipped == 1 ]
@@ -166,14 +166,13 @@ then
     sudo ./script/restartAndConnect.sh
 sleep 25
 fi
-MR=$BIG CR=$BIG
+MR=$MBIG CR=$CBIG
 for lo in $locals
 do
     if [ $lo == 1 ]; then MN=80 SN=19 CN=1
     elif [ $lo == 2 ]; then MN=70 SN=15 CN=10
     elif [ $lo == 3 ]; then  MN=50 SN=25 CN=25
     fi
-    MN=12    SN=0    CN=3
     if [ $skip_len == 0 ] || [ $skipped == 1 ]
     then
         sudo ./script/preciseTime.sh
