@@ -20,7 +20,7 @@ echo $command done
 
 for job in `jobs -p`
 do
-    wait $job || let "FAIL+=1"
+    wait $job || {ps -p $job -o comm= ; let "FAIL+=1"}
 done
 
 if [ "$FAIL" == "0" ];
