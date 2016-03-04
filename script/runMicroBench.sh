@@ -17,8 +17,9 @@ then
     pattern=${10}
     repl_degree=${11}
     prob_access=${12}
-    folder=${13}
-    Seq=${14}
+    deter=${13}
+    folder=${14}
+    Seq=${15}
     if [ "$do_specula" == true ]; then
 	fast_reply=true
     else
@@ -52,6 +53,7 @@ echo micro prob_access $prob_access >> config
 echo micro pattern $pattern >> config
 echo micro duration 60 >> config
 echo micro specula $do_specula >> config
+echo micro deter $deter >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
 MasterToSleep=$((NumNodes*1000+7000))

@@ -45,7 +45,7 @@ echo tpcc specula $4 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*1000*WPerDc+22000))
+MasterToSleep=$((NumNodes*400*WPerDc+14000))
 ToSleep=$(((8000 + 500*NumNodes) / ${1}))
 echo tpcc master_to_sleep $MasterToSleep >> config
 echo tpcc to_sleep $ToSleep >> config

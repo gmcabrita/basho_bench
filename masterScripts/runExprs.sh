@@ -6,12 +6,13 @@ seq="1 2"
 threads="8"
 workloads="1 2 3 4 8"
 length="1 2 4 8 16"
-warehouse="4 8"
+warehouse="2 4"
 rep=5
 parts=28
 start_ind=1
-skip_len=0
+skip_len=28
 skipped=0
+inited=0
 AM=80
 AS=0
 
@@ -21,7 +22,7 @@ do
     do
     if [ $skipped -eq 1 ] 
     then
-	sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts
+	sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts specula
 	sudo ./script/restartAndConnect.sh
 	sleep 20
     fi
@@ -49,7 +50,8 @@ do
             if [ $skipped -eq 0 ]
             then
                 skipped=1
-                sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts
+                echo "Configuring and starting nodes.."
+                sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts specula
                 sudo ./script/restartAndConnect.sh
                 sleep 20
             fi
@@ -77,7 +79,7 @@ sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 for t in $threads
 do  
-        sudo ./script/configBeforeRestart.sh $t false false 0 $rep $parts 
+        sudo ./script/configBeforeRestart.sh $t false false 0 $rep $parts nospecula 
         sudo ./script/restartAndConnect.sh
         sleep 20 
         for wl in $workloads
