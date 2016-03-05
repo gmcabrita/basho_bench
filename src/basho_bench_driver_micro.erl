@@ -219,7 +219,8 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
                         DcRepLen = length(DcRepIds),
                         NoRepLen = length(NoRepIds),
                         {_, WriteS} = lists:foldl(fun(_, {Ind, WS}) ->
-                                    random:seed(os:timestamp()),  Rand = random:uniform(100),
+                                    %%random:seed(os:timestamp()),  Rand = random:uniform(100),
+                                    Rand = random:uniform(100),
                                     case Rand =< MNum of
                                         true -> Key =  random:uniform(MRange), %%hot_or_not(1, LocalHotRange, MRange, LocalHotRate),
                                                 V = read_from_node(TxServer, TxId, Key, MyNodeId, MyNodeId, PartList, HashDict),

@@ -56,9 +56,10 @@ CR=3000000
 runNTimes
 
 sudo ./script/preciseTime.sh
-MR=1000000 
-CR=3000000
+MN=80
+SN=20
 runNTimes
+exit
 
 sudo ./script/preciseTime.sh
 MR=100000 
