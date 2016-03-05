@@ -222,12 +222,12 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
                                     %%random:seed(os:timestamp()),  Rand = random:uniform(100),
                                     Rand = random:uniform(100),
                                     case Rand =< MNum of
-                                        true -> Key =  random:uniform(MRange), %%hot_or_not(1, LocalHotRange, MRange, LocalHotRate),
+                                        true -> Key =  hot_or_not(1, LocalHotRange, MRange, LocalHotRate),
                                                 V = read_from_node(TxServer, TxId, Key, MyNodeId, MyNodeId, PartList, HashDict),
                                                 {Ind, dict:store({MyNodeId, Key}, V+Add, WS)};
                                                 false -> case Rand =< MNum+SNum of
                                                             true ->     
-                                                                        Key = random:uniform(SRange)+MRange, %%hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate),
+                                                                        Key = hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate),
                                                                         case Deter of
                                                                             false ->
                                                                                 random:seed(os:timestamp()),
