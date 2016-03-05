@@ -27,10 +27,10 @@ skipped=1
 skip_len=0
 parts=28
 rep=5
-MBIG=20000
+MBIG=40000
 MSML=2000
-CBIG=3000
-CSML=300
+CBIG=10000
+CSML=500
 SR=100000
 specula_read=specula
 
@@ -38,49 +38,6 @@ prob_access=t
 deter=false
 
 ###########
-
-len=8
-specula_read=specula
-sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
-sleep 25
-
-MN=80    
-SN=20    
-CN=0
-seq="1"
-sudo ./script/preciseTime.sh
-MR=40000 
-CR=100000
-runNTimes
-
-sudo ./script/preciseTime.sh
-MR=10000 
-CR=100000
-runNTimes
-
-sudo ./script/preciseTime.sh
-MR=1000 
-CR=100000
-runNTimes
-
-sudo ./script/preciseTime.sh
-MR=40000 
-CR=1000
-runNTimes
-
-sudo ./script/preciseTime.sh
-MR=10000 
-CR=1000
-runNTimes
-
-sudo ./script/preciseTime.sh
-MR=1000 
-CR=1000
-runNTimes
-exit
-exit
-
 
 if [ $skip_len -eq 1 ]; then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
