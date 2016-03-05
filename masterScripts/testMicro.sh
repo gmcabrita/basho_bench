@@ -50,10 +50,31 @@ SN=20
 CN=0
 seq="1"
 sudo ./script/preciseTime.sh
-MR=40000 
-CR=100000
+MR=900000 
+CR=900000
 runNTimes
 
+sudo ./script/preciseTime.sh
+MR=400000 
+CR=900000
+runNTimes
+
+sudo ./script/preciseTime.sh
+MR=200000 
+CR=900000
+runNTimes
+
+sudo ./script/preciseTime.sh
+MR=20000 
+CR=900000
+runNTimes
+
+sudo ./script/preciseTime.sh
+MR=2000 
+CR=900000
+runNTimes
+exit
+exit
 sudo ./script/preciseTime.sh
 MR=10000 
 CR=100000
