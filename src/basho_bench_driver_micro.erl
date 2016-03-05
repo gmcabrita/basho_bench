@@ -218,12 +218,12 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
                         {_, WriteS} = lists:foldl(fun(_, {Ind, WS}) ->
                                     random:seed(os:timestamp()),  Rand = random:uniform(100),
                                     case Rand =< MNum of
-                                        true -> Key =  hot_or_not(1, LocalHotRange, MRange, LocalHotRate),
+                                        true -> Key =  random:uniform(MRange), %%hot_or_not(1, LocalHotRange, MRange, LocalHotRate),
                                                 V = read_from_node(TxServer, TxId, Key, MyNodeId, MyNodeId, PartList, HashDict),
                                                 {Ind, dict:store({MyNodeId, Key}, V+Add, WS)};
                                                 false -> case Rand =< MNum+SNum of
                                                             true ->     
-                                                                        Key = hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate),
+                                                                        Key = random:uniform(SRange)+MRange, %%hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate),
                                                                         case Deter of
                                                                             false ->
                                                                                 DcNode = lists:nth(Rand rem DcRepLen +1, DcRepIds),
