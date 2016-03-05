@@ -226,7 +226,9 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
                                                                         Key = random:uniform(SRange)+MRange, %%hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate),
                                                                         case Deter of
                                                                             false ->
-                                                                                DcNode = lists:nth(Rand rem DcRepLen +1, DcRepIds),
+                                                                                random:seed(os:timestamp()),
+                                                                                Rand1 = random:uniform(DcRepLen),
+                                                                                DcNode = lists:nth(Rand1, DcRepIds),
                                                                                 V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
                                                                                 {Ind+1, dict:store({DcNode, Key}, V+Add, WS)};
                                                                             _ ->
