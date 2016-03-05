@@ -45,32 +45,34 @@ sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts
 sudo ./script/restartAndConnect.sh
 sleep 25
 
-MN=80    
-SN=20    
+prob_access=t
+MN=90    
+SN=10   
 CN=0
 seq="1"
 sudo ./script/preciseTime.sh
-MR=1800000 
-CR=1800000
+MR=3000000 
+CR=3000000
 runNTimes
 
 sudo ./script/preciseTime.sh
-MR=800000 
-CR=1800000
+MR=1000000 
+CR=3000000
 runNTimes
 
 sudo ./script/preciseTime.sh
-MR=400000 
+MR=100000 
+CR=3000000
 runNTimes
 
 sudo ./script/preciseTime.sh
-MR=20000 
-CR=900000
+MR=10000 
+CR=3000000
 runNTimes
 
 sudo ./script/preciseTime.sh
-MR=2000 
-CR=900000
+MR=3000000 
+CR=10000
 runNTimes
 exit
 exit

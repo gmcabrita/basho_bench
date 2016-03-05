@@ -32,6 +32,7 @@
 
 -record(state, {worker_id,
                 time,
+                total_key,
                 part_list,
 		        my_table,
                 process_time,
@@ -93,6 +94,7 @@ new(Id) ->
     MasterToSleep = basho_bench_config:get(master_to_sleep),
     ToSleep = basho_bench_config:get(to_sleep),
     ProcessTime = basho_bench_config:get(process_time),
+    TotalKey = basho_bench_config:get(total_key),
    
     MasterNum = basho_bench_config:get(master_num),
     SlaveNum = basho_bench_config:get(slave_num),
@@ -157,6 +159,7 @@ new(Id) ->
                remote_abort = {0,0},
                specula= {0,0},
                deter = Deter,
+               total_key = TotalKey,
                read = 0,
                prob_access=ProbAccess,
                tx_server=MyTxServer,
@@ -186,7 +189,7 @@ new(Id) ->
 
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
-run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter,
+run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter, total_key=TotalKey,
         dc_rep_ids=DcRepIds, node_id=MyNodeId,  hash_dict=HashDict, no_rep_ids=NoRepIds, prob_access=ProbAccess,
         local_hot_rate=LocalHotRate, local_hot_range=LocalHotRange, remote_hot_rate=RemoteHotRate, remote_hot_range=RemoteHotRange,
         master_num=MNum, slave_num=SNum, master_range=MRange, slave_range=SRange, local_commit=LocalCommit, local_abort=LocalAbort,
@@ -212,7 +215,7 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
                                 dict:store({NodeId, Key}, V+Add, WS)
                                     end, WS1, SlaveRepKeys);
                     t ->
-                        NumKeys = 15,
+                        NumKeys = TotalKey,
                         DcRepLen = length(DcRepIds),
                         NoRepLen = length(NoRepIds),
                         {_, WriteS} = lists:foldl(fun(_, {Ind, WS}) ->

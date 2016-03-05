@@ -44,14 +44,15 @@ echo micro concurrent $1 >> config
 echo micro master_num $master_num  >> config
 echo micro slave_num $slave_num >> config
 echo micro cache_num $cache_num >> config
-echo micro master_range 2000000 >> config
-echo micro slave_range 2000000 >> config
+echo micro master_range 4000000 >> config
+echo micro slave_range 4000000 >> config
 echo micro cache_range 1000000 >> config
 echo micro local_hot_range $local_hot_range >> config
 echo micro remote_hot_range $remote_hot_range >> config
 echo micro prob_access $prob_access >> config
 echo micro pattern $pattern >> config
 echo micro duration 60 >> config
+echo micro total_key 10 >> config
 echo micro specula $do_specula >> config
 echo micro deter $deter >> config
 #ToSleep=$((40000 / ${1}))
