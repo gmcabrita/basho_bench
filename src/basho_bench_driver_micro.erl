@@ -191,13 +191,13 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
         local_hot_rate=LocalHotRate, local_hot_range=LocalHotRange, remote_hot_rate=RemoteHotRate, remote_hot_range=RemoteHotRange,
         master_num=MNum, slave_num=SNum, master_range=MRange, slave_range=SRange, local_commit=LocalCommit, local_abort=LocalAbort,
         remote_commit=RemoteCommit, remote_abort=RemoteAbort, specula=Specula, read=Read})->
-    random:seed(os:timestamp()),
+    RT1 = os:timestamp(),
+    random:seed(RT1),
     Add = random:uniform(3)-2,
 
     TxId = gen_server:call(TxServer, {start_tx}),
 
 
-    RT1 = os:timestamp(),
     WriteSet = case ProbAccess of 
                     f ->
                         MasterKeys = unique_keys(1, LocalHotRange, MRange,  MNum, LocalHotRate, MyNodeId),
@@ -277,16 +277,19 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
             lager:info("Timeout on client ~p",[TxServer]),
             {error, timeout, State};
         {aborted, local} ->
+            random:seed(os:timestamp()),
 	        {LTime, LCount} = LocalAbort,
             {error, aborted, State#state{read=Read+get_time_diff(RT1, RT2), local_abort={LTime+get_time_diff(RT2, RT3),
                     LCount+1}}};
             %{error, aborted, State};
         {aborted, remote} ->
+            random:seed(os:timestamp()),
 	        {RTime, RCount} = RemoteAbort,
             {error, aborted, State#state{read=Read+get_time_diff(RT1, RT2), remote_abort={RTime+get_time_diff(RT2, RT3),
                     RCount+1}}};
             %{error, aborted, State};
         {aborted, _} ->
+            random:seed(os:timestamp()),
             {error, aborted, State};
         {badrpc, Reason} ->
             {error, Reason, State}
@@ -390,7 +393,7 @@ unique_keys(Start, HotRange, UniformRange, NumKeys, HotRate, Set, Nodes) ->
     end.
 
 hot_or_not(Start, HotRange, UniformRange, HotRate) ->
-      random:seed(os:timestamp()),
+      %random:seed(os:timestamp()),
       Rand = random:uniform(100),
       case Rand =< HotRate of
           true -> random:uniform(HotRange) + Start-1;
