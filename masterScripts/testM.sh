@@ -19,14 +19,16 @@ fast_reply=true
 ## Just to test.. 
 seq="1 2"
 t="8"
+prob_access=t
 contentions="1 2 3 4"
 length="1 2 4 8 16"
 start_ind=1
 skipped=0
-skip_len=124
+skip_len=0
 parts=4
 rep=1
 
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 #Test number of involved DCs
 specula_read=specula
 do_specula=true
@@ -36,6 +38,7 @@ MN=20 SN=80 CN=0
 skipped=0
 MBIG=40000
 CBIG=60000
+SR=100000
 for len in $length
 do
     if [ $skip_len == 0 ] || [ $skipped == 1 ]

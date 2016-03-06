@@ -194,7 +194,7 @@ do
 done
 ######164#######
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 #Test number of involved DCs
 specula_read=specula
 do_specula=true
