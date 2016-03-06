@@ -10,7 +10,7 @@ warehouse="2 4"
 rep=5
 parts=28
 start_ind=1
-skip_len=28
+skip_len=140
 skipped=0
 inited=0
 AM=80
@@ -69,19 +69,23 @@ do
 done
 
 
+
 #./script/runSpeculaBench.sh $t $AM $AS true true 1 specula_tests 4 0 0 $rep $start_ind
 #start_ind=$((start_ind+1))
 #./script/runSpeculaBench.sh $t $AM $AS true true 1 specula_tests 8 0 0 $rep $start_ind
 #start_ind=$((start_ind+1))
 
 
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+sudo ./script/configBeforeRestart.sh 32 false false 0 $rep $parts nospecula 
+sudo ./script/restartAndConnect.sh
+threads="16 24 32"
 for t in $threads
 do  
-        sudo ./script/configBeforeRestart.sh $t false false 0 $rep $parts nospecula 
-        sudo ./script/restartAndConnect.sh
-        sleep 20 
+        #sudo ./script/configBeforeRestart.sh $t false false 0 $rep $parts nospecula 
+        #sudo ./script/restartAndConnect.sh
+        #sleep 20 
         for wl in $workloads
         do
 	    if [ $wl == 1 ]; then  n=9  p=1
@@ -95,10 +99,10 @@ do
             fi
             for wh in $warehouse
             do
-		        sudo ./script/preciseTime.sh
                 for i in $seq
                 do
                     if [ $start_ind -gt $skip_len ]; then
+		                sudo ./script/preciseTime.sh
                         ./script/runSpeculaBench.sh $t $AM $AS false false 0 specula_tests $wh $n $p $rep $start_ind
                     else
                         echo "Skipped..."$start_ind

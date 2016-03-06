@@ -3,7 +3,13 @@
 function runNTimes {
     for i in $seq
     do
-        if [ $start_ind -gt $skip_len ]; then
+        if [[ ${array[$start_ind]} ]]; then
+            if [  $skipped -eq 0 ]
+            then
+            sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+            sudo ./script/restartAndConnect.sh
+            sleep 25
+            fi
         ./script/runMicroBench.sh $t $MN $SN $CN $MR $SR $CR $do_specula $len $specula_read $rep $prob_access $deter specula_tests $start_ind
         #echo $t $MN $SN $CN $MR $SR $CR $do_specula $len random $rep $comp specula_tests $start_ind
         skipped=1
@@ -23,7 +29,7 @@ contentions="1 2 3 4"
 length="1 2 4 8 16"
 start_ind=1
 skipped=0
-skip_len=124
+skip_len=0
 parts=28
 rep=5
 MBIG=20000
@@ -33,14 +39,19 @@ CSML=2000
 SR=100000
 specula_read=specula
 
+declare -A array
+for num in $1
+do
+    array[$num]=1
+    echo $num
+done
+
 prob_access=t
 deter=false
 
 ###########
 
-if [ $skip_len -eq 1 ]; then
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
-fi
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 
 MN=80    
 SN=20    
@@ -60,13 +71,14 @@ do
         elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
         elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
         fi
-        if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
+        if [ $skipped -eq 1 ]
         then
         sudo ./script/preciseTime.sh
         fi
         runNTimes
     done
 done
+
 ######40#######
 
 #Same, but no specula read
@@ -76,7 +88,7 @@ CN=0
 specula_read=nospecula
 for len in $length
 do
-    if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
+    if [ $skipped -eq 1 ]
     then
     sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
@@ -89,13 +101,14 @@ do
         elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
         elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
         fi
-        if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
+        if  [ $skipped -eq 1 ]
         then
         sudo ./script/preciseTime.sh
         fi
         runNTimes
     done
 done
+exit
 ######80#######
 
 ######Rerun
