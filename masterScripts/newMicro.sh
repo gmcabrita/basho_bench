@@ -14,7 +14,6 @@ function runNTimes {
     done
 } 
 
-
 do_specula=true
 fast_reply=true
 ## Just to test.. 
@@ -23,14 +22,14 @@ t="8"
 contentions="1 2 3 4"
 length="1 2 4 8 16"
 start_ind=1
-skipped=1
-skip_len=0
+skipped=0
+skip_len=124
 parts=28
 rep=5
-MBIG=40000
-MSML=2000
-CBIG=10000
-CSML=500
+MBIG=20000
+MSML=1000
+CBIG=40000
+CSML=2000
 SR=100000
 specula_read=specula
 
@@ -48,7 +47,7 @@ SN=20
 CN=0
 for len in $length
 do
-    if [  $skipped == 1 ]
+    if [  $skipped -eq 1 ]
     then
     sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
@@ -61,24 +60,23 @@ do
         elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
         elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
         fi
-        if [ $skip_len == 0 ] || [ $skipped == 1 ]
+        if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
         then
         sudo ./script/preciseTime.sh
         fi
         runNTimes
     done
 done
+######40#######
 
 #Same, but no specula read
 MN=80    
 SN=20    
 CN=0
 specula_read=nospecula
-if [ $skipped == 1 ]
-then
 for len in $length
 do
-    if [ $skip_len == 0 ] || [ $skipped == 1 ]
+    if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
     then
     sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
@@ -91,24 +89,25 @@ do
         elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
         elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
         fi
-        if [ $skip_len == 0 ] || [ $skipped == 1 ]
+        if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
         then
         sudo ./script/preciseTime.sh
         fi
         runNTimes
     done
 done
-fi
+######80#######
 
+######Rerun
 #Test remote read
-spcula_read=specula
+specula_read=specula
 do_specula=true
 fast_reply=true
 prob_access=t
 locals="1 2 3"
 for len in $length
 do
-    if [ $skip_len == 0 ] || [ $skipped == 1 ]
+    if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
     then
     sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
@@ -121,38 +120,15 @@ do
         elif [ $lo == 2 ]; then MN=80 SN=15 CN=5
         elif [ $lo == 3 ]; then  MN=80 SN=10 CN=10
         fi
-        if [ $skip_len == 0 ] || [ $skipped == 1 ]
+        if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
         then
         sudo ./script/preciseTime.sh
         fi
         runNTimes
     done
 done
+######110#######
 
-#Test number of involved DCs
-spcula_read=specula
-do_specula=true
-fast_reply=true
-deters="1 2 3 4 5"
-MN=20 SN=80 CN=0
-for len in $length
-do
-    if [ $skip_len == 0 ] || [ $skipped == 1 ]
-    then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
-    sudo ./script/restartAndConnect.sh
-    sleep 25
-    fi
-    MR=$MBIG CR=$CBIG
-    for deter in $deters
-    do
-        if [ $skip_len == 0 ] || [ $skipped == 1 ]
-        then
-        sudo ./script/preciseTime.sh
-        fi
-        runNTime
-    done
-done
 
 #No speculation
 MN=80    
@@ -163,8 +139,10 @@ do_specula=false
 fast_reply=false
 deter=false
 len=0
+if [ $skip_len -eq 1 ]; then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+fi
 
 
 if [ $skip_len == 0 ] || [ $skipped == 1 ]
@@ -186,8 +164,10 @@ do
     fi
     runNTimes
 done
+######158#######
 
-spcula_read=nospecula
+
+specula_read=nospecula
 do_specula=false
 fast_reply=false
 len=0
@@ -212,9 +192,43 @@ do
     fi
     runNTimes
 done
+######164#######
+
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+#Test number of involved DCs
+specula_read=specula
+do_specula=true
+fast_reply=true
+deters="1 2 3 4 5"
+MN=20 SN=80 CN=0
+skipped=0
+MBIG=40000
+CBIG=60000
+for len in $length
+do
+    if [ $skip_len == 0 ] || [ $skipped == 1 ]
+    then
+    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/restartAndConnect.sh
+    sleep 25
+    fi
+    MR=$MBIG CR=$CBIG
+    for deter in $deters
+    do
+        if [ $skip_len == 0 ] || [ $skipped == 1 ]
+        then
+        sudo ./script/preciseTime.sh
+        fi
+        runNTimes
+    done
+done
+######150#######
 
 #Test number of involved DCs
-spcula_read=nospecula
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+prob_access=t
+locals="1 2 3"
+specula_read=nospecula
 do_specula=false
 fast_reply=false
 deters="1 2 3 4 5"
@@ -233,5 +247,6 @@ do
     then
     sudo ./script/preciseTime.sh
     fi
-    runNTime
+    runNTimes
 done
+######174#######
