@@ -51,7 +51,7 @@ deter=false
 
 ###########
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 
 MN=80    
 SN=20    
@@ -78,6 +78,7 @@ do
         runNTimes
     done
 done
+exit
 
 ######40#######
 

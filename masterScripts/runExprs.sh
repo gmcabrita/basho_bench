@@ -2,7 +2,7 @@
 
 ## Just to test.. 
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
-seq="1 2"
+seq="1"
 threads="8"
 workloads="1 2 3 4 8"
 length="1 2 4 8 16"
@@ -10,12 +10,13 @@ warehouse="2 4"
 rep=5
 parts=28
 start_ind=1
-skip_len=140
+skip_len=100
 skipped=0
 inited=0
 AM=80
 AS=0
 
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 for t in $threads
 do
     for len in $length
@@ -77,10 +78,10 @@ done
 
 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-sudo ./script/configBeforeRestart.sh 32 false false 0 $rep $parts nospecula 
-sudo ./script/restartAndConnect.sh
-threads="16 24 32"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+#sudo ./script/configBeforeRestart.sh 32 false false 0 $rep $parts nospecula 
+#sudo ./script/restartAndConnect.sh
+threads="32 60"
 for t in $threads
 do  
         #sudo ./script/configBeforeRestart.sh $t false false 0 $rep $parts nospecula 
