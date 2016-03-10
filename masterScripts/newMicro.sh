@@ -19,13 +19,13 @@ fast_reply=true
 ## Just to test.. 
 seq="1 2"
 t="8"
-contentions="1 2 3 4"
-length="1 2 4 8 16"
+contentions="1 2"
+length="16 1 2 4 8"
 start_ind=1
 skipped=0
-skip_len=124
-parts=28
-rep=5
+skip_len=40
+parts=4
+rep=2
 MBIG=20000
 MSML=1000
 CBIG=40000
@@ -38,9 +38,7 @@ deter=false
 
 ###########
 
-if [ $skip_len -eq 1 ]; then
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
-fi
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 
 MN=80    
 SN=20    
@@ -73,6 +71,7 @@ done
 MN=80    
 SN=20    
 CN=0
+skipped=1
 specula_read=nospecula
 for len in $length
 do
@@ -96,6 +95,7 @@ do
         runNTimes
     done
 done
+exit
 ######80#######
 
 ######Rerun
@@ -129,6 +129,7 @@ do
 done
 ######110#######
 
+exit
 
 #No speculation
 MN=80    
