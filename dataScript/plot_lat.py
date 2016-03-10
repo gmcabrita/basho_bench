@@ -26,7 +26,6 @@ specula_abort = 0
 specula_commit = 0
 max_lat=0
 ytitle, new_name = get_title(data_list, bench_type)
-print("*****************Callig me**************")
 for f in data_list:
     path = os.path.join(input_folder, f+'/total_duration')
     data = np.loadtxt(path, skiprows=1, usecols=range(1,9))

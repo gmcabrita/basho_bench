@@ -70,13 +70,13 @@ for f in data_list:
     index += 1
 
 ylim = maxv * 1.4
-print("Highest throughput for "+ytitle+" is "+str(maxv))
+#print("Highest throughput for "+ytitle+" is "+str(maxv))
 handler_idx = [i for i, x in enumerate(handlers) if x == None]
 labels = ['committed', 'cert_abort', 'read_abort', 'read_invalid', 'cascade_abort']
 handlers = [i for j, i in enumerate(handlers) if j not in handler_idx]
 labels = [i for j, i in enumerate(labels) if j not in handler_idx]
 plt.ylabel('Throughput')
-plt.title(ytitle)
+plt.title(ytitle, fontsize=10)
 plt.ylim([1,ylim])
 plt.xlim([-0.5,len(data_list)])
 plt.xticks([x+width for x in np.arange(len(xlabel))], xlabel, fontsize=7)
