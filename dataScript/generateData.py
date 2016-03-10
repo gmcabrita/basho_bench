@@ -132,7 +132,7 @@ def add_duration(nodes, dict, total_dict, folder):
             dur_avg = list(data)
         # convert to ms
         dur_avg = [x/1000 for x in dur_avg]
-        print("Dua avg is "+str(dur_avg))
+        #print("Dua avg is "+str(dur_avg))
         #print dur_avg
         stat_line = stat_lines[index] #[x for x in stat_lines if x.startswith(node)]
         stat_data = stat_line.split(',')
@@ -185,8 +185,8 @@ def write_to_file(file_name, dict, keys, title):
         if key in dict:
             data_list = dict[key]
             data_array = np.array(data_list).astype(np.float)
-            print("Key is"+str(key))
-            print("Data array is"+str(data_array))
+            #print("Key is"+str(key))
+            #print("Data array is"+str(data_array))
             if data_array.ndim == 2:
                 data_avg = list(np.average(data_array, axis=0))
             else:

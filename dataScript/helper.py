@@ -11,6 +11,9 @@ import os
 import numpy as np
 
 def get_matching_series(args):
+    return get_matching_series_delete(args, [], [])
+
+def get_matching_series_delete(args, toremove, options):
     input_folder = args[0]
     bench_type = args[1]
     length = len(args)
@@ -33,7 +36,17 @@ def get_matching_series(args):
     field_dict={}
     for key,value in split_names.items():
         fields=""
-        if isinstance(value[int(rotate_field)], int): 
+        if toremove == []:
+            skip = False 
+        else:
+            skip = True
+        for (rindex, rvalue) in toremove:
+            if value[rindex] != rvalue:
+                skip = False
+                break
+        if skip == True:
+            continue
+        if isinstance(value[int(rotate_field)], int) or value[int(rotate_field)].isdigit(): 
             rotate_field_set.add(int(value[int(rotate_field)]))
         else:
             rotate_field_set.add(value[int(rotate_field)])
@@ -44,21 +57,60 @@ def get_matching_series(args):
         else:
             field_dict[fields] = [key]
 
-    #print(field_dict)
-
-    #print(str(rotate_field_set))
-    #print(str(field_values))
     field_value_str = '_'+'_'.join(str(v) for v in field_values) 
     rotate_values=list(rotate_field_set)
-    rotate_values.sort()
-    rotate_values.reverse()
+    if 'order' in options and options['order'] == 'ascend':
+        rotate_values.sort()
+    else:
+        rotate_values.sort()
+        rotate_values.reverse()
     to_plot_params=[field_value_str+'_'+str(x)  for x in rotate_values]
     to_plot_list=[]
     for key in to_plot_params:
         #print(key)
-        to_plot_list.append(field_dict[key])
-    #print("List is"+str(to_plot_list))
+        if key in field_dict:
+            to_plot_list.append(field_dict[key])
+        else:
+            print("Warning: "+key+" is not in dict!!!")
     return to_plot_list
+
+def get_matching_serie(args):
+    input_folder = args[0]
+    bench_type = args[1]
+    length = len(args)
+    field_len = int((length-2)/2)
+    field_end = 2 + field_len
+    diff_fields = args[2:field_end]
+    field_values = args[field_end:length]
+
+    required_title = "" 
+    for f in field_values:
+        required_title +="_"+str(f)
+
+    for f in diff_fields:
+        sub_folders = glob.glob(input_folder+'/*')
+
+
+    split_names={}
+    for f in sub_folders:
+        bname = basename(f)
+        split_names[bname] = bname.split("_")
+
+    field_dict={}
+    for key,value in split_names.items():
+        fields=""
+        for f in diff_fields:
+            fields+="_"+str(value[int(f)])
+        if fields in field_dict:
+            field_dict[fields].append(key)
+        else:
+            field_dict[fields] = [key]
+
+    
+    if  required_title not in field_dict:
+        return None
+    else:
+        return field_dict[required_title] 
 
 
 
@@ -89,6 +141,20 @@ def get_legend(str_value, type, postfix):
         return str_value+' warehouse'
     elif type == 'clock':
         return str_value+' clock'
+    elif type == 'read':
+        if str_value == 'nospecula':
+            return 'no specula read'
+        else:
+            return str_value+' read'
+    elif type == 'remote read':
+        return str_value+'% remote read'
+    elif type == 'remote servers':
+        if str_value == 'false':
+            return 'High locality'
+        else:
+            return str_value+' remote servers'
+    else:
+        return str_value+' '+type
 
 def get_same(list1, list2):
     index=0
@@ -175,8 +241,10 @@ def sort_by_num(l):
 
 def get_micro_title(param_list):
     split_f=[]
-    params=[' threads',' mk',' sk',' ck',' mr', ' sr', ' cr', ' spec', ' spec length', '', 'rep', 'lp']
-    name_params=['T','MK','SK','CK','MR', 'SR', 'CR', 'SPEC', 'SL', 'ap', 'R', 'LP']
+    #params=[' threads',' mk',' sk',' ck',' mr', ' sr', ' cr', ' spec', ' spec length', '', 'rep', 'lp']
+    #name_params=['T','MK','SK','CK','MR', 'SR', 'CR', 'SPEC', 'SL', 'ap', 'R', 'LP']
+    params=[' threads',' mk',' sk',' ck',' mr', ' sr', ' cr', ' spec', ' len', ' read', 'rep', '', 'det']
+    name_params=['T','MK','SK','CK','MR', 'SR', 'CR', 'SPEC', 'SL', 'SR', 'R', 'LP', '']
     for f in param_list:
         f=f.replace('false','f').replace('true','t')
         f=rreplace(f, '000000', 'm', 4)
