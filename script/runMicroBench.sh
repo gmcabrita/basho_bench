@@ -44,8 +44,10 @@ echo micro concurrent $1 >> config
 echo micro master_num $master_num  >> config
 echo micro slave_num $slave_num >> config
 echo micro cache_num $cache_num >> config
-echo micro master_range 4000000 >> config
-echo micro slave_range 4000000 >> config
+echo micro master_range 2000000 >> config
+echo micro slave_range 2000000 >> config
+echo micro local_hot_rate 90 >> config
+echo micro remote_hot_rate 90 >> config
 echo micro cache_range 1000000 >> config
 echo micro local_hot_range $local_hot_range >> config
 echo micro remote_hot_range $remote_hot_range >> config
