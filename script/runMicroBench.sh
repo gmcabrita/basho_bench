@@ -20,6 +20,7 @@ then
     deter=${13}
     folder=${14}
     Seq=${15}
+    Clock=${16}
     if [ "$do_specula" == true ]; then
 	fast_reply=true
     else
@@ -37,7 +38,7 @@ Folder=$folder/$Time
 echo "Folder to make is" $Folder
 mkdir $Folder
 touch $Folder/$Seq
-echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} > $Folder/config
+echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${16} > $Folder/config
 sudo rm -f config
 echo ant concurrent $1 >> config 
 echo micro concurrent $1 >> config 
