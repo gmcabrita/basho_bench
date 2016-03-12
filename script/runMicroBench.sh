@@ -60,8 +60,8 @@ echo micro specula $do_specula >> config
 echo micro deter $deter >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*1000+7000))
-ToSleep=$(((10000 + 500*NumNodes) / ${1}))
+MasterToSleep=$((NumNodes*800+5000))
+ToSleep=$(((500 + 500*NumNodes) / ${1}))
 echo micro master_to_sleep $MasterToSleep >> config
 echo micro to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
