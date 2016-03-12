@@ -23,7 +23,7 @@ contentions="1 2 3 4"
 length="16 1 2 4 8"
 start_ind=1
 skipped=0
-skip_len=188
+skip_len=0
 rep=5
 parts=28
 MBIG=20000
@@ -41,38 +41,12 @@ clock="new"
 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 
 MN=80
 SN=20
 CN=0
 ###Just to test
-
-for len in $length
-do
-    if [  $skipped -eq 1 ]
-    then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
-    sudo ./script/restartAndConnect.sh
-    sleep 25
-    fi
-    for cont in $contentions
-    do
-        if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
-        elif [ $cont == 2 ]; then MR=$MSML CR=$CBIG
-        elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
-        elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
-        fi
-        if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
-        then
-        sudo ./script/preciseTime.sh
-        fi
-        runNTimes
-    done
-done
-#Finished 40
-
-####### Test key locality
 specula_read=specula
 do_specula=true
 fast_reply=true
@@ -101,44 +75,11 @@ do
         runNTimes
     done
 done
-### 70
 
-#Test remote read
-specula_read=specula
-do_specula=true
-fast_reply=true
-prob_access=t
-locals="1 2 3"
-for len in $length
-do
-    if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
-    then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
-    sudo ./script/restartAndConnect.sh
-    sleep 25
-    fi
-    MR=$MBIG CR=$CBIG
-    for lo in $locals
-    do
-        if [ $lo == 1 ]; then MN=80 SN=19 CN=1
-        elif [ $lo == 2 ]; then MN=80 SN=15 CN=5
-        elif [ $lo == 3 ]; then  MN=80 SN=10 CN=10
-        fi
-        if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
-        then
-        sudo ./script/preciseTime.sh
-        fi
-        runNTimes
-    done
-done
-######100#######
-
-#####
-##### Same, but no old clock
 MN=80 SN=20 CN=0
 clock="old"
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 for len in $length
 do
     if [  $skipped -eq 1 ]
@@ -191,6 +132,116 @@ do
         runNTimes
     done
 done
+
+prob_access=t
+locals="1 2 3"
+specula_read=nospecula
+do_specula=false
+fast_reply=false
+MN=20 SN=80 CN=0
+len=0
+MR=$MBIG CR=$CBIG
+for lo in $locals
+    do
+    if [ $lo == 1 ]; then MN=70 SN=30 CN=0
+    elif [ $lo == 2 ]; then MN=50 SN=50 CN=0
+    elif [ $lo == 3 ]; then  MN=20 SN=80 CN=0
+    fi
+    if [ $skip_len == 0 ] || [ $skipped == 1 ]
+    then
+    sudo ./script/preciseTime.sh
+    fi
+    runNTimes
+done
+
+specula_read=nospecula
+do_specula=false
+fast_reply=false
+deter=false
+len=0
+threads="64"
+
+seq=1
+for t in $threads
+do
+for cont in $contentions
+do
+    if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
+    elif [ $cont == 2 ]; then MR=$MSML CR=$CBIG
+    elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
+    elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
+    fi
+    if [ $skip_len == 0 ] || [ $skipped == 1 ]
+    then
+    sudo ./script/preciseTime.sh
+    fi
+    runNTimes
+done
+done
+exit
+#####204#####
+
+
+
+for len in $length
+do
+    if [  $skipped -eq 1 ]
+    then
+    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/restartAndConnect.sh
+    sleep 25
+    fi
+    for cont in $contentions
+    do
+        if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
+        elif [ $cont == 2 ]; then MR=$MSML CR=$CBIG
+        elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
+        elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
+        fi
+        if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
+        then
+        sudo ./script/preciseTime.sh
+        fi
+        runNTimes
+    done
+done
+#Finished 40
+
+####### Test key locality
+### 70
+
+#Test remote read
+specula_read=specula
+do_specula=true
+fast_reply=true
+prob_access=t
+locals="1 2 3"
+for len in $length
+do
+    if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
+    then
+    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/restartAndConnect.sh
+    sleep 25
+    fi
+    MR=$MBIG CR=$CBIG
+    for lo in $locals
+    do
+        if [ $lo == 1 ]; then MN=80 SN=19 CN=1
+        elif [ $lo == 2 ]; then MN=80 SN=15 CN=5
+        elif [ $lo == 3 ]; then  MN=80 SN=10 CN=10
+        fi
+        if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
+        then
+        sudo ./script/preciseTime.sh
+        fi
+        runNTimes
+    done
+done
+######100#######
+
+#####
+##### Same, but no old clock
 #180
 
 #No speculation
@@ -256,51 +307,6 @@ done
 #Test number of involved DCs
 
 #Test number of involved DCs
-prob_access=t
-locals="1 2 3"
-specula_read=nospecula
-do_specula=false
-fast_reply=false
-MN=20 SN=80 CN=0
-len=0
-MR=$MBIG CR=$CBIG
-for lo in $locals
-    do
-    if [ $lo == 1 ]; then MN=70 SN=30 CN=0
-    elif [ $lo == 2 ]; then MN=50 SN=50 CN=0
-    elif [ $lo == 3 ]; then  MN=20 SN=80 CN=0
-    fi
-    if [ $skip_len == 0 ] || [ $skipped == 1 ]
-    then
-    sudo ./script/preciseTime.sh
-    fi
-    runNTimes
-done
 ######200######
 
 ### Check max throughput
-specula_read=nospecula
-do_specula=false
-fast_reply=false
-deter=false
-len=0
-threads="64"
-
-seq=1
-for t in $threads
-do
-for cont in $contentions
-do
-    if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
-    elif [ $cont == 2 ]; then MR=$MSML CR=$CBIG
-    elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
-    elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
-    fi
-    if [ $skip_len == 0 ] || [ $skipped == 1 ]
-    then
-    sudo ./script/preciseTime.sh
-    fi
-    runNTimes
-done
-done
-#####204#####
