@@ -23,7 +23,7 @@ contentions="1 2 3 4"
 length="16 1 2 4 8"
 start_ind=1
 skipped=0
-skip_len=0
+skip_len=116
 rep=5
 parts=28
 MBIG=20000
@@ -39,9 +39,9 @@ clock="new"
 
 ###########
 
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 
 MN=80
 SN=20
@@ -51,11 +51,11 @@ specula_read=specula
 do_specula=true
 fast_reply=true
 locals="1 2 3"
-MBIG=40000
-CBIG=60000
+#MBIG=40000
+#CBIG=60000
 for len in $length
 do
-    if [ $skip_len == 0 ] || [ $skipped == 1 ]
+    if [ $start_ind == 0 ] || [ $skipped == 1 ]
     then
     sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
@@ -76,17 +76,18 @@ do
     done
 done
 
+
 MN=80 SN=20 CN=0
 clock="old"
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 for len in $length
 do
-    if [  $skipped -eq 1 ]
+    if [  $skipped -eq 1 ] || [ $start_ind == 0 ]
     then
     sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
-    sleep 20
+    sleep 25
     fi
     for cont in $contentions
     do
@@ -109,7 +110,6 @@ MN=80
 SN=20    
 CN=0
 specula_read=nospecula
-skipped=1
 for len in $length
 do
     if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
@@ -159,9 +159,13 @@ do_specula=false
 fast_reply=false
 deter=false
 len=0
-threads="64"
+threads="128 190"
+MN=80 SN=20 CN=0
 
-seq=1
+seq="1"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+#sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 for t in $threads
 do
 for cont in $contentions
