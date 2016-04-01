@@ -6,7 +6,7 @@ command=$2
 echo $command" for nodes:"$nodes 
 for node in $nodes
 do
-   ssh -t -o ConnectTimeout=3 -o StrictHostKeyChecking=no  -t root@$node -i key ${command/localhost/$node} 
+   ssh -t -o ConnectTimeout=3 -o StrictHostKeyChecking=no  -t ubuntu@$node -i key ${command/localhost/$node} 
    sleep 10
 done
 echo $command done

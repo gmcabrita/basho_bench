@@ -26,7 +26,7 @@
 
 -include("basho_bench.hrl").
 
--define(TIMEOUT, 20000).
+-define(TIMEOUT, 2000).
 -record(state, {worker_id,
                 time,
                 type_dict,
@@ -64,10 +64,9 @@ new(Id) ->
     MeasureStaleness = basho_bench_config:get(staleness),
 
     %% Choose the node using our ID as a modulus
-    TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
+    Seq = lists:seq(0, length(IPs)-1),
+    {ok, Pid, TargetNode} = connect_until(Seq, Id, IPs, PbPort),
     ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
-
-    {ok, Pid} = antidotec_pb_socket:start_link(TargetNode, PbPort),
     TypeDict = dict:from_list(Types),
     {ok, #state{time={1,1,1}, worker_id=Id,
 		pb_pid = Pid,
@@ -81,7 +80,7 @@ new(Id) ->
 %% @doc Read a key
 run(read, KeyGen, _ValueGen, State=#state{pb_pid = Pid, worker_id = Id,
                                           pb_port=_Port, target_node=_Node,
-                                          type_dict=_TypeDict, commit_time=OldCommitTime,
+                                          type_dict=_TypeDict, commit_time=_OldCommitTime,
                                           measure_staleness=MS}) ->
     KeyInt = KeyGen(),
     Key = list_to_binary(integer_to_list(KeyInt)),
@@ -89,25 +88,28 @@ run(read, KeyGen, _ValueGen, State=#state{pb_pid = Pid, worker_id = Id,
     StartTime = now_microsec(), %% For staleness calc
     %Bound_object = {Key, riak_dt_pncounter, <<"bucket">>},
     Bound_object = {Key, riak_dt_lwwreg, <<"bucket">>},
-    case antidotec_pb:start_transaction(Pid, term_to_binary(OldCommitTime), [{static, true}]) of
+    %lager:warning("Reading some key ~w", [KeyInt]),
+    case antidotec_pb:start_transaction(Pid, term_to_binary(ignore), [{static, true}]) of
 	{ok, TxId} ->
 	    case antidotec_pb:read_objects(Pid, [Bound_object], TxId) of
 		{ok, [_Val]} ->		    
+		    %lager:warning("Got value for ~w", [KeyInt]),
 		    case antidotec_pb:commit_transaction(Pid, TxId) of
 			{ok, CT} ->
+		    	    %lager:warning("Committed for ~w", [KeyInt]),
                             report_staleness(MS, CT, StartTime),
-                NewCT = binary_to_term(CT),
+                	    NewCT = binary_to_term(CT),
 			    {ok, State#state{commit_time=NewCT}};
 			_ ->
-			    lager:info("Error read1 on client ~p",[Id]),
+			    %lager:info("Error read1 on client ~p, ~p",[Id, KeyInt]),
 			    {error, timeout, State}
 		    end;
 		Error ->
-		    lager:info("Error read2 on client ~p : ~p",[Id, Error]),
+		    %lager:info("Error read2 on client ~p : ~p, ~p",[Id, Error, KeyInt]),
 		    {error, timeout, State}
 	    end;
 	_ ->
-	    lager:info("Error read3 on client ~p",[Id]),
+	    %lager:info("Error read3 on client ~p for key ~p",[Id, KeyInt]),
 	    {error, timeout, State}
     end;
 
@@ -470,3 +472,15 @@ random_string(Len) ->
     ChrsSize = size(Chrs),
     F = fun(_, R) -> [element(random:uniform(ChrsSize), Chrs) | R] end,
     lists:foldl(F, "", lists:seq(1, Len)).
+
+connect_until([], _, _, _) ->
+    {error,{tcp,econnrefused}};
+connect_until([M|N], Id, IPs, PbPort) ->
+    TargetNode = lists:nth(((Id+M) rem length(IPs)+1), IPs),
+    case antidotec_pb_socket:start_link(TargetNode, PbPort) of
+        {ok, Pid} ->
+		lager:warning("Successfully connected to ~w", [TargetNode]),   
+		{ok, Pid, TargetNode};
+        _ -> connect_until(N, Id, IPs, PbPort) 
+    end.
+	

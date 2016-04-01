@@ -11,9 +11,9 @@ AllNodes=`cat script/allnodes`
 echo "Stopping nodes:" $AllNodes
 
 #Stop="antidote/rel/antidote/bin/antidote stop" 
-Stop="pkill beam"
-RemoveData="rm -rf antidote/rel/antidote/data/*"
-RemoveLog="rm -rf antidote/rel/antidote/log/*"
+Stop="sudo pkill beam"
+RemoveData="sudo rm -rf antidote/rel/antidote/data/*"
+RemoveLog="sudo rm -rf antidote/rel/antidote/log/*"
 ./script/parallel_command.sh "$AllNodes" "$Stop" 
 ./script/parallel_command.sh "$AllNodes" "$RemoveData" 
 ./script/parallel_command.sh "$AllNodes" "$RemoveLog" 
