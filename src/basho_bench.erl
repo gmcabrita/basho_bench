@@ -103,7 +103,7 @@ main(Args) ->
     run_pre_hook(),
 
     %% Spin up the application
-    ok = basho_bench_app:start(),
+	ok = basho_bench_app:start(),
 
     %% Pull the runtime duration from the config and sleep until that's passed OR
     %% the supervisor process exits

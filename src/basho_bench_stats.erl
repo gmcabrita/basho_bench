@@ -54,7 +54,9 @@ exponential(Lambda) ->
     -math:log(random:uniform()) / Lambda.
 
 run() ->
-    gen_server:call(?MODULE, run).
+	io:fwrite("hello from stats:run before\n"),
+    gen_server:call(?MODULE, run),
+   	io:fwrite("hello from stats:run after\n").
 
 op_complete(Op, ok, ElapsedUs) ->
     op_complete(Op, {ok, 1}, ElapsedUs);
@@ -64,6 +66,7 @@ op_complete(Op, {ok, Units}, ElapsedUs) ->
     folsom_metrics:notify({units, Op}, {inc, Units}),
     ok;
 op_complete(Op, Result, ElapsedUs) ->
+	io:fwrite("<<<< stats op_complete/3.3\n"),
     gen_server:call(?MODULE, {op, Op, Result, ElapsedUs}).
 
 %% ====================================================================
@@ -71,6 +74,7 @@ op_complete(Op, Result, ElapsedUs) ->
 %% ====================================================================
 
 init([]) ->
+	io:fwrite("hello from stats:init \n"),
     %% Trap exits so we have a chance to flush data
     process_flag(trap_exit, true),
     process_flag(priority, high),
@@ -132,8 +136,11 @@ init([]) ->
 
 handle_call(run, _From, State) ->
     %% Schedule next report
+    	io:fwrite("hello from stats:handle_call 1\n"),
     Now = os:timestamp(),
+    	io:fwrite("hello from stats:handle_call 2\n"),
     timer:send_interval(State#state.report_interval, report),
+    	io:fwrite("hello from stats:handle_call 3\n"),
     {reply, ok, State#state { start_time = Now, last_write_time = Now}};
 handle_call({op, Op, {error, Reason}, _ElapsedUs}, _From, State) ->
     increment_error_counter(Op),
@@ -169,12 +176,14 @@ code_change(_OldVsn, State, _Extra) ->
 %% ====================================================================
 
 op_csv_file({Label, _Op}) ->
+	io:fwrite("hello from stats:op_csv_file 1\n"),
     Fname = normalize_label(Label) ++ "_latencies.csv",
     {ok, F} = file:open(Fname, [raw, binary, write]),
     ok = file:write(F, <<"elapsed, window, n, min, mean, median, 95th, 99th, 99_9th, max, errors\n">>),
     F.
 
 measurement_csv_file({Label, _Op}) ->
+	io:fwrite("hello from stats:measurement_csv_file 1\n"),
     Fname = normalize_label(Label) ++ "_measurements.csv",
     {ok, F} = file:open(Fname, [raw, binary, write]),
     ok = file:write(F, <<"elapsed, window, n, min, mean, median, 95th, 99th, 99_9th, max, errors\n">>),
@@ -240,6 +249,7 @@ lookup_or_zero(Tab, Key) ->
 
 
 process_stats(Now, State) ->
+	io:fwrite("hello from stats:process_stats 1\n"),
     %% Determine how much time has elapsed (seconds) since our last report
     %% If zero seconds, round up to one to avoid divide-by-zeros in reporting
     %% tools.
@@ -284,6 +294,7 @@ process_stats(Now, State) ->
 %% number of successful and failed ops in this window of time.
 %%
 report_latency(Elapsed, Window, Op) ->
+	io:fwrite("hello from stats:report_latency 1\n"),
     Stats = folsom_metrics:get_histogram_statistics({latencies, Op}),
     Errors = error_counter(Op),
     Units = folsom_metrics:get_metric_value({units, Op}),

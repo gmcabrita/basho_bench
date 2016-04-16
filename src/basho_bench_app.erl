@@ -32,7 +32,6 @@
 %% Application callbacks
 -export([start/2, stop/1]).
 
-
 %% ===================================================================
 %% API
 %%===================================================================
@@ -45,8 +44,9 @@ start() ->
           true=lists:keymember(sasl,1,application:which_applications()),
           true=lists:keymember(crypto,1,application:which_applications()),
           
-          %% Start up our application
-          application:start(basho_bench);
+          %% Start up our application (this is the same as application:start(basho_bench, temporary))
+            io:fwrite("hello from app:start temporary\n"),
+          application:start(basho_bench);  
        NotInc when NotInc == {ok, standalone} orelse NotInc == undefined ->
           application:load(sasl),
           application:set_env(sasl, sasl_error_logger, {file, "log.sasl.txt"}),
@@ -55,6 +55,7 @@ start() ->
 
           %% Start up our application -- mark it as permanent so that the node
           %% will be killed if we go down
+          io:fwrite("hello from app:start permanent\n"),
           application:start(basho_bench, permanent)
     end.
 
@@ -78,14 +79,31 @@ halt_or_kill() ->
 %% Application callbacks
 %%===================================================================
 
-start(_StartType, _StartArgs) ->
-    {ok, Pid} = basho_bench_sup:start_link(),
-    application:set_env(basho_bench_app, is_running, true),
-    ok = basho_bench_stats:run(),
-    ok = basho_bench_measurement:run(),
-    ok = basho_bench_worker:run(basho_bench_sup:workers()),
+%start(_StartType, _StartArgs) -> 
+%	{ok, Pid} = myleader:start_link(),
+%		io:fwrite("hello from app:start 1\n"),
+%	 ok = mygenserv:launchWorkersSup(),
+%   		io:fwrite("hello from app:start 2\n"),
+%    ok = application:set_env(basho_bench_app, is_running, true),
+%   		io:fwrite("hello from app:start 3\n"),
+%    ok = basho_bench_stats:run(),
+%    	io:fwrite("hello from app:start 4\n"),
+%    ok = basho_bench_measurement:run(),
+%    	io:fwrite("hello from app:start 5\n"),
+%    ok = mygenserv:launchWorkers(),
+%    	io:fwrite("hello from app:start 6\n"),
+%    {ok, Pid}.
+     
+start(_StartType, _StartArgs) ->  
+	{ok, Pid} = myleader:start_link(),
+	io:fwrite("hello from app:start 1\n"),
+	ok = myleader:start(),
+	%starts the leader as a process   
+	%spawn(myleader, start),      
+	io:fwrite("hello from app:start 2\n"), 
     {ok, Pid}.
 
+          
 
 stop(_State) ->
     %% intentionally left in to show where worker profiling start/stop calls go.

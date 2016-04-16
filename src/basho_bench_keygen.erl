@@ -35,6 +35,61 @@
 %% ====================================================================
 %% API
 %% ====================================================================
+
+
+new({biased_partial, MaxKey, ReplicationFactor, PercentageExternal}, _Id) ->
+    %% Nodes = length(basho_bench_config:get(antidote_pb_ips)),
+    NumDcs = basho_bench_config:get(antidote_pb_num_dcs),
+    %% NodesPerDc = basho_bench_config:get(antidote_pb_nodes_per_dc),
+    %% NodeId = Id rem Nodes +1,
+    %% IdDc = ((NodeId - 1) div NodesPerDc) +1,
+    IdDc = basho_bench_config:get(antidote_pb_dc_id),
+    KeySpace = MaxKey div NumDcs,
+    RangeHere = ReplicationFactor,
+    MinHere = case IdDc - (ReplicationFactor - 1) of
+		  Val when Val < 1 ->
+		      NumDcs - Val;
+		  Val2 ->
+		      Val2
+	      end,
+    MinNotHere = case (IdDc + 1) rem NumDcs of
+		     0 ->
+			 NumDcs;
+		     Oth ->
+			 Oth
+		 end,
+    
+    %% MinNotHere = case (IdDc + ReplicationFactor) rem (NumDcs) of
+    %% 		     0 ->
+    %% 			 NumDcs;
+    %% 		     Oth ->
+    %% 			 Oth
+    %% 		 end,
+    RangeNotHere = case NumDcs - ReplicationFactor of
+		       0 ->
+			   1;
+		       Oth2 ->
+			   Oth2
+		   end,
+    fun() -> DcNum = case random:uniform() > PercentageExternal of
+			 false ->
+			     case (MinNotHere + (random:uniform(RangeNotHere)-1)) rem (NumDcs) of
+				 0 ->
+				     NumDcs;
+				 Other ->
+				     Other
+			     end;
+			 true ->
+			     case (MinHere + (random:uniform(RangeHere)-1)) rem (NumDcs) of
+				 0 ->
+				     NumDcs;
+				 Other ->
+				     Other
+			     end
+		     end,
+	     (((random:uniform(KeySpace)) * NumDcs) + (DcNum))
+    end;
+		    
 new({int_to_bin, InputGen}, Id) ->
     ?WARN("The int_to_bin key generator wrapper is deprecated, please use the "
           "int_to_bin_bigendian or int_to_bin_littleendian wrapper instead\n",
@@ -92,6 +147,9 @@ new({uniform_int, StartKey, NumKeys}, _Id)
 new({pareto_int, MaxKey}, _Id)
   when is_integer(MaxKey), MaxKey > 0 ->
     pareto(trunc(MaxKey * 0.2), ?PARETO_SHAPE);
+new({dc_bias, NumDCs, DcId, NodesPerDC, MaxKey}, _Id) ->
+    Max = MaxKey * NodesPerDC,
+    bias(NumDCs, DcId, Max, trunc(Max * 0.2), ?PARETO_SHAPE);
 new({truncated_pareto_int, MaxKey}, Id) ->
     Pareto = new({pareto_int, MaxKey}, Id),
     fun() -> erlang:min(MaxKey, Pareto()) end;
@@ -152,6 +210,18 @@ pareto(Mean, Shape) ->
             U = 1 - random:uniform(),
             trunc((math:pow(U, S1) - 1) * S2)
     end.
+
+
+bias(NumDCs, DcId, Max, Mean, Shape) ->
+    DcRange = (Max div NumDCs) * (1 - DcId),
+    S1 = (-1 / Shape),
+    S2 = Mean * (Shape - 1),
+    fun() ->
+            U = 1 - random:uniform(),
+            Key1 = erlang:min(Max, trunc((math:pow(U, S1) - 1) * S2)),
+	    (Key1 + DcRange) rem Max
+    end.
+    
 
 
 sequential_int_generator(Ref, MaxValue, Id, DisableProgress) ->
