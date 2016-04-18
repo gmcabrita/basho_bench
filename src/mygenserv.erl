@@ -81,7 +81,7 @@
 
 start_link() ->                % start_link spawns and links to a new 
     gen_server:start_link(     %  process in one atomic step. The parameters:
-      {local, ?SERVER},        %  - name to register the process under locally
+      {global, ?SERVER},        %  - name to register the process under locally
       ?MODULE,                 %  - the module to find the init/1 callback in 
       [],                      %  - what parameters to pass to init/1
       []).                     %  - additional options to start_link
