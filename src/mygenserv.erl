@@ -81,7 +81,7 @@
 
 start_link() ->                % start_link spawns and links to a new 
     gen_server:start_link(     %  process in one atomic step. The parameters:
-      {global, ?SERVER},        %  - name to register the process under locally
+      {local, ?SERVER},        %  - name to register the process under locally
       ?MODULE,                 %  - the module to find the init/1 callback in 
       [],                      %  - what parameters to pass to init/1
       []).                     %  - additional options to start_link
@@ -133,22 +133,22 @@ init([]) ->                    % these are the behaviour callbacks. init/1 is
 %     #state{count=Count+1}     % and also update state
 %    }.
 
-handle_call({launchWorkersSup, SW, SD, SS}, _From, #state{count=Count}) -> 
+handle_call({launchWorkersSup, SW, SD, SS}, _From, State) -> 
   io:fwrite("hello from mygenserv:handle_call launchWorkersSup 0 \n"),
   basho_bench_sup:start_link({SW, SD, SS}),
   io:fwrite("hello from mygenserv:handle_call launchWorkersSup 1\n"),
     {reply, 
-     Count,                    % here we synchronously respond with Count
-     #state{count=Count+1}     % and also update state
+     ok,                    % here we synchronously respond with Count
+     State     % and also update state
     }; 
     
-handle_call({launchWorkers}, _From, #state{count=Count}) -> 
+handle_call({launchWorkers}, _From, State) -> 
   io:fwrite("hello from mygenserv:handle_call launchWorkers 0\n"),
   basho_bench_worker:run(basho_bench_sup:workers()),
   io:fwrite("hello from mygenserv:handle_call launchWorkers 1\n"),
     {reply, 
-     Count,                    % here we synchronously respond with Count
-     #state{count=Count+1}     % and also update state
+     ok,                    % here we synchronously respond with Count
+     State     % and also update state
     }; 
     
 handle_call({set_config, {SW, SD}}, _From, #state{count=Count}) -> 
