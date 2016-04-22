@@ -55,24 +55,22 @@
 
 start_link() ->
 	io:fwrite("hello from myleader:start_link\n"),
-    supervisor:start_link({global, ?MODULE}, ?MODULE, []).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
     
 
 start() ->
-io:format("Hello From myleader avant recup \n"),
-  {SW, SD, SS} = recup(),
-io:format("Hello From myleader apres recup \n"),
-%  io:format("Hello From myleader avant set_config \n"),
-%  ok = mygenserv:set_config({SW,SD}),
-%  io:format("Hello From myleader apres set_config \n"),
+	io:format("hello from myleader:start 0\n"),
+	{SW, SD, SS} = recup(),
+	io:format("hello from myleader:start 1\n"),
+%	ok = mygenserv:set_config({SW,SD}),
 	ok = mygenserv:launchWorkersSup({SW, SD, SS}),
-	io:fwrite("hello from leader:start 1\n"),
-	ok = application:set_env(basho_bench_app, is_running, true),
 	io:fwrite("hello from leader:start 2\n"),
-	ok = basho_bench_stats:run(),
+	ok = application:set_env(basho_bench_app, is_running, true),
 	io:fwrite("hello from leader:start 3\n"),
-	ok = basho_bench_measurement:run(),
+	ok = basho_bench_stats:run(),
 	io:fwrite("hello from leader:start 4\n"),
+	ok = basho_bench_measurement:run(),
+	io:fwrite("hello from leader:start 5\n"),
 	ok = mygenserv:launchWorkers().
 
 %% ===================================================================
@@ -107,8 +105,8 @@ init([]) ->
 }. 
 
 recup() ->
-io:format("Hello From recup debut \n"),
-  {A1, A2, A3} =
+	io:fwrite("hello from myleader:recup\n"),
+	{A1, A2, A3} =
         case basho_bench_config:get(rng_seed, {42, 23, 12}) of
             {Aa, Ab, Ac} -> {Aa, Ab, Ac};
             now -> now()
@@ -165,7 +163,7 @@ io:format("Hello From recup debut \n"),
 %% Expand operations list into tuple suitable for weighted, random draw
 %%
 ops_tuple() ->
-  io:format("Hello From ops_tuple \n"),
+	io:fwrite("hello from myleader:ops_tuple\n"),
     F =
         fun({OpTag, Count}) ->
                 lists:duplicate(Count, {OpTag, OpTag});

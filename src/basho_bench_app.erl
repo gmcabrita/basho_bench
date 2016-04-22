@@ -55,6 +55,8 @@ start() ->
 
           %% Start up our application -- mark it as permanent so that the node
           %% will be killed if we go down
+		      % Monitoring tool
+		      % appmon:start(),
           io:fwrite("hello from app:start permanent\n"),
           application:start(basho_bench, permanent)
     end.
@@ -97,9 +99,7 @@ halt_or_kill() ->
 start(_StartType, _StartArgs) ->  
 	{ok, Pid} = myleader:start_link(),
 	io:fwrite("hello from app:start 1\n"),
-	ok = myleader:start(),
-	%starts the leader as a process   
-	%spawn(myleader, start),      
+	ok = myleader:start(),     
 	io:fwrite("hello from app:start 2\n"), 
     {ok, Pid}.
 

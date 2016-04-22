@@ -54,9 +54,8 @@ exponential(Lambda) ->
     -math:log(random:uniform()) / Lambda.
 
 run() ->
-	io:fwrite("hello from stats:run before\n"),
-    gen_server:call(?MODULE, run),
-   	io:fwrite("hello from stats:run after\n").
+	%io:fwrite("hello from stats:run before\n"),
+    gen_server:call(?MODULE, run).
 
 op_complete(Op, ok, ElapsedUs) ->
     op_complete(Op, {ok, 1}, ElapsedUs);

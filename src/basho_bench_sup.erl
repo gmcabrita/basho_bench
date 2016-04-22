@@ -76,13 +76,12 @@
 %% ===================================================================
 
 start_link({SW, SD, SS}) ->
-	io:fwrite("hello from sup:start_link()\n"),
-    supervisor:start_link({global, ?MODULE}, ?MODULE, [{SW, SD, SS}]).
+	io:fwrite("hello from sup:start_link\n"),
+    supervisor:start_link({local, ?MODULE}, ?MODULE, [{SW, SD, SS}]).
 
 workers() ->
 	io:fwrite("hello from sup:workers before\n"),
 	[Pid || {_Id, Pid, worker, [basho_bench_worker]} <- supervisor:which_children(?MODULE)].
-	%io:fwrite("hello from sup:workers after\n").
 
 stop_child(Id) ->
     ok = supervisor:terminate_child(?MODULE, Id),
