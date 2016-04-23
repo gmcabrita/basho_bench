@@ -55,7 +55,7 @@
 
 start_link() ->
 	io:fwrite("hello from myleader:start_link\n"),
-    supervisor:start_link({global, ?MODULE}, ?MODULE, []).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
     
 
 start() ->
