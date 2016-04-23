@@ -77,7 +77,7 @@
 
 start_link({SW, SD, SS}) ->
 	io:fwrite("hello from sup:start_link\n"),
-    supervisor:start_link({global, ?MODULE}, ?MODULE, [{SW, SD, SS}]).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, [{SW, SD, SS}]).
 
 workers() ->
 	io:fwrite("hello from sup:workers before\n"),
