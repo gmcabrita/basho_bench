@@ -87,6 +87,11 @@ new(Id) ->
 %% Reads from a number of keys defined in the config file: num_reads, then
 %% updates a number of keys defined in the config file: num_updates.
 
+run(append, KeyGen, ValueGen, State) ->
+    run(txn, KeyGen, ValueGen, State);
+run(read, KeyGen, ValueGen, State) ->
+    run(txn, KeyGen, ValueGen, State);
+
 run(txn, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id = Id,
   pb_port=_Port, target_node=_Node,
   num_reads=NumReads,
@@ -132,10 +137,6 @@ run(txn, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id = Id,
 %% Reads from a number of keys defined in the config file: num_reads, then
 %% updates the same keys (the num_updates in the config is unused).
 
-run(append, KeyGen, ValueGen, State) ->
-    run(rw_txn, KeyGen, ValueGen, State);
-run(read, KeyGen, ValueGen, State) ->
-    run(rw_txn, KeyGen, ValueGen, State);
     
 run(rw_txn, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id = Id,
   pb_port=_Port, target_node=_Node,
