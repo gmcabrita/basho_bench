@@ -119,6 +119,7 @@ new(Id) ->
     _Result = net_adm:ping(TargetNode),
     %?INFO("Result of ping is ~p \n", [Result]),
 
+    %% PartList is in the form of [{N, [{Part1, Node}, {Part2, Node}]}, {}]....
     {PartList, ReplList, NumDcs} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
     %lager:info("NumDcs is ~w", [NumDcs]),
     %lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
@@ -143,8 +144,6 @@ new(Id) ->
 
     %lager:info("Part list is ~w",[PartList]),
     MyTable =ets:new(my_table, [private, set]),
-    %ets:insert(MyTable, {payment, 0,0,0}),
-    %ets:insert(MyTable, {new_order, 0,0,0}),
     Key1 = "C_C_LAST",
     Key2 = "C_C_ID",
     Key3 = "C_OL_I_ID",
@@ -197,7 +196,7 @@ new(Id) ->
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
 run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
-        other_master_ids=OtherMasterIds, dc_rep_ids=DcRepIds, hash_dict=HashDict, no_rep_ids=SlaveRepIds, node_id=DcId, 
+        other_master_ids=OtherMasterIds, dc_rep_ids=DcRepIds, hash_dict=HashDict, no_rep_ids=_SlaveRepIds, node_id=DcId, 
         no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, worker_id=WorkerId,
         no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, w_per_dc=WPerNode, 
         item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
@@ -636,7 +635,6 @@ get_local_remote_writeset(WriteSet, PartList, LocalDcId, WPerNode) ->
     %NodeSet = lists:foldl(fun({_, N}, S) -> sets:add_element(N, S) end, sets:new(), L),
     %ets:update_counter(MyTable, TxType, [{2, 1}, {3, length(L)}, {4,sets:size(NodeSet)}]),
     {dict:to_list(LWSD), dict:to_list(RWSD)}.
-
 
 add_to_wr_set(DcId, Key, Value, WriteSet, ReadSet) ->
     WriteSet1 = dict:store({DcId, Key}, Value, WriteSet),

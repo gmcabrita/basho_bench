@@ -27,6 +27,7 @@
 -export([start_link/2,
          run/1,
          cleanup/1,
+         retry_until_not/3,
          stop/1]).
 
 %% gen_server callbacks
@@ -40,8 +41,9 @@
                  driver_state,
                  shutdown_on_error,
                  ops,
-                 last_op,
+                 todo_op,
                  retry,
+                 transition,
                  ops_len,
                  rng_seed,
                  parent_pid,
@@ -101,6 +103,10 @@ init([SupChild, Id]) ->
                 true -> true;
                 _ -> false
             end,
+    {ToDoOp, Transition} = case basho_bench_config:get(transition, false) of
+                true -> {{[], 1}, rubis_tool:load_transition()}; 
+                _ -> {false, undef} 
+            end,
     %% Finally, initialize key and value generation. We pass in our ID to the
     %% initialization to enable (optional) key/value space partitioning
     KeyGen = basho_bench_keygen:new(basho_bench_config:get(key_generator), Id),
@@ -112,7 +118,8 @@ init([SupChild, Id]) ->
                      ops = Ops, ops_len = size(Ops),
                      rng_seed = RngSeed,
                      retry = Retry,
-                     last_op = false,
+                     transition = Transition,
+                     todo_op = ToDoOp,
                      parent_pid = self(),
                      sup_id = SupChild},
 
@@ -267,39 +274,66 @@ worker_next_op2(State, OpTag) ->
    catch (State#state.driver):run(OpTag, State#state.keygen, State#state.valgen,
                                   State#state.driver_state).
 worker_next_op(State) ->
-    Next = case State#state.retry of 
+    ToDo = case State#state.retry of 
                 true ->
-                    case State#state.last_op of
+                    case State#state.todo_op of
                         false -> element(random:uniform(State#state.ops_len), State#state.ops);
                         Op ->  Op
                     end;
                 false ->
-                    element(random:uniform(State#state.ops_len), State#state.ops)
+                    ST = State#state.transition,
+                    case ST of
+                        undef ->
+                            element(random:uniform(State#state.ops_len), State#state.ops);
+                        _ ->
+                            %% Stick to register user
+                            State#state.todo_op
+                    end
             end,
-    {_Label, OpTag} = Next,
+    {PreviousOps, OpTag} = ToDo,
+    TranslatedOp = rubis_tool:translate_op(OpTag),
+    %lager:warning("Current ToDo is ~w", [ToDo]),
+    %lager:warning("Current Op is ~w", [TranslatedOp]),
     Start = os:timestamp(),
-    Result = worker_next_op2(State, OpTag),
+    Result = worker_next_op2(State, TranslatedOp),
     ElapsedUs = erlang:max(0, timer:now_diff(os:timestamp(), Start)),
     case Result of
+        {prev_state, DriverState} ->
+            case PreviousOps of
+                [] -> {ok, State#state {driver_state = DriverState, todo_op={[], 1}}};
+                [H|T] ->
+                    {ok, State#state {driver_state = DriverState, todo_op={T, H}}}
+            end;
         {Res, DriverState} when Res == ok orelse element(1, Res) == ok ->
-            basho_bench_stats:op_complete(Next, Res, ElapsedUs),
-            {ok, State#state { driver_state = DriverState, last_op=false}};
-
+            basho_bench_stats:op_complete({TranslatedOp, TranslatedOp}, Res, ElapsedUs),
+            T = State#state.transition,
+            case T of
+                undef -> 
+                    {ok, State#state { driver_state = DriverState, todo_op=false}};
+                _ ->
+                    {PreviousStates, CurrentState} = State#state.todo_op,
+                    NextToDo = rubis_tool:get_next_state(PreviousStates, T, CurrentState), 
+                    %NextToDo = retry_until_not(PreviousStates, T, CurrentState),
+                    {ok, State#state { driver_state = DriverState, todo_op=NextToDo}}
+                    %case random:uniform(2) of
+                    %    2 -> {ok, State#state { driver_state = DriverState, todo_op={PreviousStates, 8}}};
+                    %    1 -> {ok, State#state { driver_state = DriverState, todo_op={PreviousStates, 3}}}
+                    %end
+            end;
         {Res, DriverState} when Res == silent orelse element(1, Res) == silent ->
-            {ok, State#state { driver_state = DriverState, last_op=false}};
-
+            {ok, State#state { driver_state = DriverState, todo_op=false}};
         {error, Reason, DriverState} ->
             %% Driver encountered a recoverable error
-            basho_bench_stats:op_complete(Next, {error, Reason}, ElapsedUs),
+            basho_bench_stats:op_complete({TranslatedOp, TranslatedOp}, {error, Reason}, ElapsedUs),
             State#state.shutdown_on_error andalso
                 erlang:send_after(500, basho_bench,
                                   {shutdown, "Shutdown on errors requested", 1}),
-            {ok, State#state { driver_state = DriverState, last_op=Next}};
+            {ok, State#state { driver_state = DriverState, todo_op=ToDo}};
 
         {'EXIT', Reason} ->
             %% Driver crashed, generate a crash error and terminate. This will take down
             %% the corresponding worker which will get restarted by the appropriate supervisor.
-            basho_bench_stats:op_complete(Next, {error, crash}, ElapsedUs),
+            basho_bench_stats:op_complete(ToDo, {error, crash}, ElapsedUs),
 
             %% Give the driver a chance to cleanup
             (catch (State#state.driver):terminate({'EXIT', Reason}, State#state.driver_state)),
@@ -331,6 +365,27 @@ worker_next_op(State) ->
 
             normal
     end.
+
+retry_until_not(PreviousStates, T, CurrentState) ->
+    NextToDo = rubis_tool:get_next_state(PreviousStates, T, CurrentState), 
+    case NextToDo of
+        {_, 3} ->
+            retry_until_not(PreviousStates, T, CurrentState);
+        {_, 15} ->
+            retry_until_not(PreviousStates, T, CurrentState);
+        {_, 18} ->
+            retry_until_not(PreviousStates, T, CurrentState);
+        {_, 21} ->
+            retry_until_not(PreviousStates, T, CurrentState);
+        %{_, 25} ->
+        %    retry_until_not(PreviousStates, T, CurrentState);
+        %{_, 27} ->
+        %    retry_until_not(PreviousStates, T, CurrentState);
+        {_, _} ->
+            NextToDo
+    end.
+    
+    
 
 needs_shutdown(State) ->
     Parent = State#state.parent_pid,
