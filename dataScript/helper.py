@@ -67,7 +67,7 @@ def get_matching_series_delete(args, toremove, options):
     to_plot_params=[field_value_str+'_'+str(x)  for x in rotate_values]
     to_plot_list=[]
     for key in to_plot_params:
-        #print(key)
+        print(key)
         if key in field_dict:
             to_plot_list.append(field_dict[key])
         else:
@@ -117,12 +117,14 @@ def get_matching_serie(args):
 def get_legend(str_value, type, postfix):
     if type == 'locality':
         value = int(str_value) 
-        if value == 12:
-            return 'High locality '+postfix
-        elif value == 8:
-            return 'Medium locality '+postfix
-        else:
-            return 'Low locality '+postfix
+        if value == 20:
+            return '80:20'
+        elif value == 30:
+            return '70:30'
+        elif value == 50:
+            return '50:50'
+        elif value == 80:
+            return '20:80'
     elif type == 'process':
         value = int(str_value) 
         if value == 0:
@@ -177,8 +179,8 @@ def get_title(param_list, type):
 
 def get_tpcc_title(param_list):
     split_f=[]
-    params=[' threads','% m','% s', 'do_specula', 'fast_reply', ' length',' Ws', '% NewOrder', '% Payment', 'rep', '']
-    name_params=['T','%M','%S', 'Spec', 'Fast', 'SL', 'W', '%N', '%P', 'R', '']
+    params=[' threads','% m','% s', 'do_specula', 'fast_reply', ' length',' Ws', '% NewOrder', '% Payment', 'rep', '', '']
+    name_params=['T','%M','%S', 'Spec', 'Fast', 'SL', 'W', '%N', '%P', 'R', '', '']
     for f in param_list:
         f=f.replace('false','f').replace('true','t')
         split_f.append(f.split("_"))
@@ -243,8 +245,8 @@ def get_micro_title(param_list):
     split_f=[]
     #params=[' threads',' mk',' sk',' ck',' mr', ' sr', ' cr', ' spec', ' spec length', '', 'rep', 'lp']
     #name_params=['T','MK','SK','CK','MR', 'SR', 'CR', 'SPEC', 'SL', 'ap', 'R', 'LP']
-    params=[' threads',' mk',' sk',' ck',' mr', ' sr', ' cr', ' spec', ' len', ' read', 'rep', '', 'det']
-    name_params=['T','MK','SK','CK','MR', 'SR', 'CR', 'SPEC', 'SL', 'SR', 'R', 'LP', '']
+    params=[' threads',' mk',' sk',' ck',' mr', ' sr', ' cr', ' spec', ' len', ' read', 'rep', '', 'det', '']
+    name_params=['T','MK','SK','CK','MR', 'SR', 'CR', 'SPEC', 'SL', 'SR', 'R', 'LP', '', '']
     for f in param_list:
         f=f.replace('false','f').replace('true','t')
         f=rreplace(f, '000000', 'm', 4)

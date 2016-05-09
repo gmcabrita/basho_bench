@@ -28,7 +28,10 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     line_points = 0
     for data_list in data_multi_list: 
         data_list = sort_by_num(data_list)
-        l = get_legend(data_list[-1].split('_')[int(legend_index)], legend_type, '')
+        if isinstance(legend_index, int):
+            l = get_legend(data_list[-1].split('_')[int(legend_index)], legend_type, '')
+        else:
+            l = legend_index[line_index]
         if 'draw_line' in plot_dict:
             max_list= data_list[-(plot_dict['draw_line']):]
             max_list.append(data_list[0])
@@ -149,5 +152,5 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     legend_type= legend_type.replace(' ','').replace('%','').replace(',','').replace('_','').replace('-','').replace(':','')
     fig = matplotlib.pyplot.gcf()
     fig.set_size_inches(8.5, 4.5)
-    fig.savefig(output_folder+'/'+name+legend_type+'.png', bbox_inches='tight')
+    fig.savefig(output_folder+'/'+name+legend_type+'.pdf', format='pdf', bbox_inches='tight')
 

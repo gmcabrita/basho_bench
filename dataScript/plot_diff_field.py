@@ -41,10 +41,11 @@ th_folder=os.path.join(output_folder, "throughput")
 os.mkdir(lat_folder)
 os.mkdir(op_lat_folder)
 os.mkdir(th_folder)
+print(field_dict)
 for key, flist in field_dict.items():
     sflist = sort_by_num(flist)
     joined = ' '.join(map(str, sflist))
-    #print("Joined is"+str(joined))
+    print("Joined is"+str(joined))
     os.system('./dataScript/plot_lat.py %s %s %s %s' % (input_folder, lat_folder, bench_type, joined))
     os.system('./dataScript/plot_bar_th.py %s %s %s %s' % (input_folder, th_folder, bench_type, joined))
     if bench_type == 'tpcc':

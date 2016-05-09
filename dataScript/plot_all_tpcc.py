@@ -24,7 +24,7 @@ series3=get_matching_series([input_folder, 'tpcc', 8, 10, 6])
 print(series3)
 plot_multi_lines(input_folder, output_folder, bench_type, series3, 6, dict3)
 
-dict5={'title':'1% new-order, 9% payment, 90% order-status','no_title':True, 'x_labels':False, 'y_labels':False, 'y_lim':15000, 'legend_type':'warehouse', 'draw_line':2, 'line_name':'max'}
+dict5={'title':'1% new-order, 9% payment, 90% order-status','no_title':True, 'x_labels':False, 'y_labels':'Transactions per second(tps)', 'y_lim':15000, 'legend_type':'warehouse', 'draw_line':2, 'line_name':'max'}
 series5=get_matching_series([input_folder, 'tpcc', 7, 8, 1, 9, 6])
 print(series5)
 plot_multi_lines(input_folder, output_folder, bench_type, series5, 6, dict5)

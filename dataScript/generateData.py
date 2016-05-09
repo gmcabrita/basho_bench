@@ -117,10 +117,13 @@ def add_duration(nodes, dict, total_dict, folder):
     total_dur = []
     index = 1
     stat_lines = [line.rstrip('\n') for line in open(os.path.join(folder, 'stat'))]
+        
     for node in nodes:
         dur_file = os.path.join(folder, node+'-prep')
         if os.path.isfile(dur_file) == False:
-            total_dict.append(total_dur)
+            print(dur_file+"IS NOT FILE")
+            print("ADD NOTHING!!!")
+            #total_dict.append(total_dur)
             return 
         data = np.loadtxt(dur_file)
         if data.ndim == 2:
@@ -184,6 +187,9 @@ def write_to_file(file_name, dict, keys, title):
     for key in keys:
         if key in dict:
             data_list = dict[key]
+            #if key == 'total_duration' :
+            #    print(dict)
+            #    print(data_list)
             data_array = np.array(data_list).astype(np.float)
             #print("Key is"+str(key))
             #print("Data array is"+str(data_array))
