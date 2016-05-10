@@ -299,7 +299,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %% ************ read time *****************
     RT2 = os:timestamp(),
     %% ************ read time *****************
-    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, new_order}, ?TIMEOUT),%, length(DepsList)}),
+    Response = gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, new_order}, ?TIMEOUT),%, length(DepsList)}),
     RT3 = os:timestamp(),
     case Response of
         {ok, {committed, _}} ->

@@ -5,7 +5,7 @@
 seq="1"
 threads="8"
 length="1 2 4 8"
-rep=1
+rep=2
 parts=3
 start_ind=1
 skip_len=0
