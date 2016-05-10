@@ -381,13 +381,13 @@ run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
             BidIds = Item#item.i_bid_ids,
             lists:foreach(fun(BidId) ->
                             BidKey = rubis_tool:get_key(BidId, bid),
-                            {BidNode, _} = BidId,
-                            case BidNode == (MyNode+4-2) rem 4 + 1 of
-                                true -> lager:warning("Bid unreplicated! ItemKey is ~p, BidList is ~p", [ItemKey, BidIds]); 
-                                false -> ok
-                            end,
-                            lager:warning("Trying to read bid ~p from node ~w", [BidKey, BidNode]),
-                            _Bid = read_from_node(TxServer, TxId, BidKey, BidNode, MyNode, PartList, HashDict)
+                            %{BidNode, _} = BidId,
+                            %case BidNode == (MyNode+4-2) rem 4 + 1 of
+                            %    true -> lager:warning("Bid unreplicated! ItemKey is ~p, BidList is ~p", [ItemKey, BidIds]); 
+                            %    false -> ok
+                            %end,
+                            %lager:warning("Trying to read bid ~p from node ~w", [BidKey, BidNode]),
+                            _Bid = read_from_node(TxServer, TxId, BidKey, ItemNode, MyNode, PartList, HashDict)
                           end, BidIds),
             case Specula of
                 true ->
@@ -410,7 +410,7 @@ run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_se
             %lager:info("UerId is ~w", [UserId]),
             UserKey = rubis_tool:get_key(UserId, user), 
             TxId = gen_server:call(TxServer, {start_tx}),
-            %lager:warning("Trying to read from user key ~w", [UserKey]),
+            %lager:warning("Trying to read from user key ~p", [UserKey]),
             User = read_from_node(TxServer, TxId, UserKey, UserNode, MyNode, PartList, HashDict),
             NumComments = User#user.u_num_comments,
             case NumComments of 0 ->  
@@ -427,6 +427,7 @@ run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_se
                     %RandFromUser = RandComment#comment.c_from_id,
                     RandUser = lists:foldl(fun(CId, RU) ->
                                 CommentKey = rubis_tool:get_key({UserId, CId}, comment),
+                                %lager:warning("Trying to read comment ~p, user node is ~w", [CommentKey, UserNode]),
                                 Comment = read_from_node(TxServer, TxId, CommentKey, UserNode, MyNode, PartList, HashDict),
                                 %CFromId = Comment#comment.c_from_id,
                                 %CFromKey = rubis_tool:get_key(CFromId, user),
@@ -467,13 +468,13 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
             RandBidId = random(ItemBids),
             RandUserId = lists:foldl(fun(B, A) ->
                         BidKey = rubis_tool:get_key(B, bid),
-                        {BidNode, _} = B,
-                        case BidNode == (MyNode+4-2) rem 4 + 1 of
-                            true -> lager:warning("Bid unreplicated! ItemKey is ~p, BidList is ~p", [ItemKey, ItemBids]); 
-                            false -> ok
-                        end,
-                        lager:warning("Trying to read bid ~p from node ~w", [BidKey, BidNode]),
-                        Bid = read_from_node(TxServer, TxId, BidKey, BidNode, MyNode, PartList, HashDict),
+                        %{BidNode, _} = B,
+                        %case BidNode == (MyNode+4-2) rem 4 + 1 of
+                        %    true -> lager:warning("Bid unreplicated! ItemKey is ~p, BidList is ~p", [ItemKey, ItemBids]); 
+                        %    false -> ok
+                        %end,
+                        %lager:warning("Trying to read bid ~p from node ~w", [BidKey, BidNode]),
+                        Bid = read_from_node(TxServer, TxId, BidKey, ItemNode, MyNode, PartList, HashDict),
                         %UserKey = rubis_tool:get_key(Bid#bid.b_user_id, user),
                         %lager:warning("Trying to read from user key ~w", [UserKey]),
                         %_ = read_from_node(TxServer, TxId, UserKey, MyNode, MyNode, PartList, HashDict),
@@ -656,6 +657,9 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
             WS0 = dict:store({MyNode, BidIdKey}, BidNextId, WS),
             WS1 = dict:store({MyNode, BidKey}, BidObj, WS0),
+            WS2 = case MyNode of ItemNode -> WS1;
+                                        _ -> dict:store({ItemNode, BidKey}, BidObj, WS0)
+                  end,
             
             %% Add bid to bidding item
             ExistBids = Item#item.i_bid_ids,
@@ -665,7 +669,7 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
                         Item#item{i_max_bid=Bid, i_nb_of_bids=Item#item.i_nb_of_bids+1, i_bid_ids=[{MyNode, BidNextId}|RemainList]};
                 false -> Item#item{i_nb_of_bids=Item#item.i_nb_of_bids+1, i_bid_ids=[{MyNode, BidNextId}|RemainList]}
             end,  
-            WS2 = dict:store({ItemNode, ItemKey}, NewItem, WS1),
+            WS3 = dict:store({ItemNode, ItemKey}, NewItem, WS2),
 
             %% Add bid to the bidding user
             MyselfKey = rubis_tool:get_key(MyselfId, user),
@@ -673,9 +677,9 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
             Myself = read_from_node(TxServer, TxId, MyselfKey, MyNode, MyNode, PartList, HashDict),
             RemainList0 = lists:sublist(Myself#user.u_bids, ?BID_NUM), 
             Myself1 = Myself#user{u_bids= [{MyNode, BidNextId}|RemainList0]},
-            WS3 = dict:store({MyNode, MyselfKey}, Myself1, WS2),
+            WS4 = dict:store({MyNode, MyselfKey}, Myself1, WS3),
 
-            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS3, PartList, MyNode),
+            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, MyNode),
             %DepsList = ets:lookup(dep_table, TxId),
             Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, payment}, ?TIMEOUT),%, length(DepsList)}),
             case Response of
@@ -802,8 +806,8 @@ run(sell_item_form, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories}
 %% May register an item that is stored in other places
 run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNode, prev_state=PrevState, 
             part_list=PartList, hash_dict=HashDict, max_duration=MaxDuration, nb_categories=NBCategories, max_quantity=MaxQuantity,
-            percent_reserve_item=PercentReserveItem, percent_buy_now=PercentBuyNow, percent_unique_item=PercentUniqueItem,
-            access_master=_AccessMaster, access_slave=_AccessSlave, dc_rep_ids=_DcRepIds, no_rep_ids=_DcNoRepIds}) ->
+            percent_reserve_item=PercentReserveItem, percent_buy_now=PercentBuyNow, percent_unique_item=PercentUniqueItem}) ->
+            %access_master=AccessMaster, access_slave=AccessSlave, dc_rep_ids=DcRepIds, no_rep_ids=DcNoRepIds}) ->
     %ItemNode = pick_node(MyNode, DcRepIds, DcNoRepIds, AccessMaster, AccessSlave),
     ItemNode = MyNode,
 
@@ -922,13 +926,13 @@ run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNod
     %% List won items
     {CI1, CU1, RI1, RU1} = lists:foldl(fun(BI, {IncI, IncU, RI, RU}) ->
         BidKey = rubis_tool:get_key(BI, bid), 
-        {BidNode, _} = BI,
-        case BidNode == (MyNode+4-2) rem 4 + 1 of
-            true -> lager:warning("Bid unreplicated! User bids are ~p", [Myself#user.u_bids]); 
-            false -> ok
-        end,
-        lager:warning("Trying to read bid ~p from node ~w", [BidKey, BidNode]),
-        Bid = read_from_node(TxServer, TxId, BidKey, BidNode, MyNode, PartList, HashDict),
+        %{BidNode, _} = BI,
+        %case BidNode == (MyNode+4-2) rem 4 + 1 of
+        %    true -> lager:warning("Bid unreplicated! User bids are ~p", [Myself#user.u_bids]); 
+        %    false -> ok
+        %end,
+        %lager:warning("Trying to read bid ~p from node ~w", [BidKey, BidNode]),
+        Bid = read_from_node(TxServer, TxId, BidKey, MyNode, MyNode, PartList, HashDict),
         ItemI = Bid#bid.b_item_id,
         {ItemNode, _} = ItemI,
         ItemKey = rubis_tool:get_key(ItemI, item), 
@@ -982,6 +986,7 @@ run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNod
     {_, RU3} = lists:foldl(fun(CI, {IncU, RU}) ->
         %lager:warning("CI is ~w", [CI]),
         CommentKey = rubis_tool:get_key({MyselfId, CI}, comment), 
+        %lager:warning("Trying to read comment ~p, user node is ~w", [CommentKey, MyNode]),
         Comment = read_from_node(TxServer, TxId, CommentKey, MyNode, MyNode, PartList, HashDict),
         FromUserId = Comment#comment.c_from_id,
         %FromUserKey = rubis_tool:get_key(FromUserId, user), 
