@@ -1,7 +1,6 @@
 #!/bin/bash
 
 
-
 if [ $# -ge 1 ]; then
     Clean=$1
 else
@@ -23,8 +22,8 @@ elif [ $Clean == 2 ]
 then
 echo "Only cleaning basho_bench"
 ./script/parallel_command.sh "cd basho_bench && git stash && git pull && sudo make"
-./script/command_to_all.sh "./basho_bench/masterScripts/config.sh" 
-./script/command_to_all.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"
+#./script/parallel_command.sh "./basho_bench/masterScripts/config.sh" 
+./script/parallel_command.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"
 elif [ $Clean == 3 ]
 then
 echo "Only initing"
@@ -46,9 +45,9 @@ sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.em
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.name 'marsleezm'"
 ./script/makeRel.sh benchmark_precise_fast_repl 
 ./script/parallel_command.sh "cd basho_bench && git stash && git pull && sudo make"
-./script/command_to_all.sh "./basho_bench/masterScripts/config.sh" 
-./script/command_to_all.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"
+#./script/parallel_command.sh "./basho_bench/masterScripts/config.sh" 
+./script/parallel_command.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"
 fi
 
 sudo ./script/copy_to_all.sh ./script/allnodes ./basho_bench/script 
-sudo ./script/command_to_all.sh "./basho_bench/masterScripts/config.sh" 
+sudo ./script/parallel_command.sh "./basho_bench/masterScripts/config.sh" 

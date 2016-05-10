@@ -10,6 +10,10 @@ do
     then
 	File="examples/tpcc.config"
     File2=$File
+    elif [ ${List[0]} == "rubis" ]
+    then
+	File="examples/rubis.config"
+    File2=$File
     elif [ ${List[0]} == "load" ]
     then
 	File="examples/load.config"
