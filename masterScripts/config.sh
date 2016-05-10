@@ -27,9 +27,11 @@ echo $CurrentNode
 echo "$CurrentNode"
 sudo sed -i -e "s/{antidote_pb_ips.*/{antidote_pb_ips, [$CurrentNode]}./" examples/tpcc.config 
 sudo sed -i -e "s/{antidote_pb_ips.*/{antidote_pb_ips, [$CurrentNode]}./" examples/micro.config 
+sudo sed -i -e "s/{antidote_pb_ips.*/{antidote_pb_ips, [$CurrentNode]}./" examples/rubis.config 
 sudo sed -i -e "s/{antidote_pb_ips.*/{antidote_pb_ips, [$CurrentNode]}./" examples/load.config 
 sudo sed -i -e 's/{code_paths.*/{code_paths, [\x22\x2E\x2E\x2Fantidote\x2Febin\x22]}./' examples/tpcc.config 
 sudo sed -i -e 's/{code_paths.*/{code_paths, [\x22\x2E\x2E\x2Fantidote\x2Febin\x22]}./' examples/micro.config 
+sudo sed -i -e 's/{code_paths.*/{code_paths, [\x22\x2E\x2E\x2Fantidote\x2Febin\x22]}./' examples/rubis.config 
 sudo sed -i -e 's/{code_paths.*/{code_paths, [\x22\x2E\x2E\x2Fantidote\x2Febin\x22]}./' examples/load.config 
 sudo sed -i -e "s/{web_ip.*/{web_ip, \x22$Ip\x22}./" /home/ubuntu/antidote/rel/vars.config 
 sudo sed -i -e "s/{pb_ip.*/{pb_ip, \x22$LocalIp\x22}./" /home/ubuntu/antidote/rel/vars.config 
@@ -38,6 +40,7 @@ sudo sed -i -e "s/{node.*/{node, \x22antidote@$Ip\x22}./" /home/ubuntu/antidote/
 ./localScripts/changeConfig.sh examples/load.config antidote_mynode "$LoadNode"
 ./localScripts/changeConfig.sh examples/tpcc.config antidote_mynode "$BenchNode"
 ./localScripts/changeConfig.sh examples/micro.config antidote_mynode "$MicroNode"
+./localScripts/changeConfig.sh examples/rubis.config antidote_mynode "$MicroNode"
 
 I=0
 Length=${#AntNodeArray[@]}
