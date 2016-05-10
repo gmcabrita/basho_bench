@@ -653,7 +653,9 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
             Now = rubis_tool:now_nsec(),
             BidObj = rubis_tool:create_bid(MyselfId, ItemId, Qty, Bid, MaxBid, Now),
             BidKey = rubis_tool:get_key({MyNode, BidNextId}, bid),
-            WS1 = dict:store({MyNode, BidKey}, BidObj, WS),
+
+            WS0 = dict:store({MyNode, BidIdKey}, BidNextId, WS),
+            WS1 = dict:store({MyNode, BidKey}, BidObj, WS0),
             
             %% Add bid to bidding item
             ExistBids = Item#item.i_bid_ids,
