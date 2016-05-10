@@ -239,7 +239,7 @@ run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=My
             case Response of
                 {ok, {committed, _}} ->
                     {ok, State#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}};
-                {ok, {specula_committed, _}} ->
+                {ok, {specula_commit, _}} ->
                     {ok, State#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}};
                 {aborted, _} ->
                     {error, aborted, State#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}}
