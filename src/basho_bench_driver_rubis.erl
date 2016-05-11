@@ -211,7 +211,7 @@ run(register, _KeyGen, _ValueGen, State) ->
 %% VERIFIED
 %% Register a user that is replicated??
 run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=MyNode, tx_server=TxServer, 
-            specula=Specula, part_list=PartList, hash_dict=HashDict, prev_state=PrevState, nb_regions=NBRegions,
+            specula=Specula, part_list=PartList, hash_dict=HashDict, nb_regions=NBRegions,
             access_master=AccessMaster, access_slave=AccessSlave, dc_rep_ids=DcRepList, no_rep_ids=DcNoRepList}) ->
     UserId = random:uniform(NBUsers) + NBUsers,
     FirstName = "Great" ++ [UserId],
@@ -238,11 +238,11 @@ run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=My
             Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, general}, ?TIMEOUT),%, length(DepsList)}),
             case Response of
                 {ok, {committed, _}} ->
-                    {ok, State#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}};
+                    {ok, State}; %{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}};
                 {ok, {specula_commit, _}} ->
-                    {ok, State#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}};
+                    {ok, State}; %#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}};
                 {aborted, _} ->
-                    {error, aborted, State#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}}
+                    {error, aborted, State} %#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}}
             end;
         _ -> 
             case Specula of
@@ -251,7 +251,7 @@ run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=My
                 _ ->
                     ok
             end,
-            {error, aborted, State#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}}
+            {error, aborted, State} %#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}}
     end;
 
 %% VERIFIED
