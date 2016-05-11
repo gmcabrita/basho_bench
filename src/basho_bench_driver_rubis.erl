@@ -429,12 +429,13 @@ run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_se
                                 CommentKey = rubis_tool:get_key({UserId, CId}, comment),
                                 %lager:warning("Trying to read comment ~p, user node is ~w", [CommentKey, UserNode]),
                                 Comment = read_from_node(TxServer, TxId, CommentKey, UserNode, MyNode, PartList, HashDict),
-                                %CFromId = Comment#comment.c_from_id,
-                                %CFromKey = rubis_tool:get_key(CFromId, user),
-                                %_ = read_from_node(TxServer, TxId, CFromKey, MyNode, MyNode, PartList, HashDict),
-                                case CId of RandCommentId -> Comment#comment.c_from_id;
-                                            _ -> RU
-                                end end, undef, ToFetchCommentList),
+                                case Comment of [] -> RU;
+                                    _ ->
+                                    case CId of RandCommentId -> Comment#comment.c_from_id;
+                                                            _ -> RU
+                                    end
+                                end 
+                                end, UserId, ToFetchCommentList),
                     %lager:info("************* RAND USER IS ~w *************", [RandUser]),
                     case Specula of
                         true ->
@@ -988,11 +989,11 @@ run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNod
         CommentKey = rubis_tool:get_key({MyselfId, CI}, comment), 
         %lager:warning("Trying to read comment ~p, user node is ~w", [CommentKey, MyNode]),
         Comment = read_from_node(TxServer, TxId, CommentKey, MyNode, MyNode, PartList, HashDict),
-        FromUserId = Comment#comment.c_from_id,
-        %FromUserKey = rubis_tool:get_key(FromUserId, user), 
-        %_FromUser = read_from_node(TxServer, TxId, FromUserKey, MyNode, MyNode, PartList, HashDict),
-        case IncU of RandUserIndex ->  {IncU+1, FromUserId}; 
-                             _ ->  {IncU+1, RU}
+        case Comment of [] -> RU;
+                        _ ->
+                        case IncU of RandUserIndex ->  {IncU+1, Comment#comment.c_from_id}; 
+                                             _ ->  {IncU+1, RU}
+                        end
         end
         end, {CU2, RU2}, ToFetchCommentList),
     case Specula of
