@@ -18,8 +18,8 @@ echo rubis duration 60 >> config
 echo rubis specula $4 >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*400+14000))
-ToSleep=$(((8000 + 500*NumNodes) / ${1}))
+MasterToSleep=$((NumNodes*400+4000))
+ToSleep=$(((2000 + 500*NumNodes) / ${1}))
 echo rubis master_to_sleep $MasterToSleep >> config
 echo rubis to_sleep $ToSleep >> config
 echo load duration 130 >> config
@@ -30,18 +30,10 @@ touch $Folder/$8
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/rubis.config" &
-#./script/parallel_command.sh "`cat ./script/allnodes | head -2`" "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config" &
 ./script/clean_data.sh
-./script/load.sh `head -1 ./script/allnodes` rubis haha
+./script/load.sh `head -1 ./script/allnodes` rubis 1 
 wait
 
-
-#sleep 5
-#if [ $ToSleep -lt 20000 ]
-#then
-#sleep 15
-#fi
-#timeout 200 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 ./script/gatherThroughput.sh $Folder &
 #./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
 #./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 

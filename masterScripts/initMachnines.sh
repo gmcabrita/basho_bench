@@ -13,7 +13,8 @@ echo "Only cleaning antidote"
 #./script/makeRel.sh benchmark_ver 
 if [ $# -eq 1 ]
 then
-    branch=benchmark_no_specula
+    branch=benchmark_precise_fast_repl
+#benchmark_no_specula
 else
     branch=$2
 fi

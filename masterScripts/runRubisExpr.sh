@@ -5,16 +5,37 @@
 seq="1"
 threads="8"
 length="1 2 4 8"
-rep=2
+rep=1
 parts=3
 start_ind=1
 skip_len=0
 #100
-skipped=1
+skipped=0
 inited=0
 AM=80
 AS=20
 
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula 
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+#sudo ./script/parallel_commend.sh "cd antidote && sudo make rel"
+rep=2
+sudo ./script/configBeforeRestart.sh 8 true true 2 $rep 3 specula
+sudo ./script/restartAndConnect.sh
+./script/runRubisBench.sh 8 80 20 true true 2 specula_tests 1 
+./script/runRubisBench.sh 8 80 20 true true 2 specula_tests 1 
+
+./script/runRubisBench.sh 8 90 10 true true 2 specula_tests 1 
+./script/runRubisBench.sh 8 90 10 true true 2 specula_tests 1 
+
+rep=1
+sudo ./script/configBeforeRestart.sh 8 true true 2 $rep 3 specula
+sudo ./script/restartAndConnect.sh
+./script/runRubisBench.sh 8 80 20 true true 2 specula_tests 1 
+./script/runRubisBench.sh 8 80 20 true true 2 specula_tests 1 
+
+./script/runRubisBench.sh 8 90 10 true true 2 specula_tests 1 
+./script/runRubisBench.sh 8 90 10 true true 2 specula_tests 1 
+exit
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 for t in $threads
 do
