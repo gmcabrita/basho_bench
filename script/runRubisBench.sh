@@ -29,11 +29,10 @@ echo $1 $2 $3 $4 $5 $6 $8 > $Folder/config
 touch $Folder/$8
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/rubis.config" &
+./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/rubis.config" &
 ./script/clean_data.sh
 ./script/load.sh `head -1 ./script/allnodes` rubis 1 
 wait
-exit
 
 ./script/gatherThroughput.sh $Folder &
 #./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
@@ -44,13 +43,14 @@ exit
 wait
 #./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
-timeout 60 ./script/fetchAndParseStat.sh $Folder
-if [ $? -eq 124 ]; then
-    timeout 60 ./script/fetchAndParseStat.sh $Folder
-    if [ $? -eq 124 ]; then
-        timeout 60 ./script/fetchAndParseStat.sh $Folder
-    fi
-fi
+./script/fetchAndParseStat.sh $Folder
+#timeout 60 ./script/fetchAndParseStat.sh $Folder
+#if [ $? -eq 124 ]; then
+#    timeout 60 ./script/fetchAndParseStat.sh $Folder
+#    if [ $? -eq 124 ]; then
+#        timeout 60 ./script/fetchAndParseStat.sh $Folder
+#    fi
+#fi
 
 sudo pkill -P $$
 ./script/verifySame.sh $Folder 

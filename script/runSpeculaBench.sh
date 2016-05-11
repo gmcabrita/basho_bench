@@ -89,13 +89,14 @@ wait
 wait
 #./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
-timeout 60 ./script/fetchAndParseStat.sh $Folder
-if [ $? -eq 124 ]; then
-    timeout 60 ./script/fetchAndParseStat.sh $Folder
-    if [ $? -eq 124 ]; then
-        timeout 60 ./script/fetchAndParseStat.sh $Folder
-    fi
-fi
+./script/fetchAndParseStat.sh $Folder
+#timeout 60 ./script/fetchAndParseStat.sh $Folder
+#if [ $? -eq 124 ]; then
+#    timeout 60 ./script/fetchAndParseStat.sh $Folder
+#    if [ $? -eq 124 ]; then
+#        timeout 60 ./script/fetchAndParseStat.sh $Folder
+#    fi
+#fi
 
 sudo pkill -P $$
 ./script/verifySame.sh $Folder 
