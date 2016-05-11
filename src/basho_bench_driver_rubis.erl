@@ -402,11 +402,11 @@ run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
 run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_server=TxServer,
         hash_dict=HashDict, node_id=MyNode, part_list=PartList, specula=Specula}) ->
     UserId = PrevState#prev_state.last_user_id,
-    {UserNode, _} = UserId,
     case UserId of
         undef ->
             {prev_state, State};
         _ ->
+            {UserNode, _} = UserId,
             %lager:info("UerId is ~w", [UserId]),
             UserKey = rubis_tool:get_key(UserId, user), 
             TxId = gen_server:call(TxServer, {start_tx}),
