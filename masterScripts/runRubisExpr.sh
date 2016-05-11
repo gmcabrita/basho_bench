@@ -17,11 +17,13 @@ AS=20
 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
-#sudo ./script/parallel_commend.sh "cd antidote && sudo make rel"
 rep=2
 sudo ./script/configBeforeRestart.sh 8 true true 2 $rep 3 specula
+exit
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 sudo ./script/restartAndConnect.sh
 ./script/runRubisBench.sh 8 80 20 true true 2 specula_tests 1 
+exit
 ./script/runRubisBench.sh 8 80 20 true true 2 specula_tests 1 
 
 ./script/runRubisBench.sh 8 90 10 true true 2 specula_tests 1 
