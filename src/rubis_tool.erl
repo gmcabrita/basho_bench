@@ -101,7 +101,7 @@ create_buy_now(BuyerId, ItemId, Qty, Now) ->
     #buy_now{bn_buyer_id=BuyerId, bn_item_id=ItemId, bn_qty=Qty, bn_date=Now}.
 
 create_user(FirstName, LastName, NickName, Password, Email, Now, Rating, Balance, RegionId) ->
-    #user{u_firstname=FirstName, u_lastname=LastName, u_nickname=NickName, u_password=Password,
+    #user{u_firstname=FirstName, u_lastname=LastName, u_nickname=NickName, u_password=Password, u_comment_nodes=[],
             u_email=Email, u_rating=Rating, u_creation_date=Now, u_balance=Balance, u_region=RegionId, u_num_comments=0, 
             u_bids= [], u_sellings = [], u_bought=[]}.
 

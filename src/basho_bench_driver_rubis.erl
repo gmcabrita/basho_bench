@@ -51,6 +51,7 @@
                 no_rep_ids,
                 prev_state,
                 num_nodes,
+                num_replicates,
                 access_master,
                 access_slave,
                 %% Rubis state
@@ -128,6 +129,7 @@ new(Id) ->
 
     %lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
     AllNodes = [N || {N, _} <- PartList],
+    [NumReplicates] = [length(L) || {N, L} <- ReplList, N == TargetNode],
     NodeId = index(TargetNode, AllNodes),
     NumNodes = length(AllNodes),
     case Id of 1 -> timer:sleep(MasterToSleep);
@@ -160,6 +162,7 @@ new(Id) ->
                part_list = PartList,
                hash_dict = HashDict1,
                prev_state=#prev_state{myself_id= {NodeId, random:uniform(NBUsers)}},
+               num_replicates = NumReplicates,
                nb_users = NBUsers,
                nb_old_items = NBOldItems,
                nb_regions = NBRegions,
@@ -400,7 +403,8 @@ run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
 
 %%% VERIFIED 
 run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_server=TxServer,
-        hash_dict=HashDict, node_id=MyNode, part_list=PartList, specula=Specula}) ->
+        hash_dict=HashDict, node_id=MyNode, part_list=PartList, specula=Specula, 
+        num_replicates=NumReplicates, num_nodes=NumNodes}) ->
     UserId = PrevState#prev_state.last_user_id,
     case UserId of
         undef ->
@@ -422,21 +426,28 @@ run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_se
                             end,
                             {ok, State};
                 _ ->
-                    ToFetchCommentList = lists:seq(max(NumComments - ?COMMENT_NUM+1, 1), NumComments),
-                    RandCommentId = random(ToFetchCommentList), 
-                    %RandFromUser = RandComment#comment.c_from_id,
-                    RandUser = lists:foldl(fun(CId, RU) ->
+                    %ToFetchCommentList = lists:seq(max(NumComments - ?COMMENT_NUM+1, 1), NumComments),
+                    CommentNodeList = User#user.u_comment_nodes,
+                    RandCommentId = case CommentNodeList of [] -> 0;
+                                        _ -> random:uniform(length(CommentNodeList)) %random(ToFetchCommentList), 
+                                    end,
+                    {_, _, RandUser} = lists:foldl(fun(Node, {CId, I, RU}) ->
                                 CommentKey = rubis_tool:get_key({UserId, CId}, comment),
-                                %lager:warning("Trying to read comment ~p, user node is ~w", [CommentKey, UserNode]),
-                                Comment = read_from_node(TxServer, TxId, CommentKey, UserNode, MyNode, PartList, HashDict),
-                                case Comment of [] -> RU;
+                                Comment = case replicate_node(Node, MyNode, NumReplicates, NumNodes) of true -> 
+                                            read_from_node(TxServer, TxId, CommentKey, Node, MyNode, PartList, HashDict);
+                                            false ->
+                                            %lager:warning("WTF, do not replicate?? ~w, i am ~w, user node ~w", [Node, MyNode, UserNode]),
+                                            read_from_node(TxServer, TxId, CommentKey, UserNode, MyNode, PartList, HashDict)
+                                          end,
+                                case Comment of [] -> 
+                                            lager:warning("Empty comment trying to read from ~w", [UserId]),
+                                            {CId-1, I+1, RU};
                                     _ ->
-                                    case CId of RandCommentId -> Comment#comment.c_from_id;
-                                                            _ -> RU
+                                    case I of RandCommentId -> {CId-1, I+1, Comment#comment.c_from_id};
+                                                            _ -> {CId-1, I+1, RU}
                                     end
                                 end 
-                                end, UserId, ToFetchCommentList),
-                    %lager:info("************* RAND USER IS ~w *************", [RandUser]),
+                                end, {User#user.u_num_comments, 1, UserId}, CommentNodeList),
                     case Specula of
                         true ->
                             _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
@@ -493,7 +504,10 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     end;
 
 %% VERIFIED
-run(buy_now_auth, _KeyGen, _ValueGen, State) ->
+run(buy_now_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    %lager:info("Mhuahau, buy now auth"),
+    TxId = gen_server:call(TxServer, {start_tx}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT),
     {ok, State};
 
 %% Buy now should be placed as the user's location
@@ -588,7 +602,10 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     end;
 
 %% VERIFIED
-run(put_bid_auth, _KeyGen, _ValueGen, State) ->
+run(put_bid_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    TxId = gen_server:call(TxServer, {start_tx}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT),
+    %lager:info("Mhuahau, put bid auth"),
     {ok, State};
 
 %% KINDA VERIFIED, MAYBE NEED TO FETCH MORE BIDS
@@ -697,7 +714,10 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
             end
     end;
 
-run(put_comment_auth, _KeyGen, _ValueGen, State) ->
+run(put_comment_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    TxId = gen_server:call(TxServer, {start_tx}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT),
+    %lager:info("Mhuahau, put comment auth"),
     {ok, State};
 
 %% VERIFIED
@@ -734,12 +754,11 @@ run(store_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     ItemId = PrevState#prev_state.item_id,
     ToId = PrevState#prev_state.last_user_id, 
     MyselfId = PrevState#prev_state.myself_id, 
+    {MyselfNode, _} = MyselfId, 
 
     Comments = ["Very bad", "Bad", "Normal", "Good", "Very good"],
     Rating = random:uniform(5) - 3,
     Comment = lists:nth(Rating+3, Comments),
-
-    WS = dict:new(),
 
     TxId = gen_server:call(TxServer, {start_tx}),
     {ToNode, _} = ToId,
@@ -753,16 +772,17 @@ run(store_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     CommentKey = rubis_tool:get_key({ToId, NextCommentId}, comment),
     CommentObj = rubis_tool:create_comment(MyselfId, ToId, ItemId, Rating, Now, Comment),
 
-	WS1 = dict:store({ToNode, CommentKey}, CommentObj, WS),
+	WS1 = dict:store({ToNode, CommentKey}, CommentObj, dict:new()),
+	WS2 = dict:store({MyselfNode, CommentKey}, CommentObj, WS1),
     
-    %ExistComments = ToUser#user.u_comments, 
-    %RemainList = lists:sublist(ExistComments, ?COMMENT_NUM), 
+    CommentNodes = ToUser#user.u_comment_nodes, 
+    RemainList = lists:sublist(CommentNodes, ?COMMENT_NUM), 
 
-    NewToUser = ToUser#user{u_rating=ToUser#user.u_rating+Rating, u_num_comments=NumComments+1},
+    NewToUser = ToUser#user{u_rating=ToUser#user.u_rating+Rating, u_num_comments=NumComments+1, u_comment_nodes=[MyselfNode|RemainList]},
 
-	WS2 = dict:store({ToNode, ToIdKey}, NewToUser, WS1),
+	WS3 = dict:store({ToNode, ToIdKey}, NewToUser, WS2),
 
-    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS2, PartList, MyNode),
+    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS3, PartList, MyNode),
     %DepsList = ets:lookup(dep_table, TxId),
     Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, general}, ?TIMEOUT),%, length(DepsList)}),
     case Response of
@@ -898,7 +918,10 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
             {error, Reason, State}
     end;
 
-run(about_me_auth, _KeyGen, _ValueGen, State) ->
+run(about_me_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    TxId = gen_server:call(TxServer, {start_tx}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT),
+    %lager:info("Mhuahau, abou me auth"),
     {ok, State};
 
 run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNode, prev_state=PrevState,
@@ -1059,7 +1082,7 @@ empty_read_from_node(TxServer, TxId, Key, Node, MyNode, PartList, HashDict) ->
         _ ->
             case dict:find(Node, HashDict) of
                 error ->
-                    lager:error("WTF, Reading from cache!!! Key is ~p, Node is ~p, MyNode is ~w, HashDict is ~w", [Key, Node, MyNode, dict:to_list(HashDict)]),
+                    %lager:error("WTF, Reading from cache!!! Key is ~p, Node is ~p, MyNode is ~w, HashDict is ~w", [Key, Node, MyNode, dict:to_list(HashDict)]),
                     {_, L} = lists:nth(Node, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
@@ -1085,7 +1108,7 @@ read_from_node(TxServer, TxId, Key, Node, MyNode, PartList, HashDict) ->
             case dict:find(Node, HashDict) of
                 error ->
                     %lager:error("WTF, Reading from cache!!! Key is ~p, Node is ~p", [Key, Node]),
-                    lager:error("WTF, Reading from cache!!! Key is ~p, Node is ~p, MyNode is ~w, HashDict is ~w", [Key, Node, MyNode, dict:to_list(HashDict)]),
+                    %lager:error("WTF, Reading from cache!!! Key is ~p, Node is ~p, MyNode is ~w, HashDict is ~w", [Key, Node, MyNode, dict:to_list(HashDict)]),
                     {_, L} = lists:nth(Node, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
@@ -1160,3 +1183,10 @@ load_config([{Key, Value} | Rest], D) ->
 load_config([ Other | Rest], D) ->
     io:format("Ignoring non-tuple config value: ~p\n", [Other]),
     load_config(Rest, D).
+
+replicate_node(MyNode, MyNode, _, _) -> 
+    true;
+replicate_node(Node, MyNode, NumReplicates, NumAllNodes) -> 
+    case MyNode < Node of true -> (Node-MyNode) =< NumReplicates;
+                          false -> (Node+NumAllNodes-MyNode) =< NumReplicates
+    end.
