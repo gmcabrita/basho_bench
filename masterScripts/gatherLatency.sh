@@ -8,6 +8,6 @@ I=0
 for Node in $AllNodes
 do
     File=$I"summary-"$Node
-    scp -i key ubuntu@$Node:./basho_bench/$File ./basho_bench/latency/ &
+    scp -i key ubuntu@$Node:./basho_bench/$File ./latency/ &
     I=$((I+1))
 done

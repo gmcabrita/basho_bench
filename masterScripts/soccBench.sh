@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Get Latency
-./masterScripts/gatherLatency.sh
+#./masterScripts/gatherLatency.sh
 
 # Get CDF
 
-#./masterScripts/soccCDF.sh
+./masterScripts/soccCDF.sh
 
 # Remote read
 #./masterScripts/soccRemoteRead.sh

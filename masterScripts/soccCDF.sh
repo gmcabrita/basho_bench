@@ -45,7 +45,7 @@ SN=20
 CN=0
 
 
-if [ true -eq false ]
+if [ 1 == 0 ]
 then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 
@@ -87,7 +87,7 @@ done
 fi
 ######100#######
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 
 rm -rf ./config
 echo micro cdf true >> config
