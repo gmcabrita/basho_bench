@@ -36,11 +36,13 @@ do
         NextI=$(((MyId+NodeId*Leap) % Length))
         NodeToPing=${AntNodeArray[$NextI]}
         FileName=$Ip"to"$NodeId"-"$NodeToPing
+        sudo rm -r $FileName
         ping -c 300 $NodeToPing > $FileName & 
 done
 
 wait
 Summary=$MyId"summary-"$Ip
+sudo rm -r $Summary
 for NodeId in $(seq 1 $PingDegree);
 do
     NextI=$(((MyId+NodeId*Leap) % Length))
