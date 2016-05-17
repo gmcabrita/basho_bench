@@ -42,6 +42,7 @@
                  shutdown_on_error,
                  ops,
                  todo_op,
+                 cdf,
                  retry,
                  transition,
                  ops_len,
@@ -103,6 +104,12 @@ init([SupChild, Id]) ->
                 true -> true;
                 _ -> false
             end,
+
+    CDF = case basho_bench_config:get(cdf, false) of
+                true -> Tab = ets:new(list_to_atom(integer_to_list(Id)), [public, set]),
+                        {0, Tab};
+                _ -> false
+            end,
     {ToDoOp, Transition} = case basho_bench_config:get(transition, false) of
                 true -> {{[], 1}, rubis_tool:load_transition()}; 
                 _ -> {false, undef} 
@@ -113,7 +120,7 @@ init([SupChild, Id]) ->
     ValGen = basho_bench_valgen:new(basho_bench_config:get(value_generator), Id),
 
     State = #state { id = Id, keygen = KeyGen, valgen = ValGen,
-                     driver = Driver,
+                     driver = Driver, cdf=CDF,
                      shutdown_on_error = ShutdownOnError,
                      ops = Ops, ops_len = size(Ops),
                      rng_seed = RngSeed,
@@ -163,6 +170,7 @@ handle_info({'EXIT', Pid, Reason}, State) ->
         normal ->
             %% Clean shutdown of the worker; spawn a process to terminate this
             %% process via the supervisor API and make sure it doesn't restart.
+            %lager:warning("CDF is ~w", [State#state.cdf]),
             spawn(fun() -> stop_worker(State#state.sup_id) end),
 	    (catch (State#state.driver):terminate({'EXIT', Reason}, State#state.driver_state)),
             {noreply, State};
@@ -189,7 +197,19 @@ handle_info({'CLEANUP', nothing}, State=#state{ worker_pid = WorkerPid }) ->
 	    {noreply, State}
     end.
 
-terminate(_Reason, _State) ->
+terminate(_Reason, State) ->
+    case State#state.cdf of false -> ok;
+                _ ->
+                    {_, Tab} = State#state.cdf,
+                    List = ets:tab2list(Tab),
+                    FileName = integer_to_list(State#state.id) ++ "latency",
+                    {ok, File} = file:open(FileName, [raw, binary, write]),
+                    lists:foreach(fun({_, Lat}) ->
+                                  %lager:info("Lat is ~p", [Lat]),
+                                  file:write(File,  io_lib:format("~w\n", [Lat]))
+                                  end, List),
+                    file:close(File)
+    end,
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -212,7 +232,7 @@ stop_worker(SupChild) ->
     case basho_bench_sup:workers() of
         [] ->
             %% No more workers -- stop the system
-	    lager:info("Worker trying to stop app"),
+	        lager:info("Worker trying to stop app"),
             basho_bench_app:stop();
         _ ->
             ok
@@ -309,16 +329,15 @@ worker_next_op(State) ->
             T = State#state.transition,
             case T of
                 undef -> 
-                    {ok, State#state { driver_state = DriverState, todo_op=false}};
+                    case State#state.cdf of false -> {ok, State#state { driver_state = DriverState, todo_op=false}};
+                                {Count, Table} -> 
+                                                    ets:insert(Table, {Count+1, ElapsedUs}),
+                                                    {ok, State#state{driver_state = DriverState, todo_op=false, cdf={Count+1, Table}}}
+                    end;
                 _ ->
                     {PreviousStates, CurrentState} = State#state.todo_op,
                     NextToDo = rubis_tool:get_next_state(PreviousStates, T, CurrentState), 
-                    %NextToDo = retry_until_not(PreviousStates, T, CurrentState),
                     {ok, State#state { driver_state = DriverState, todo_op=NextToDo}}
-                    %case random:uniform(2) of
-                    %    2 -> {ok, State#state { driver_state = DriverState, todo_op={PreviousStates, 8}}};
-                    %    1 -> {ok, State#state { driver_state = DriverState, todo_op={PreviousStates, 3}}}
-                    %end
             end;
         {Res, DriverState} when Res == silent orelse element(1, Res) == silent ->
             {ok, State#state { driver_state = DriverState, todo_op=false}};
@@ -426,6 +445,7 @@ max_worker_run_loop(State) ->
                     max_worker_run_loop(State2)
             end;
         ExitReason ->
+            lager:info("CDF is ~w", [State#state.cdf]),
             exit(ExitReason)
     end.
 

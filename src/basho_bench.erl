@@ -199,7 +199,7 @@ wait_for_stop(Mref, DurationSecs) ->
 
     after Duration ->
             run_post_hook(),
-	    lager:info("Shut down after durationg"),
+	        lager:info("Shut down after duration"),
             basho_bench_app:stop(),
             ?CONSOLE("Test completed after ~p secs.\n", [DurationSecs])
     end.

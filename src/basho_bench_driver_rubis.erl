@@ -197,6 +197,7 @@ run(home, _KeyGen, _ValueGen, State=#state{specula=Specula, tx_server=TxServer, 
     MyselfId = PrevState#prev_state.myself_id,
     MyselfKey = rubis_tool:get_key(MyselfId, user),
     Myself = read_from_node(TxServer, TxId, MyselfKey, MyNode, MyNode, PartList, HashDict),
+    %lager:info("Myself is ~w", [Myself]),
     Region = Myself#user.u_region,
     
     case Specula of
@@ -279,6 +280,7 @@ run(browse_categories, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, nb_c
     {ok, State};
 
 %% VERIFIED
+%% READ_SPECULA
 run(search_items_in_category, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories, node_id=MyNode, tx_server=TxServer, 
             hash_dict=HashDict, prev_state=PrevState, part_list=PartList, specula=Specula, dc_rep_ids=DcRepIds,
             no_rep_ids=DcNoRepIds, access_master=AccessMaster, access_slave=AccessSlave}) ->
@@ -338,6 +340,7 @@ run(browse_categories_in_region, _KeyGen, _ValueGen, State=#state{nb_categories=
     {ok, State};
 
 %% KINDA VERIFIED
+%% READ_SPECULA
 run(search_items_in_region, _KeyGen, _ValueGen, State=#state{node_id=MyNode, nb_regions=NBRegions, 
             tx_server=TxServer, prev_state=PrevState, hash_dict=HashDict, part_list=PartList, specula=Specula,
             access_master=AccessMaster, access_slave=AccessSlave, dc_rep_ids=DcRepIds, no_rep_ids=DcNoRepIds}) ->
@@ -365,6 +368,7 @@ run(search_items_in_region, _KeyGen, _ValueGen, State=#state{node_id=MyNode, nb_
     end;
 
 %% VERIFIED
+%% READ_SPECULA
 run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, 
             part_list=PartList, prev_state=PrevState, node_id=MyNode, hash_dict=HashDict, specula=Specula}) ->
     ItemId = PrevState#prev_state.item_id,
@@ -402,6 +406,7 @@ run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     end;
 
 %%% VERIFIED 
+%% READ_SPECULA
 run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_server=TxServer,
         hash_dict=HashDict, node_id=MyNode, part_list=PartList, specula=Specula, 
         num_replicates=NumReplicates, num_nodes=NumNodes}) ->
@@ -459,6 +464,7 @@ run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_se
     end;
 
 %% VERIFIED
+%% READ_SPECULA
 run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, 
             part_list=PartList, prev_state=PrevState, node_id=MyNode, hash_dict=HashDict, specula=Specula}) ->
     ItemId = PrevState#prev_state.item_id,
@@ -512,6 +518,7 @@ run(buy_now_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
 
 %% Buy now should be placed as the user's location
 %% VERIFIED
+%% READ_SPECULA
 run(buy_now, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
               part_list=PartList, prev_state=PrevState, node_id=MyNode, hash_dict=HashDict, specula=Specula}) -> 
     ItemId = PrevState#prev_state.item_id,
@@ -609,6 +616,7 @@ run(put_bid_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
     {ok, State};
 
 %% KINDA VERIFIED, MAYBE NEED TO FETCH MORE BIDS
+%% READ_SPECULA
 run(put_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, prev_state=PrevState, 
         hash_dict=HashDict, node_id=MyNode, specula=Specula}) ->
     %lager:warning("In put_bid, state is ~w", [PrevState]),
@@ -721,6 +729,7 @@ run(put_comment_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
     {ok, State};
 
 %% VERIFIED
+%% READ_SPECULA
 run(put_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
         hash_dict=HashDict, node_id=MyNode, prev_state=PrevState, specula=Specula}) ->
     ToUserId = PrevState#prev_state.last_user_id,
@@ -924,6 +933,7 @@ run(about_me_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
     %lager:info("Mhuahau, abou me auth"),
     {ok, State};
 
+%% READ_SPECULA
 run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNode, prev_state=PrevState,
               specula=Specula, part_list=PartList, hash_dict=HashDict}) ->
     TxId = gen_server:call(TxServer, {start_tx}),

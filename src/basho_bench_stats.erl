@@ -289,6 +289,7 @@ report_latency(Elapsed, Window, Op) ->
     Units = folsom_metrics:get_metric_value({units, Op}),
     case proplists:get_value(n, Stats) > 0 of
         true ->
+            %lager:info("Print histogram ~p", [Stats]),
             P = proplists:get_value(percentile, Stats),
             Line = io_lib:format("~w, ~w, ~w, ~w, ~.1f, ~w, ~w, ~w, ~w, ~w, ~w\n",
                                  [Elapsed,

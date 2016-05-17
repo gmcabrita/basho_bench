@@ -18,8 +18,8 @@ echo rubis duration 60 >> config
 echo rubis specula $4 >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*400+4000))
-ToSleep=$(((2000 + 500*NumNodes) / ${1}))
+MasterToSleep=$((NumNodes*400+12000))
+ToSleep=$(((8000 + 500*NumNodes) / ${1}))
 echo rubis master_to_sleep $MasterToSleep >> config
 echo rubis to_sleep $ToSleep >> config
 echo load duration 130 >> config
