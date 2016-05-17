@@ -43,6 +43,10 @@ deter=false
 MN=80
 SN=20
 CN=0
+
+
+if [ true -eq false ]
+then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 
 clock="new"
@@ -80,6 +84,7 @@ do
         runNTimes
     done
 done
+fi
 ######100#######
 
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula

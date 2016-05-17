@@ -88,5 +88,8 @@ if [ $? -eq 124 ]; then
         timeout 60 ./script/fetchAndParseStat.sh $Folder
     fi
 fi
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
+./script/copyFromAll.sh bench_latency ./basho_bench/tests/current/ $Folder & 
+./script/copyFromAll.sh ant_latency ./antidote/rel/antidote/ $Folder & 
 
 sudo pkill -P $$
