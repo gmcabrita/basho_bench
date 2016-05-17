@@ -10,7 +10,7 @@ import numpy as np
 
 
 # input data
-def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, legend_index, plot_dict):
+def plot_multi_bars(input_folder, output_folder, bench_type, data_multi_list, legend_index, plot_dict):
     plt.figure()
     width = 0.35
     maxv=0
@@ -26,14 +26,6 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     offset_width = 0.2/len(data_multi_list)
     left_max = -0.1
     line_points = 0
-    ## Draw baseline
-    if 'base_line' in plot_dict:
-        [baseline] = data_multi_list[0]
-        data_multi_list = data_multi_list[1:]
-        path = os.path.join(input_folder, baseline+'/total_throughput')
-        data = np.loadtxt(path, skiprows=1, usecols=range(1,7))
-        base_throughput = data[0,0]
-        plt.plot([-0.09, 2.5, 4.09], [base_throughput, base_throughput, base_throughput], color=colors[0], marker=markers[0], markersize=7, linewidth=1.5)
     for data_list in data_multi_list: 
         data_list = sort_by_num(data_list)
         if isinstance(legend_index, int):
@@ -146,7 +138,7 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
         plt.axes().yaxis.set_ticklabels([])
         
     plt.xlim([-0.1,len(data_l)-0.9])
-    xlabel=['1','2','4','8', '16']
+    xlabel=['no spec','1','2','4','8', '16']
     xlabel=xlabel[:line_points]
     plt.xticks([x for x in np.arange(len(xlabel))], xlabel, fontsize=fsize)
     #if len(data_list) >= 5:
