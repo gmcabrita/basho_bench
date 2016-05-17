@@ -16,7 +16,7 @@ MyId=0
 
 for Node in $AllNodes
 do
-    if [ $Node -eq $Ip ]; then
+    if [ "$Node" = "$Ip" ]; then
         MyId=$I
     fi
     AntNodeArray[$I]=$Node
@@ -34,16 +34,17 @@ Length=${#AntNodeArray[@]}
 for NodeId in $(seq 1 $PingDegree);
 do
         NextI=$(((MyId+NodeId*Leap) % Length))
-        NodeToPing=${AntNodeArray[$NextI]}","
+        NodeToPing=${AntNodeArray[$NextI]}
         FileName=$Ip"to"$NodeId"-"$NodeToPing
         ping -c 300 $NodeToPing > $FileName & 
 done
 
-Summary=$MyId"summary"
+wait
+Summary=$MyId"summary-"$MyIp
 for NodeId in $(seq 1 $PingDegree);
 do
     NextI=$(((MyId+NodeId*Leap) % Length))
-    NodeToPing=${AntNodeArray[$NextI]}","
+    NodeToPing=${AntNodeArray[$NextI]}
     FileName=$Ip"to"$NodeId"-"$NodeToPing
     tail -1 $FileName | awk -F "= " '{print $2}' | awk -F "/" '{print $2}' >> $Summary 
 done

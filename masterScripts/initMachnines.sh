@@ -24,7 +24,7 @@ then
 echo "Only cleaning basho_bench"
 ./script/parallel_command.sh "cd basho_bench && git stash && git pull && sudo make"
 #./script/parallel_command.sh "./basho_bench/masterScripts/config.sh" 
-./script/parallel_command.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"
+./script/parallel_command.sh "cd ./basho_bench/ && mkdir -p specula_tests && sudo chown -R ubuntu specula_tests"
 elif [ $Clean == 3 ]
 then
 echo "Only initing"
