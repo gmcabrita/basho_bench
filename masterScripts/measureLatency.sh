@@ -40,7 +40,7 @@ do
 done
 
 wait
-Summary=$MyId"summary-"$MyIp
+Summary=$MyId"summary-"$Ip
 for NodeId in $(seq 1 $PingDegree);
 do
     NextI=$(((MyId+NodeId*Leap) % Length))
