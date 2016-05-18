@@ -1,13 +1,14 @@
 #!/bin/bash
 
 
+Ip=`GET http://169.254.169.254/2014-11-05/meta-data/public-ipv4`
 
 cd ./tests/current/
-for l in `ls *latency`; do cat $l >> bench_latency;  done
+for l in `ls *latency`; do cat $l >> latency_bench;  done
 cd -
 
-sudo ./scripts/getCDF.sh
+sudo ./script/getCDF.sh $Ip
 
 cd ../antidote/rel/antidote
 rm ant_latency
-for l in `ls *latency`; do cat $l >> ant_latency;  done
+for l in `ls *latency`; do cat $l >> latency_ant;  done
