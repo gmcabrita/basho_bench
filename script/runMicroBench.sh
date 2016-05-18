@@ -81,11 +81,11 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 wait
 ./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
-timeout 60 ./script/fetchAndParseStat.sh $Folder
+gtimeout 60 ./script/fetchAndParseStat.sh $Folder
 if [ $? -eq 124 ]; then
-    timeout 60 ./script/fetchAndParseStat.sh $Folder
+    gtimeout 60 ./script/fetchAndParseStat.sh $Folder
     if [ $? -eq 124 ]; then
-        timeout 60 ./script/fetchAndParseStat.sh $Folder
+        gtimeout 60 ./script/fetchAndParseStat.sh $Folder
     fi
 fi
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
