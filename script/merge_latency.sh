@@ -10,5 +10,7 @@ cd -
 sudo ./script/getCDF.sh $Ip
 
 cd ../antidote/rel/antidote
-rm ant_latency
+rm latency_ant
 for l in `ls *latency`; do cat $l >> latency_ant;  done
+rm ./*latency
+
