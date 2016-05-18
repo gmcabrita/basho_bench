@@ -21,8 +21,8 @@ fast_reply=true
 seq="1 2"
 t="8"
 #contentions="1 2 3 4"
-contentions="1 4"
-length="4"
+contentions="1 2"
+length="1 2 8"
 start_ind=11
 skipped=1
 skip_len=0
@@ -45,8 +45,6 @@ MN=80
 SN=20
 CN=0
 
-if [ 1 == 0 ];
-then
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 #sudo ./script/stopNodes.sh
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
@@ -63,14 +61,14 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $length $rep $parts $specula_read
+sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply 8 $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
 
 for len in $length
 do
     #if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
     #then
-    #sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
     #sudo ./script/restartAndConnect.sh
     #sleep 25
     #fi
@@ -88,9 +86,9 @@ do
         runNTimes
     done
 done
-fi
 
 ######100#######
+exit
 
 contentions="2 3 4"
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula

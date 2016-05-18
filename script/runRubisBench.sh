@@ -18,8 +18,8 @@ echo rubis duration 60 >> config
 echo rubis specula $4 >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*400+7000))
-ToSleep=$(((5000 + 400*NumNodes) / ${1}))
+MasterToSleep=$((NumNodes*400+10000))
+ToSleep=$(((8000 + 400*NumNodes) / ${1}))
 echo rubis master_to_sleep $MasterToSleep >> config
 echo rubis to_sleep $ToSleep >> config
 echo load duration 130 >> config
@@ -36,13 +36,13 @@ wait
 
 ./script/gatherThroughput.sh $Folder
 
-./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder &
-./script/copyFromAll.sh register_user.csv ./basho_bench/tests/current/ $Folder &
+./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder
+#./script/copyFromAll.sh register-user_latencies.csv ./basho_bench/tests/current/ $Folder &
 #./script/copyFromAll.sh register_item.csv ./basho_bench/tests/current/ $Folder &
-./script/copyFromAll.sh store_bid.csv ./basho_bench/tests/current/ $Folder &
-./script/copyFromAll.sh store_buy_now.csv ./basho_bench/tests/current/ $Folder &
-./script/copyFromAll.sh store_comment.csv ./basho_bench/tests/current/ $Folder &
-wait
+#./script/copyFromAll.sh store-bid_latencies.csv ./basho_bench/tests/current/ $Folder &
+#./script/copyFromAll.sh store-buy-now_latencies.csv ./basho_bench/tests/current/ $Folder &
+#./script/copyFromAll.sh store-comment_latencies.csv ./basho_bench/tests/current/ $Folder &
+#wait
 #./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
 #./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 
 #./script/copyFromAll.sh payment_latencies.csv ./basho_bench/tests/current/ $Folder & 
