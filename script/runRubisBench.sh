@@ -34,23 +34,20 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 ./script/load.sh `head -1 ./script/allnodes` rubis 1 
 wait
 
-./script/gatherThroughput.sh $Folder &
+./script/gatherThroughput.sh $Folder
 #./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
 #./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 
 #./script/copyFromAll.sh payment_latencies.csv ./basho_bench/tests/current/ $Folder & 
 #./script/copyFromAll.sh order-status_latencies.csv ./basho_bench/tests/current/ $Folder & 
 #./script/copyFromAll.sh txn_latencies.csv ./basho_bench/tests/current/ $Folder & 
-wait
 #./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
-./script/fetchAndParseStat.sh $Folder
-#timeout 60 ./script/fetchAndParseStat.sh $Folder
-#if [ $? -eq 124 ]; then
-#    timeout 60 ./script/fetchAndParseStat.sh $Folder
-#    if [ $? -eq 124 ]; then
-#        timeout 60 ./script/fetchAndParseStat.sh $Folder
-#    fi
-#fi
+gtimeout 60 ./script/fetchAndParseStat.sh $Folder
+if [ $? -eq 124 ]; then
+    gtimeout 60 ./script/fetchAndParseStat.sh $Folder
+    if [ $? -eq 124 ]; then
+        gtimeout 60 ./script/fetchAndParseStat.sh $Folder
+    fi
+fi
 
-sudo pkill -P $$
 ./script/verifySame.sh $Folder 

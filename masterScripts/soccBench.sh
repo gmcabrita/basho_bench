@@ -5,13 +5,14 @@
 
 # Get CDF
 
-./masterScripts/soccCDF.sh
+#./masterScripts/soccCDF.sh
+
+# Rubis
+./masterScripts/runRubisExpr.sh
 
 # Remote read
 #./masterScripts/soccRemoteRead.sh
 
-# Rubis
-#./masterScripts/runRubisExpr.sh
 
 # Scalability
 #./masterScripts/singleDC.sh

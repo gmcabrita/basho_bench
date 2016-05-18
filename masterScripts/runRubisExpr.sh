@@ -24,15 +24,18 @@ parts=28
 start_ind=1
 skip_len=0
 #100
-skipped=0
+skipped=1
 inited=0
 AM=80
 AS=20
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 do_specula=true
 specula_read=specula
 fast_reply=true
+#sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 1 $rep $parts $specula_read 
+#sudo ./script/restartAndConnect.sh
 for t in $threads
 do
     for len in $length
@@ -40,7 +43,7 @@ do
         if [ $skipped -eq 1 ] 
         then
 	       sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read 
-	       sudo ./script/restartAndConnect.sh
+	       #sudo ./script/restartAndConnect.sh
            sudo ./script/preciseTime.sh
 	       sleep 20
         fi

@@ -20,9 +20,10 @@ fast_reply=true
 ## Just to test.. 
 seq="1 2"
 t="8"
-contentions="1 2 3 4"
+#contentions="1 2 3 4"
+contentions="1 4"
 length="4"
-start_ind=1
+start_ind=11
 skipped=1
 skip_len=0
 rep=5
@@ -44,15 +45,17 @@ MN=80
 SN=20
 CN=0
 
-
+if [ 1 == 0 ];
+then
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+#sudo ./script/stopNodes.sh
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 clock="new"
 specula_read=specula
 do_specula=true
 fast_reply=true
 prob_access=t
-locals="1 2 3 4"
 
 rm -rf ./config
 echo micro cdf true >> config
@@ -60,14 +63,17 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
+sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $length $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
+
 for len in $length
 do
-    if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
-    then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
-    sudo ./script/restartAndConnect.sh
-    sleep 25
-    fi
+    #if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
+    #then
+    #sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    #sudo ./script/restartAndConnect.sh
+    #sleep 25
+    #fi
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
@@ -82,16 +88,19 @@ do
         runNTimes
     done
 done
-exit
+fi
+
 ######100#######
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+contentions="2 3 4"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo micro cdf true >> config
 echo ant cdf true >> ./config
-sudo ./script/copy_to_all.sh ./config ./basho_bench/
-sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+#sudo ./script/copy_to_all.sh ./config ./basho_bench/
+#sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 clock="old"
 specula_read=nospecula
@@ -99,13 +108,12 @@ do_specula=false
 fast_reply=false
 len=0
 prob_access=t
-locals="1 2 3 4"
-if [ $skip_len == 0 ] || [ $skipped == 1 ]
-then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read 
-    sudo ./script/restartAndConnect.sh
-    sleep 25
-fi
+#if [ $skip_len == 0 ] || [ $skipped == 1 ]
+#then
+#    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read 
+#    sudo ./script/restartAndConnect.sh
+#    sleep 30 
+#fi
 for cont in $contentions
 do
     if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG

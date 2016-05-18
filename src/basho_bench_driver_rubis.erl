@@ -985,7 +985,7 @@ run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNod
                                     _ -> {IncI+1, IncU+1, RI, RU}
                 end
         end
-        end, {1, 1, undef, undef}, Myself#user.u_bids),
+        end, {1, 1, PrevState#prev_state.item_id, PrevState#prev_state.last_user_id}, Myself#user.u_bids),
     %% List items
     {CI2, RI2} = lists:foldl(fun(ItemIndex, {IncI, RI}) ->
         ItemKey = rubis_tool:get_key(ItemIndex, item), 
@@ -1022,7 +1022,7 @@ run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNod
         CommentKey = rubis_tool:get_key({MyselfId, CI}, comment), 
         %lager:warning("Trying to read comment ~p, user node is ~w", [CommentKey, MyNode]),
         Comment = read_from_node(TxServer, TxId, CommentKey, MyNode, MyNode, PartList, HashDict),
-        case Comment of [] -> RU;
+        case Comment of [] -> {IncU+1, RU};
                         _ ->
                         case IncU of RandUserIndex ->  {IncU+1, Comment#comment.c_from_id}; 
                                              _ ->  {IncU+1, RU}
