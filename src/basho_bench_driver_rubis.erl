@@ -23,6 +23,7 @@
 
 -export([new/1,
 	    read/5,
+        terminate/2,
         run/4]).
 
 -include("basho_bench.hrl").
@@ -155,6 +156,11 @@ new(Id) ->
     PercentResvItem = dict:fetch(database_percentage_of_items_with_reserve_price, ConfigDict) div dict:fetch(reduce_factor, ConfigDict), 
     PercentUniqueItem = dict:fetch(database_percentage_of_unique_items, ConfigDict) div dict:fetch(reduce_factor, ConfigDict), 
     MaxDuration = dict:fetch(max_duration, ConfigDict) div dict:fetch(reduce_factor, ConfigDict), 
+    TabName = list_to_atom(pid_to_list(MyTxServer)),
+    ets:new(TabName, [set, named_table, {read_concurrency,false}]),
+    ets:insert(TabName, {master, 0}),
+    ets:insert(TabName, {slave, 0}),
+    ets:insert(TabName, {remote, 0}),
     {ok, #state{worker_id=Id,
                tx_server=MyTxServer,
                access_master=AccessMaster,
@@ -189,6 +195,16 @@ new(Id) ->
                num_nodes = NumNodes,
                node_id = NodeId,
                target_node=TargetNode}}.
+
+terminate(_, _State=#state{tx_server=TxServer}) ->
+    TabName = list_to_atom(pid_to_list(TxServer)),
+    [{_, MasterRead}]= ets:lookup(TabName, master),
+    [{_, SlaveRead}]= ets:lookup(TabName, slave),
+    [{_, RemoteRead}]= ets:lookup(TabName, remote),
+    File="prep",
+    file:write_file(File, io_lib:fwrite(" ~p ~p ~p ~p\n",
+            [MasterRead, SlaveRead, RemoteRead, RemoteRead/(MasterRead+SlaveRead+RemoteRead)]), [append]).
+
 
 %% VERIFIED
 run(home, _KeyGen, _ValueGen, State=#state{specula=Specula, tx_server=TxServer, prev_state=PrevState,
@@ -1088,6 +1104,7 @@ empty_read_from_node(TxServer, TxId, Key, Node, MyNode, PartList, HashDict) ->
             {_, L} = lists:nth(Node, PartList),
             Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
             Part = lists:nth(Index, L),
+            ets:update_counter(list_to_atom(pid_to_list(TxServer)), master, 1),
             gen_server:call(TxServer, {read, Key, TxId, Part}, ?READ_TIMEOUT);
         _ ->
             case dict:find(Node, HashDict) of
@@ -1097,11 +1114,13 @@ empty_read_from_node(TxServer, TxId, Key, Node, MyNode, PartList, HashDict) ->
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
                     CacheServName = dict:fetch(cache, HashDict), 
+                    ets:update_counter(list_to_atom(pid_to_list(TxServer)), remote, 1),
                     gen_server:call(CacheServName, {read, Key, TxId, Part}, ?READ_TIMEOUT);
                 {ok, N} ->
                     {_, L} = lists:nth(Node, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
+                    ets:update_counter(list_to_atom(pid_to_list(TxServer)), slave, 1),
                     gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT)
             end
     end,
@@ -1113,6 +1132,7 @@ read_from_node(TxServer, TxId, Key, Node, MyNode, PartList, HashDict) ->
             {_, L} = lists:nth(Node, PartList),
             Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
             Part = lists:nth(Index, L),
+            ets:update_counter(list_to_atom(pid_to_list(TxServer)), master, 1),
             gen_server:call(TxServer, {read, Key, TxId, Part}, ?READ_TIMEOUT);
         _ ->
             case dict:find(Node, HashDict) of
@@ -1123,11 +1143,13 @@ read_from_node(TxServer, TxId, Key, Node, MyNode, PartList, HashDict) ->
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
                     CacheServName = dict:fetch(cache, HashDict), 
+                    ets:update_counter(list_to_atom(pid_to_list(TxServer)), remote, 1),
                     gen_server:call(CacheServName, {read, Key, TxId, Part}, ?READ_TIMEOUT);
                 {ok, N} ->
                     {_, L} = lists:nth(Node, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
+                    ets:update_counter(list_to_atom(pid_to_list(TxServer)), slave, 1),
                     gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT)
             end
     end,
