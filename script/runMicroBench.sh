@@ -60,8 +60,8 @@ echo micro specula $do_specula >> config
 echo micro deter $deter >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*800+5000))
-ToSleep=$(((500 + 500*NumNodes) / ${1}))
+MasterToSleep=$((NumNodes*800+10000))
+ToSleep=$(((8000 + 500*NumNodes) / ${1}))
 echo micro master_to_sleep $MasterToSleep >> config
 echo micro to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
@@ -81,11 +81,11 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 wait
 ./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
-gtimeout 60 ./script/fetchAndParseStat.sh $Folder
+timeout 60 ./script/fetchAndParseStat.sh $Folder
 if [ $? -eq 124 ]; then
-    gtimeout 60 ./script/fetchAndParseStat.sh $Folder
+    timeout 60 ./script/fetchAndParseStat.sh $Folder
     if [ $? -eq 124 ]; then
-        gtimeout 60 ./script/fetchAndParseStat.sh $Folder
+        timeout 60 ./script/fetchAndParseStat.sh $Folder
     fi
 fi
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"

@@ -17,7 +17,7 @@ PlanAndCommit="sudo antidote/rel/antidote/bin/antidote-admin cluster plan && sud
 for Node in $Others
 do
 ./script/command_to_all.sh "$Node" "$Join"
-#sleep 1
+sleep 2.5 
 done
 ./script/command_to_all.sh "$First" "$PlanAndCommit"
 

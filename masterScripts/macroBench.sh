@@ -38,7 +38,7 @@ warehouse="2"
 #rep=5
 #parts=28
 rep=2
-parts=4
+parts=12
 
 start_ind=1
 skip_len=0
@@ -51,6 +51,7 @@ specula_read=specula
 do_specula=true
 fast_reply=true
 
+t=8
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply 8 $rep $parts $specula_read

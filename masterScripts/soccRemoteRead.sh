@@ -39,23 +39,32 @@ prob_access=t
 deter=false
 
 ###########
+#sudo rm config
+#echo micro duration 70 >> config
+#sudo ./script/copy_to_all.sh ./config ./basho_bench/
+#sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+#exit
 
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply 8 $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 
-#Test remote read
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+locals="3 4"
 clock="new"
 specula_read=specula
 do_specula=true
 fast_reply=true
 prob_access=t
-locals="1 2 3 4"
+if [ 1 == 0 ];
+then
 for len in $length
 do
     if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
     then
     sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
-    sudo ./script/restartAndConnect.sh
-    sleep 25
+    #sudo ./script/restartAndConnect.sh
+    #sleep 25
     fi
     for lo in $locals
     do
@@ -71,22 +80,22 @@ do
         runNTimes
     done
 done
+fi
 ######100#######
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 clock="old"
 specula_read=nospecula
 do_specula=false
 fast_reply=false
 len=0
 prob_access=t
-locals="1 2 3 4"
-if [ $skip_len == 0 ] || [ $skipped == 1 ]
-then
+#if [ $skip_len == 0 ] || [ $skipped == 1 ]
+#then
     sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read 
     sudo ./script/restartAndConnect.sh
-    sleep 25
-fi
+#    sleep 25
+#fi
 for lo in $locals
 do
     if [ $lo == 1 ]; then MN=100 SN=0 CN=0
