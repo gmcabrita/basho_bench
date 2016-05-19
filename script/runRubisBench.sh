@@ -3,7 +3,7 @@ set -u
 set -e
 AllNodes=`cat script/allnodes`
 
-echo "Params are" $1 $2 $3 $4 $5 $6 $8 
+echo "Params are" $1 $2 $3 $4 $5 $6
 #Params: nodes, cookie, num of dcs, num of nodes, if connect dcs, replication or not, branch
 Time=`date +'%Y-%m-%d-%H%M%S'`
 Folder=$7/$Time
@@ -18,8 +18,8 @@ echo rubis duration 60 >> config
 echo rubis specula $4 >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*400+10000))
-ToSleep=$(((8000 + 400*NumNodes) / ${1}))
+MasterToSleep=$((NumNodes*600+15000))
+ToSleep=$(((8000 + 600*NumNodes) / ${1}))
 echo rubis master_to_sleep $MasterToSleep >> config
 echo rubis to_sleep $ToSleep >> config
 echo load duration 130 >> config
@@ -50,11 +50,11 @@ wait
 #./script/copyFromAll.sh txn_latencies.csv ./basho_bench/tests/current/ $Folder & 
 #./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
-gtimeout 60 ./script/fetchAndParseStat.sh $Folder
+timeout 60 ./script/fetchAndParseStat.sh $Folder
 if [ $? -eq 124 ]; then
-    gtimeout 60 ./script/fetchAndParseStat.sh $Folder
+    timeout 60 ./script/fetchAndParseStat.sh $Folder
     if [ $? -eq 124 ]; then
-        gtimeout 60 ./script/fetchAndParseStat.sh $Folder
+        timeout 60 ./script/fetchAndParseStat.sh $Folder
     fi
 fi
 
