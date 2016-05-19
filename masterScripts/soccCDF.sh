@@ -18,11 +18,11 @@ function runNTimes {
 do_specula=true
 fast_reply=true
 ## Just to test.. 
-seq="1 2"
+seq="1"
 t="8"
 #contentions="1 2 3 4"
-contentions="1 2"
-length="1 2 8"
+contentions="1"
+length="1 2 4 8"
 start_ind=11
 skipped=1
 skip_len=0
@@ -46,8 +46,7 @@ SN=20
 CN=0
 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
-#sudo ./script/stopNodes.sh
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 clock="new"
 specula_read=specula
@@ -57,6 +56,7 @@ prob_access=t
 
 rm -rf ./config
 echo micro cdf true >> config
+echo micro duration 300 >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"

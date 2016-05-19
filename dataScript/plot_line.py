@@ -9,6 +9,16 @@ import os
 import numpy as np
 
 
+def get_path(input_folders, name):
+    if type(input_folders) == type([]) :
+        for fl in input_folders:
+            path = os.path.join(fl, name)
+            if os.access(path, os.R_OK):
+                return path
+    else:
+        return os.path.join(input_folders, name)
+
+
 # input data
 def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, legend_index, plot_dict):
     plt.figure()
@@ -30,7 +40,7 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     if 'base_line' in plot_dict:
         [baseline] = data_multi_list[0]
         data_multi_list = data_multi_list[1:]
-        path = os.path.join(input_folder, baseline+'/total_throughput')
+        path = get_path(input_folder, baseline+'/total_throughput')
         data = np.loadtxt(path, skiprows=1, usecols=range(1,7))
         base_throughput = data[0,0]
         plt.plot([-0.09, 2.5, 4.09], [base_throughput, base_throughput, base_throughput], color=colors[0], marker=markers[0], markersize=7, linewidth=1.5)
@@ -46,7 +56,7 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
             data_list = data_list[0:len(data_list) - plot_dict['draw_line']]
             maxvalue = 0 
             for f in max_list:
-                path = os.path.join(input_folder, f+'/total_throughput')
+                path = get_path(input_folder, f+'/total_throughput')
                 data = np.loadtxt(path, skiprows=1, usecols=range(1,7))
                 maxvalue = max(maxvalue, data[0,0])
             #plt.axhline(y=maxvalue, color=colors[line_index], marker=markers[line_index], linewidth=1.1)    
@@ -63,7 +73,7 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
         line_points = len(data_list)
         for f in data_list:
             if 'type' in plot_dict:
-                path = os.path.join(input_folder, f+'/total_duration')
+                path = get_path(input_folder, f+'/total_duration')
                 data = np.loadtxt(path, skiprows=1, usecols=range(1,23))
                 if plot_dict['type'] == 'commit':
                     maxv=max(maxv, data[0,18]+data[0,19])
@@ -78,7 +88,7 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
                     data1.append(data[0,20]+data[0,21])
                     data1_e.append(data[1,20]+data[1,21])
             else:
-                path = os.path.join(input_folder, f+'/total_throughput')
+                path = get_path(input_folder, f+'/total_throughput')
                 data = np.loadtxt(path, skiprows=1, usecols=range(1,7))
                 maxv=max(maxv, data[0,0], data[0,5])
                 x.append(index)

@@ -18,7 +18,7 @@ function runRubis {
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 seq="1 2"
 threads="8"
-length="1 2 4 8"
+length="1 2 4 8 16"
 rep=5
 parts=28
 start_ind=3
@@ -34,7 +34,7 @@ sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 do_specula=true
 specula_read=specula
 fast_reply=true
-sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 8 $rep $parts $specula_read 
+sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 16 $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
 for t in $threads
 do
