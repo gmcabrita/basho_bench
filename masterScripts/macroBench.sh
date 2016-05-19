@@ -52,24 +52,10 @@ fast_reply=true
 
 t=8
 len=8
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-#sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply 8 $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
-
-runRubis
-
-
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-specula_read=nospecula
-do_specula=false
-fast_reply=false
-len=8
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 0 $rep $parts $specula_read 
+sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply 8 $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
-runRubis
-exit
 
 for t in $threads
 do

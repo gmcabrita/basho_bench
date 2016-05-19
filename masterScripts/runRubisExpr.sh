@@ -21,7 +21,7 @@ threads="8"
 length="1 2 4 8 16"
 rep=5
 parts=28
-start_ind=3
+start_ind=1
 skip_len=0
 #100
 skipped=1
