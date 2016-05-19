@@ -50,11 +50,11 @@ wait
 #./script/copyFromAll.sh txn_latencies.csv ./basho_bench/tests/current/ $Folder & 
 #./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
-gtimeout 60 ./script/fetchAndParseStat.sh $Folder
+timeout 60 ./script/fetchAndParseStat.sh $Folder
 if [ $? -eq 124 ]; then
-    gtimeout 60 ./script/fetchAndParseStat.sh $Folder
+    timeout 60 ./script/fetchAndParseStat.sh $Folder
     if [ $? -eq 124 ]; then
-        gtimeout 60 ./script/fetchAndParseStat.sh $Folder
+        timeout 60 ./script/fetchAndParseStat.sh $Folder
     fi
 fi
 
