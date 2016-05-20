@@ -47,7 +47,10 @@ MN=80
 SN=20
 CN=0
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+
+if [ 1 == 0 ];
+then
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 clock="new"
@@ -58,7 +61,7 @@ prob_access=t
 
 rm -rf ./config
 echo micro cdf true >> config
-echo micro duration 120 >> config
+echo micro duration 150 >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
@@ -88,6 +91,7 @@ do
         runNTimes
     done
 done
+fi
 
 ######100#######
 
