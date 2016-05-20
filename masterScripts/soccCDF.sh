@@ -21,15 +21,15 @@ fast_reply=true
 seq="1"
 t="8"
 #contentions="1 2 3 4"
-contentions="1 4"
-length="1 2 4 8"
+contentions="1"
+length="1 8"
 start_ind=1
 skipped=1
 skip_len=0
-rep=2
-parts=4
-#rep=5
-#parts=28
+#rep=2
+#parts=4
+rep=5
+parts=28
 MBIG=20000
 MSML=1000
 CBIG=40000
@@ -59,7 +59,7 @@ prob_access=t
 
 rm -rf ./config
 echo micro cdf true >> config
-echo micro duration 90 >> config
+echo micro duration 120 >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
