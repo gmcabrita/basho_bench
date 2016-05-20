@@ -36,8 +36,10 @@ warehouse="2"
 
 #rep=8
 #parts=28
-rep=5
-parts=20
+#rep=5
+#parts=20
+rep=1
+parts=12
 
 start_ind=1
 skip_len=0
