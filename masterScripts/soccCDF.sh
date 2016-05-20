@@ -21,15 +21,15 @@ fast_reply=true
 seq="1"
 t="8"
 #contentions="1 2 3 4"
-contentions="4"
+contentions="1 4"
 length="1 2 4 8"
 start_ind=1
 skipped=1
 skip_len=0
-rep=2
-parts=4
-#rep=5
-#parts=28
+#rep=2
+#parts=4
+rep=5
+parts=28
 MBIG=20000
 MSML=1000
 CBIG=40000
@@ -91,7 +91,6 @@ done
 
 ######100#######
 
-contentions="4"
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
