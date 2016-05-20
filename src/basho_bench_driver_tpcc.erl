@@ -142,7 +142,7 @@ new(Id) ->
     %lager:info("Ex list is ~w", [ExpandPartList]),
     HashLength = length(ExpandPartList),
 
-    lager:info("Part list is ~w, hash dict is ~w",[PartList, dict:to_list(HashDict)]),
+    %lager:info("Part list is ~w, hash dict is ~w",[PartList, dict:to_list(HashDict)]),
     MyTable =ets:new(my_table, [private, set]),
     Key1 = "C_C_LAST",
     Key2 = "C_C_ID",
@@ -150,9 +150,10 @@ new(Id) ->
     Part1 = get_partition(Key1, ExpandPartList, HashLength),
     Part2 = get_partition(Key2, ExpandPartList, HashLength),
     Part3 = get_partition(Key3, ExpandPartList, HashLength),
-    {ok, C_C_LAST} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key1, Part1]),
-    {ok, C_C_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key2, Part2]),
-    {ok, C_OL_I_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key3, Part3]),
+    %{ok, C_C_LAST} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key1, Part1]),
+    %{ok, C_C_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key2, Part2]),
+    %{ok, C_OL_I_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key3, Part3]),
+	C_C_LAST=10, C_C_ID=10, C_OL_I_ID=10,
     ItemRanges = init_item_ranges(NumNodes, ?NB_MAX_ITEM),
     lager:info("Cclast ~w, ccid ~w, coliid ~w", [C_C_LAST, C_C_ID, C_OL_I_ID]),
     {ok, #state{time={1,1,1}, worker_id=Id,
@@ -551,7 +552,6 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
                     {_, L} = lists:nth(DcId, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
-		    lager:warning("Reading from ~w, partlist is ~w, my partlist is ~w", [N, PartList, L]),
                     gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT)
             end
     end,
