@@ -142,7 +142,7 @@ new(Id) ->
     %lager:info("Ex list is ~w", [ExpandPartList]),
     HashLength = length(ExpandPartList),
 
-    %lager:info("Part list is ~w",[PartList]),
+    lager:info("Part list is ~w, hash dict is ~w",[PartList, dict:to_list(HashDict)]),
     MyTable =ets:new(my_table, [private, set]),
     Key1 = "C_C_LAST",
     Key2 = "C_C_ID",
@@ -551,6 +551,7 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
                     {_, L} = lists:nth(DcId, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
+		    lager:warning("Reading from ~w, partlist is ~w, my partlist is ~w", [N, PartList, L]),
                     gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT)
             end
     end,
