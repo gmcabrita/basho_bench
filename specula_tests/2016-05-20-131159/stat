@@ -1,4 +1,0 @@
-ReadAborted,ReadInvalid,CertAborted,CascadeAborted,Committed,Whatever,SpeculaRead,Whatever,NOCommitLP,NOCommitRP,NOAbortLP,NOAbortRP,PCommitLP,PCommitRP,PAbortLP,PAbortRP,GCommitLP,GCommitRP,GAbortLP,GAbortRP
-123,25,294,154,5865,0,3135,0,0,0,0,0,0,0,0,0,0,0,6703,142489
-133,17,240,143,6121,0,3247,0,0,0,0,0,0,0,0,0,0,0,5951,139510
-133,14,284,143,5892,0,3219,0,0,0,0,0,0,0,0,0,0,0,6862,150759
