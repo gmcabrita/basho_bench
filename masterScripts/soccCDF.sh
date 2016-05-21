@@ -26,10 +26,10 @@ length="1 2 4 8"
 start_ind=1
 skipped=1
 skip_len=0
-#rep=2
-#parts=4
-rep=5
-parts=28
+rep=3
+parts=8
+#rep=5
+#parts=28
 MBIG=20000
 MSML=1000
 CBIG=40000
@@ -48,6 +48,8 @@ SN=20
 CN=0
 
 
+if [ 1 == 0 ];
+then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
@@ -89,6 +91,7 @@ do
         runNTimes
     done
 done
+fi
 
 ######100#######
 
@@ -98,6 +101,7 @@ sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 rm -rf ./config
 echo micro cdf true >> config
 echo ant cdf true >> ./config
+echo micro duration 150 >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
