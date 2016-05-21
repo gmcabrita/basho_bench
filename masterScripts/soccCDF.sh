@@ -26,8 +26,8 @@ length="1 2 4 8"
 start_ind=1
 skipped=1
 skip_len=0
-rep=3
-parts=8
+rep=2
+parts=16
 #rep=5
 #parts=28
 MBIG=20000
@@ -128,6 +128,7 @@ do
     then
     sudo ./script/preciseTime.sh
     fi
+    sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
     runNTimes
 done
 ######194#######
