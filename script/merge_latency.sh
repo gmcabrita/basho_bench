@@ -6,7 +6,10 @@ Ip=`GET http://169.254.169.254/2014-11-05/meta-data/public-ipv4`
 #cd ./tests/current/
 #for l in `ls *latency`; do cat $l >> latency_bench;  done
 #cd -
+
+cd ../antidote/rel/antidote
 rm ./*latency*
+cd -
 sudo ./script/getCDF.sh $Ip
 
 cd ../antidote/rel/antidote
