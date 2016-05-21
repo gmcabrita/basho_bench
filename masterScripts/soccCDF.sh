@@ -28,8 +28,8 @@ skipped=1
 skip_len=0
 #rep=2
 #parts=16
-#rep=5
-#parts=28
+rep=5
+parts=28
 MBIG=20000
 MSML=1000
 CBIG=40000
@@ -48,8 +48,6 @@ SN=20
 CN=0
 
 
-if [ 1 == 0 ];
-then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
@@ -91,8 +89,8 @@ do
         runNTimes
     done
 done
-fi
 
+exit
 ######100#######
 
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
