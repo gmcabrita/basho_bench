@@ -9,30 +9,32 @@ NumDCs=$6
 NodesPerDC=$7
 DcId=$8
 
-if [ $File = "./examples/orset_pb.config" ]; then
-    Type="set"
-elif [ $File = "./examples/antidote_pb.config" ]; then
-    Type="counter"
-elif [ $File = "./examples/single_key.config" ]; then
-    Type="set"
-else
-    Type="counter"
-fi
-
+# if [ $File = "./examples/antidote_pb_crdt_orset.config" ]; then
+#     Type="set"
+# if [ $File = "./examples/antidote_pb_crdt_orset_big.config" ]; then
+#     Type="set"
+# if [ $File = "./examples/antidote_pb_riak_dt_orset.config" ]; then
+#     Type="set"
+# if [ $File = "./examples/antidote_pb_riak_dt_orset.config" ]; then
+#     Type="set"
+# else
+#     Type="counter"
+# fi
+Type="counter"
 
 sed -i '/antidote_pb_ips/d' $File 
 sed -i '/concurrent/d' $File
 ## {operations, [{append, 1}, {read, 100}]}.
 sed -i '/operations/d' $File
-PerNodeNum=5
+#PerNodeNum=5
 #Thread=20
 
-if [ $NodesPerDC -gt 8 ]; then
-    PerNodeNum=10
-fi
-if [ $NodesPerDC -gt 20 ]; then
-    PerNodeNum=1
-fi
+#if [ $NodesPerDC -gt 8 ]; then
+#    PerNodeNum=10
+#fi
+#if [ $NodesPerDC -gt 20 ]; then
+#    PerNodeNum=1
+#fi
 
 
 BenchConfig="{antidote_pb_ips, ["
@@ -40,8 +42,12 @@ for Node in $AllNodes
 do
     Node=\'$Node\',
     BenchConfig=$BenchConfig$Node
-    Thread=$((Thread+PerNodeNum))
+    #Thread=$((Thread+PerNodeNum))
 done
+
+# Use static number of threads
+Thread=40
+
 BenchConfig=${BenchConfig::-1}"]}."
 echo $BenchConfig
 echo "$BenchConfig" >> $File
@@ -55,7 +61,7 @@ fi
 
 sed -i '/key_generator/d' $File
 #sed -i "3i {key_generator, {dc_bias, $NumDCs, $DcId, $NodesPerDC, 10000}}." $File
-Keys=$(($NodesPerDC * 10000))
+Keys=$(($NodesPerDC * 100000))
 sed -i "3i {key_generator, {pareto_int, $Keys}}." $File
 
 sed -i '/antidote_pb_num_dcs/d' $File 
