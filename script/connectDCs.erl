@@ -117,7 +117,7 @@ wait_ready_nodes([Node|Rest], [Cookie|RestCookie], IsPubSub, IsPartial, IsEC) ->
 	    end,
 	    wait_ready_nodes(Rest,RestCookie,IsPubSub, IsPartial, IsEC);
 	false ->
-	    lager:info("Node ~w not ready, rety in 5 sec",[Node]),
+	    io:format("Node ~w not ready, rety in 5 sec",[Node]),
 	    timer:sleep(5000),
 	    wait_ready_nodes([Node|Rest],[Cookie|RestCookie],IsPubSub,IsPartial, IsEC)
     end.
