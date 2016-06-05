@@ -37,12 +37,12 @@ fi
 
 BenchmarkType=1
 
-ReadsNumber=( 75 )
-WritesNumber=( 25 )
+ReadsNumber=( 75 1 )
+WritesNumber=( 25 1 )
 
 #loop for number of reads
-for ReadWrite in $(seq 0 0); do
-
+#for ReadWrite in $(seq 0 0); do
+ReadWrite=0
     # Only deploy on first run, otherwise keeps dcs up
     if [ $ReadWrite -eq 0 ]; then
 
@@ -86,7 +86,7 @@ for ReadWrite in $(seq 0 0); do
     
     echo Sleeping a minute duing runs
     sleep 60
-done
+#done
 
 
 #./script/runSimpleBenchmark.sh $4 $BenchmarkType
