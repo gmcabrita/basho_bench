@@ -37,8 +37,8 @@ fi
 
 BenchmarkType=1
 
-ReadsNumber=( 75 1 )
-WritesNumber=( 25 1 )
+ReadsNumber=( 75 75 )
+WritesNumber=( 25 25 )
 
 #loop for number of reads
 #for ReadWrite in $(seq 0 0); do
