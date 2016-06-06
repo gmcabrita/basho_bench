@@ -32,7 +32,7 @@ AS=20
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 do_specula=true
-specula_read=specula
+specula_read=true
 fast_reply=true
 sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 16 $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
@@ -53,7 +53,7 @@ done
 
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 do_specula=false
-specula_read=nospecula
+specula_read=false
 fast_reply=false
 len=0
 for t in $threads

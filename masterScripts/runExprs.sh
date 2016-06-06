@@ -23,7 +23,7 @@ do
     do
     if [ $skipped -eq 1 ] 
     then
-	sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts specula
+	sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts true 
 	sudo ./script/restartAndConnect.sh
 	sleep 20
     fi
@@ -52,7 +52,7 @@ do
             then
                 skipped=1
                 echo "Configuring and starting nodes.."
-                sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts specula
+                sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts true 
                 sudo ./script/restartAndConnect.sh
                 sleep 20
             fi
@@ -79,12 +79,12 @@ done
 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-#sudo ./script/configBeforeRestart.sh 32 false false 0 $rep $parts nospecula 
+#sudo ./script/configBeforeRestart.sh 32 false false 0 $rep $parts false 
 #sudo ./script/restartAndConnect.sh
 threads="32 60"
 for t in $threads
 do  
-        #sudo ./script/configBeforeRestart.sh $t false false 0 $rep $parts nospecula 
+        #sudo ./script/configBeforeRestart.sh $t false false 0 $rep $parts false 
         #sudo ./script/restartAndConnect.sh
         #sleep 20 
         for wl in $workloads

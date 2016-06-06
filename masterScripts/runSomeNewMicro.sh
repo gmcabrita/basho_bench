@@ -37,7 +37,7 @@ MSML=1000
 CBIG=40000
 CSML=2000
 SR=100000
-specula_read=specula
+specula_read=true
 
 declare -A array
 for num in $1
@@ -86,7 +86,7 @@ exit
 MN=80    
 SN=20    
 CN=0
-specula_read=nospecula
+specula_read=false
 for len in $length
 do
     if [ $skipped -eq 1 ]
@@ -148,7 +148,7 @@ done
 MN=80    
 SN=20    
 CN=0
-specula_read=nospecula
+specula_read=false
 do_specula=false
 fast_reply=false
 deter=false
@@ -181,7 +181,7 @@ done
 ######158#######
 
 
-specula_read=nospecula
+specula_read=false
 do_specula=false
 fast_reply=false
 len=0
@@ -242,7 +242,7 @@ done
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 prob_access=t
 locals="1 2 3"
-specula_read=nospecula
+specula_read=false
 do_specula=false
 fast_reply=false
 deters="1 2 3 4 5"

@@ -47,7 +47,7 @@ skipped=1
 AM=80
 AS=0
 
-specula_read=specula
+specula_read=true
 do_specula=true
 fast_reply=true
 
@@ -87,7 +87,7 @@ done
 runRubis
 
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-specula_read=nospecula
+specula_read=false
 do_specula=false
 fast_reply=false
 len=8

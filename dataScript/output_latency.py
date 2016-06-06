@@ -39,13 +39,8 @@ for i in range(9):
     for j in range(8):
         (num, c, region) = latency_arr[i][j]
         latency_arr[i][j] = (num/c, region)
-    replica_latency[i]=latency_arr[i][0:5]
+    replica_latency[i]=latency_arr[i]#[0:5]
         
 for i in range(9):
     replica_latency[i].sort()
     print(dcs[i]+" "+str(replica_latency[i]))
-
-
-            
-            
-

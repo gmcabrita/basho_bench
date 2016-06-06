@@ -22,6 +22,15 @@ def setHatchThickness(value):
         #print backend_pdf
         os.system('sudo mv /tmp/hatch.tmp %s' % backend_pdf)
 
+def get_path(input_folders, name):
+    if type(input_folders) == type([]) :
+        for fl in input_folders:
+            path = os.path.join(fl, name)
+            if os.access(path, os.R_OK):
+                return path
+    else:
+        return os.path.join(input_folders, name)
+
 def output_label(legends, colors, hatches):
     fig = plt.figure()
     figlegend = plt.figure(figsize=(5,2))
@@ -36,10 +45,7 @@ def output_label(legends, colors, hatches):
     figlegend.savefig(output_folder+'/'+'legend.pdf', format='pdf', bbox_inches='tight')
 
 # input data
-def plot_multi_bars(input_folders, output_folder, specula_list, nospecula_list, legends, types, name, colors, hatches):
-    plot_multi_bars(input_folders, output_folder, specula_list, nospecula_list, legends, types, name, colors, hatches, [])
-
-def plot_multi_bars(input_folders, output_folder, specula_list, nospecula_list, legends, types, name, colors, hatches, size):
+def plot_multi_bars(input_folder, output_folder, specula_list, legends, types, name, colors, hatches):
     setHatchThickness(2)
     width = 0.35
     maxv=0
@@ -52,45 +58,46 @@ def plot_multi_bars(input_folders, output_folder, specula_list, nospecula_list, 
     fig, ax = plt.subplots()
     data_l = []
     line_index=0
-    length = len(specula_list)
+    length = len(specula_list[0])
+    print("Length is "+str(length))
     handlers=[]
-    for index, input_folder in enumerate(input_folders):
-        bar_width=0.8/length
+    for index, bar_folders in enumerate(specula_list):
+        bar_width=0.9/length
         bar_start=index+1-0.4
-        for i in range(length):
-            pos=bar_width*i + bar_start
-            specula = specula_list[i]
-            nospecula = nospecula_list[i]
-            specula_folder = glob.glob(os.path.join(input_folder, specula))[0]
+        #bar_start = bar_width*index+1-0.4
+        bar_folders = sort_by_num(bar_folders)
+        nospecula_folder = bar_folders[0]
+        bar_folders = bar_folders[1:]
+        nosppath = get_path(input_folder, nospecula_folder+'/total_throughput')
+        nospdata = np.loadtxt(nosppath, skiprows=1, usecols=range(1,7))
+        nospthroughput = nospdata[0,0]
+        print(nospecula_folder)
+        for i in range(length-1):
+            pos= i*bar_width + bar_start
+            specula_folder = bar_folders[i]
             #print(specula_folder)
-            sppath = specula_folder+'/total_throughput'
+            sppath = get_path(input_folder, specula_folder+'/total_throughput')
+            print(sppath)
+            print(pos)
             spdata = np.loadtxt(sppath, skiprows=1, usecols=range(1,7))
 
             #nosppath = os.path.join(input_folder, nospecula+'/total_throughput')
-            nospecula_folder = glob.glob(os.path.join(input_folder, nospecula))[0]
-            nosppath = nospecula_folder+'/total_throughput'
-            nospdata = np.loadtxt(nosppath, skiprows=1, usecols=range(1,7))
-            nospthroughput = nospdata[0,0]
             spthroughput = spdata[0,0]
+            print("No spec")
+            print(nospthroughput)
+            print("Spec")
+            print(spthroughput)
             if hatches[i] == '':
                 hlt, = plt.bar(pos, spthroughput/nospthroughput, bar_width, color=colors[i])
             else:
-                #hlt, = plt.bar(pos, spthroughput/nospthroughput, bar_width, color=colors[i], hatch=hatches[i], fill=False)
-                #hlt.hatch=hatches[i]
-                #hlt.color=color=colors[i]
-                #hlt.fill=False
                 hlt = ax.add_patch(Polygon([[pos,0], [pos,spthroughput/nospthroughput], [pos+bar_width,spthroughput/nospthroughput], [pos+bar_width,0]], hatch=hatches[i], color=colors[i], fill=False))
             if index == 0:
                 handlers.append(hlt)
 
     plt.legend(handlers, legends, loc=2, fontsize=lsize,labelspacing=0.2, columnspacing=0.2, handletextpad=0.2, borderpad=0.2, ncol=3)
     plt.xticks([x+1 for x in range(len(types))], types, fontsize=fsize)
-    plt.xlim([0.5, len(input_folders)+0.5])
-    plt.ylim([0, 20])
-    plt.ylabel('Speedup', fontsize=fsize)
+    plt.xlim([0.5, length+0.5])
+    plt.ylim([0, 8])
     plt.gca().yaxis.grid(True)
-    if size != []: 
-        (w,h) = size 
-        fig.set_size_inches(w, h)
     plt.savefig(output_folder+'/'+name+'.pdf', format='pdf', bbox_inches='tight')
 

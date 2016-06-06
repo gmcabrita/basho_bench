@@ -33,7 +33,7 @@ CSML=2000
 MR=$MBIG 
 CR=$CBIG
 SR=100000
-specula_read=specula
+specula_read=true
 
 prob_access=t
 deter=false
@@ -52,7 +52,7 @@ deter=false
 
 locals="3 4"
 clock="new"
-specula_read=specula
+specula_read=true
 do_specula=true
 fast_reply=true
 prob_access=t
@@ -85,7 +85,7 @@ fi
 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 clock="old"
-specula_read=nospecula
+specula_read=false
 do_specula=false
 fast_reply=false
 len=0

@@ -37,7 +37,7 @@ CSML=2000
 MR=$MBIG 
 CR=$CBIG
 SR=100000
-specula_read=specula
+specula_read=true
 
 prob_access=t
 deter=false
@@ -52,7 +52,7 @@ CN=0
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 clock="new"
-specula_read=specula
+specula_read=true
 do_specula=true
 fast_reply=true
 prob_access=t
@@ -104,7 +104,7 @@ sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 clock="old"
-specula_read=nospecula
+specula_read=false
 do_specula=false
 fast_reply=false
 len=0
