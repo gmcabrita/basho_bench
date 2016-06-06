@@ -218,7 +218,7 @@ run(home, _KeyGen, _ValueGen, State=#state{specula=Specula, tx_server=TxServer, 
     
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -255,7 +255,7 @@ run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=My
             NewUser = rubis_tool:create_user(FirstName, LastName, NickName, Password, Email, Now, 0, 0, RegionId),
             WS1 = dict:store({ToRegisterNode, UserKey}, NewUser, dict:new()), 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS1, PartList, MyNode),
-            Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, general}, ?TIMEOUT),%, length(DepsList)}),
+            Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
             case Response of
                 {ok, {committed, _}} ->
                     {ok, State}; %{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}};
@@ -267,7 +267,7 @@ run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=My
         _ -> 
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -289,7 +289,7 @@ run(browse_categories, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, nb_c
                 end, Seq),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -307,7 +307,7 @@ run(search_items_in_category, _KeyGen, _ValueGen, State=#state{nb_categories=NBC
     CategoryNewItems = read_from_node(TxServer, TxId, CategoryNewItemKey, CategoryNode, MyNode, PartList, HashDict),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -332,7 +332,7 @@ run(browse_regions, _KeyGen, _ValueGen, State=#state{nb_regions=NBRegions, tx_se
                 end, Seq),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -349,7 +349,7 @@ run(browse_categories_in_region, _KeyGen, _ValueGen, State=#state{nb_categories=
                 end, Seq),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -370,7 +370,7 @@ run(search_items_in_region, _KeyGen, _ValueGen, State=#state{node_id=MyNode, nb_
     RegionNewItems = read_from_node(TxServer, TxId, RegionNewItemKey, RegionNode, MyNode, PartList, HashDict),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -414,7 +414,7 @@ run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
                           end, BidIds),
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -441,7 +441,7 @@ run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_se
             case NumComments of 0 ->  
                             case Specula of
                                 true ->
-                                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                                 _ ->
                                     ok
                             end,
@@ -471,7 +471,7 @@ run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_se
                                 end, {User#user.u_num_comments, 1, UserId}, CommentNodeList),
                     case Specula of
                         true ->
-                            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                         _ ->
                             ok
                     end,
@@ -493,7 +493,7 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
         [] ->
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -518,7 +518,7 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
                         end, undef, ItemBids),
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -529,7 +529,7 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
 run(buy_now_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
     %lager:info("Mhuahau, buy now auth"),
     TxId = gen_server:call(TxServer, {start_tx}),
-    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     {ok, State};
 
 %% Buy now should be placed as the user's location
@@ -552,7 +552,7 @@ run(buy_now, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     %              end, BidIds),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -576,7 +576,7 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
         0 ->
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -609,7 +609,7 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
             WS4 = dict:store({MyNode, MyselfKey}, Myself1, WS3), 
 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, MyNode),
-            Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, general}, ?TIMEOUT),%, length(DepsList)}),
+            Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
             RT3 = os:timestamp(),
             case Response of
                 {ok, {committed, _}} ->
@@ -627,7 +627,7 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
 %% VERIFIED
 run(put_bid_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
     TxId = gen_server:call(TxServer, {start_tx}),
-    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     %lager:info("Mhuahau, put bid auth"),
     {ok, State};
 
@@ -653,7 +653,7 @@ run(put_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
             _Seller = read_from_node(TxServer, TxId, SellerKey, ItemNode, MyNode, PartList, HashDict),
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -682,7 +682,7 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     case ItemQty of 0 ->
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -740,7 +740,7 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
 run(put_comment_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
     TxId = gen_server:call(TxServer, {start_tx}),
-    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     %lager:info("Mhuahau, put comment auth"),
     {ok, State};
 
@@ -765,7 +765,7 @@ run(put_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=
             _Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -809,7 +809,7 @@ run(store_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
 
     {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS3, PartList, MyNode),
     %DepsList = ets:lookup(dep_table, TxId),
-    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, general}, ?TIMEOUT),%, length(DepsList)}),
+    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
     case Response of
         {ok, {committed, _}} ->
             {ok, State};
@@ -837,7 +837,7 @@ run(select_category_to_sell_item, _KeyGen, _ValueGen, State=#state{nb_categories
                 end, Seq),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -928,7 +928,7 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
     WS5 = dict:store({ItemNode, RegionNewItemsKey}, RegionNewItems, WS4),
 
     {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS5, PartList, MyNode),
-    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, general}, ?TIMEOUT),%, length(DepsList)}),
+    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
     case Response of
         {ok, {committed, _}} ->
             {ok, State};
@@ -945,7 +945,7 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
 
 run(about_me_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
     TxId = gen_server:call(TxServer, {start_tx}),
-    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     %lager:info("Mhuahau, abou me auth"),
     {ok, State};
 
@@ -1047,7 +1047,7 @@ run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNod
         end, {CU2, RU2}, ToFetchCommentList),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
