@@ -37,12 +37,12 @@ fi
 
 BenchmarkType=1
 
-ReadsNumber=( 50 50 )
-WritesNumber=( 50 50 )
-NumThreads=( 40 80 )
+ReadsNumber=( 50 50 75 75 )
+WritesNumber=( 50 50 25 25 )
+NumThreads=( 40 80 40 80 )
 
 #loop for number of reads
-for ReadWrite in $(seq 0 1); do
+for ReadWrite in $(seq 0 4); do
 #ReadWrite=0
     # Only deploy on first run, otherwise keeps dcs up
     if [ $ReadWrite -eq 0 ]; then
