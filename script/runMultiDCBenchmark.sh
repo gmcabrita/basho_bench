@@ -37,9 +37,9 @@ fi
 
 BenchmarkType=1
 
-ReadsNumber=( 50 50 50 75 75 75 )
-WritesNumber=( 50 50 50 25 25 75 )
-NumThreads=( 16 32 64 16 32 64 )
+ReadsNumber=( 50 50 50 50 )
+WritesNumber=( 50 50 50 50 )
+NumThreads=( 4 8 16 32 )
 
 #loop for number of reads
 for ReadWrite in $(seq 0 5); do
