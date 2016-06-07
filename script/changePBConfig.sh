@@ -8,6 +8,8 @@ Writes=$5
 NumDCs=$6
 NodesPerDC=$7
 DcId=$8
+#Number of concurrent threads
+Thread=$9
 
 # if [ $File = "./examples/antidote_pb_crdt_orset.config" ]; then
 #     Type="set"
@@ -46,7 +48,7 @@ do
 done
 
 # Use static number of threads
-Thread=40
+#Thread=40
 
 BenchConfig=${BenchConfig::-1}"]}."
 echo $BenchConfig

@@ -37,12 +37,13 @@ fi
 
 BenchmarkType=1
 
-ReadsNumber=( 75 75 )
-WritesNumber=( 25 25 )
+ReadsNumber=( 50 50 )
+WritesNumber=( 50 50 )
+NumThreads=( 40 80 )
 
 #loop for number of reads
-#for ReadWrite in $(seq 0 0); do
-ReadWrite=0
+for ReadWrite in $(seq 0 1); do
+#ReadWrite=0
     # Only deploy on first run, otherwise keeps dcs up
     if [ $ReadWrite -eq 0 ]; then
 
@@ -75,18 +76,18 @@ ReadWrite=0
 		echo "${NodeArray[$DCNum]}" > ./tmp
 		echo scp -o StrictHostKeyChecking=no -i key ./tmp root@"$Item":/root/basho_bench"$I"/basho_bench/script/runnodes
 		scp -o StrictHostKeyChecking=no -i key ./tmp root@"$Item":/root/basho_bench"$I"/basho_bench/script/runnodes
-    		echo ssh -t -o StrictHostKeyChecking=no -i key root@$Item /root/basho_bench"$I"/basho_bench/script/runSimpleBenchmark.sh $BenchmarkType $I $BenchmarkFile ${ReadsNumber[$ReadWrite]} ${WritesNumber[$ReadWrite]} $NumberDC $NodesPerDC $DCNum
+    		echo ssh -t -o StrictHostKeyChecking=no -i key root@$Item /root/basho_bench"$I"/basho_bench/script/runSimpleBenchmark.sh $BenchmarkType $I $BenchmarkFile ${ReadsNumber[$ReadWrite]} ${WritesNumber[$ReadWrite]} $NumberDC $NodesPerDC $DCNum ${NumThreads[$ReadWrite]}
 
 		echo for job $GridJob on time $Time
-    		ssh -t -o StrictHostKeyChecking=no -i key root@$Item /root/basho_bench"$I"/basho_bench/script/runSimpleBenchmark.sh $BenchmarkType $I $BenchmarkFile ${ReadsNumber[$ReadWrite]} ${WritesNumber[$ReadWrite]} $NumberDC $NodesPerDC $DCNum >> logs/"$GridJob"/runBench-"$Item"-"$I"-"$Time"-Reads"${ReadsNumber[$ReadWrite]}" &
+    		ssh -t -o StrictHostKeyChecking=no -i key root@$Item /root/basho_bench"$I"/basho_bench/script/runSimpleBenchmark.sh $BenchmarkType $I $BenchmarkFile ${ReadsNumber[$ReadWrite]} ${WritesNumber[$ReadWrite]} $NumberDC $NodesPerDC $DCNum ${NumThreads[$ReadWrite]} >> logs/"$GridJob"/runBench-"$Item"-"$I"-"$Time"-Reads"${ReadsNumber[$ReadWrite]}" &
 	    done
 	done
     done
     wait
     
-    echo Sleeping a minute duing runs
-    sleep 60
-#done
+    #echo Sleeping a minute duing runs
+    #sleep 60
+done
 
 
 #./script/runSimpleBenchmark.sh $4 $BenchmarkType
