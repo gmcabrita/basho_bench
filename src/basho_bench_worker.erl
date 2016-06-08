@@ -114,6 +114,14 @@ init([SupChild, Id]) ->
                 true -> {{[], 1}, rubis_tool:load_transition()}; 
                 _ -> {false, undef} 
             end,
+
+    %L = dict:to_list(Transition),
+    %lists:foreach(fun({Num, {_, TList}}) ->
+    %                  AccV = lists:foldl(fun(V, Acc) -> Acc+V end, 0, TList),
+    %                  lager:info("Num is ~w, Sum is ~w", [Num, AccV])
+    %              end, L), 
+
+    %lager:info("Transition is ~w", [dict:to_list(Transition)]),
     %% Finally, initialize key and value generation. We pass in our ID to the
     %% initialization to enable (optional) key/value space partitioning
     KeyGen = basho_bench_keygen:new(basho_bench_config:get(key_generator), Id),
