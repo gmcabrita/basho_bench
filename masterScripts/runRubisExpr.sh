@@ -30,12 +30,13 @@ AM=80
 AS=20
 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+#sudo ./script/stopNodes.sh
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 do_specula=true
 specula_reads="true false"
 fast_reply=true
-sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 16 $rep $parts $specula_read 
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 16 $rep $parts true 
+sudo ./script/restartAndConnect.sh
 for t in $threads
 do
     for len in $length
