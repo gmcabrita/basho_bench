@@ -16,11 +16,11 @@ function runRubis {
 
 ## Just to test.. 
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
-seq="1 2"
+seq="1"
 threads="8"
-length="1 2 4 8 16"
-rep=5
-parts=28
+length="1"
+rep=2
+parts=4
 start_ind=1
 skip_len=0
 #100
@@ -29,27 +29,32 @@ inited=0
 AM=80
 AS=20
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 do_specula=true
-specula_read=true
+specula_reads="true false"
 fast_reply=true
 sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 16 $rep $parts $specula_read 
-sudo ./script/restartAndConnect.sh
+#sudo ./script/restartAndConnect.sh
 for t in $threads
 do
     for len in $length
     do
-        if [ $skipped -eq 1 ] 
-        then
+	for specula_read in $specula_reads
+	do
+            if [ $skipped -eq 1 ] 
+            then
 	       sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read 
 	       #sudo ./script/restartAndConnect.sh
-           sudo ./script/preciseTime.sh
+               sudo ./script/preciseTime.sh
 	       #sleep 20
-        fi
-        runRubis
+            fi
+            runRubis
+	done
     done
 done
+
+exit
 
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 do_specula=false
