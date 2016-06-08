@@ -4,8 +4,8 @@
 -define(BOUGHT_NUM, 10).
 -define(DURATION, 10000).
 
--define(CATEGORY_NEW_ITEMS, 20).
--define(REGION_NEW_ITEMS, 20).
+-define(CATEGORY_NEW_ITEMS, 50).
+-define(REGION_NEW_ITEMS, 50).
 
 -record(item, {
     %i_id :: {integer(), integer()},
@@ -54,6 +54,7 @@
     u_creation_date :: integer(),
     u_region :: integer(),
     %%% Additional data
+    u_comment_nodes :: [],
     u_num_comments :: non_neg_integer(),
     u_bids :: [{integer(), integer()}],
     u_sellings :: [{integer(), integer()}],

@@ -32,7 +32,7 @@ MSML=2000
 CBIG=3000
 CSML=300
 SR=100000
-specula_read=specula
+specula_read=true
 
 prob_access=t
 deter=false
@@ -40,7 +40,7 @@ deter=false
 ###########
 
 len=8
-specula_read=specula
+specula_read=true
 sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
 sleep 25
@@ -157,7 +157,7 @@ done
 MN=80    
 SN=20    
 CN=0
-specula_read=nospecula
+specula_read=false
 if [ $skipped == 1 ]
 then
 for len in $length
@@ -242,7 +242,7 @@ done
 MN=80    
 SN=20    
 CN=0
-specula_read=nospecula
+specula_read=false
 do_specula=false
 fast_reply=false
 deter=false

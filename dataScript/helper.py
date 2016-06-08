@@ -50,6 +50,7 @@ def get_matching_series_delete(args, toremove, options):
             rotate_field_set.add(int(value[int(rotate_field)]))
         else:
             rotate_field_set.add(value[int(rotate_field)])
+
         for f in diff_fields:
             fields+="_"+str(value[int(f)]) 
         if fields in field_dict:
@@ -67,11 +68,12 @@ def get_matching_series_delete(args, toremove, options):
     to_plot_params=[field_value_str+'_'+str(x)  for x in rotate_values]
     to_plot_list=[]
     for key in to_plot_params:
-        print(key)
+        #print(key)
         if key in field_dict:
             to_plot_list.append(field_dict[key])
         else:
-            print("Warning: "+key+" is not in dict!!!")
+            pass
+            #print("Warning: "+key+" is not in dict!!!")
     return to_plot_list
 
 def get_matching_serie(args):
@@ -149,7 +151,8 @@ def get_legend(str_value, type, postfix):
         else:
             return str_value+' read'
     elif type == 'remote read':
-        return str_value+'% remote read'
+        #return str_value+'% remote read'
+        return str_value+'%'
     elif type == 'remote servers':
         if str_value == 'false':
             return 'High locality'

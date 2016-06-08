@@ -142,7 +142,7 @@ new(Id) ->
     %lager:info("Ex list is ~w", [ExpandPartList]),
     HashLength = length(ExpandPartList),
 
-    %lager:info("Part list is ~w",[PartList]),
+    %lager:info("Part list is ~w, hash dict is ~w",[PartList, dict:to_list(HashDict)]),
     MyTable =ets:new(my_table, [private, set]),
     Key1 = "C_C_LAST",
     Key2 = "C_C_ID",
@@ -153,6 +153,7 @@ new(Id) ->
     {ok, C_C_LAST} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key1, Part1]),
     {ok, C_C_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key2, Part2]),
     {ok, C_OL_I_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key3, Part3]),
+	C_C_LAST=10, C_C_ID=10, C_OL_I_ID=10,
     ItemRanges = init_item_ranges(NumNodes, ?NB_MAX_ITEM),
     lager:info("Cclast ~w, ccid ~w, coliid ~w", [C_C_LAST, C_C_ID, C_OL_I_ID]),
     {ok, #state{time={1,1,1}, worker_id=Id,
@@ -299,7 +300,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %% ************ read time *****************
     RT2 = os:timestamp(),
     %% ************ read time *****************
-    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, new_order}, ?TIMEOUT),%, length(DepsList)}),
+    Response = gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
     RT3 = os:timestamp(),
     case Response of
         {ok, {committed, _}} ->
@@ -420,7 +421,7 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
     {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerNode),
     %DepsList = ets:lookup(dep_table, TxId),
     RT2 = os:timestamp(),
-    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, payment}, ?TIMEOUT),%, length(DepsList)}),
+    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
     RT3 = os:timestamp(),
     case Response of
         {ok, {committed, _}} ->

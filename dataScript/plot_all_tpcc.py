@@ -12,7 +12,7 @@ from plot_line import plot_multi_lines
 from helper import get_matching_series
 
 input_folder='./stat/2016-03-07-092625/'
-output_folder='./figures/final_tpcc_retry/'
+output_folder='./figures/final_tpcc/'
 bench_type='tpcc'
 dict1={'title':'10% new-order, 80% payment, 10% order-status', 'no_title':True, 'x_labels':False, 'y_labels':False, 'y_lim':9000, 'legend_type':'warehouse', 'draw_line':2, 'line_name':'max'}
 series1=get_matching_series([input_folder, 'tpcc', 7, 10, 6])

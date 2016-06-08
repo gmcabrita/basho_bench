@@ -31,7 +31,7 @@ MSML=1000
 CBIG=40000
 CSML=2000
 SR=100000
-specula_read=specula
+specula_read=true
 
 prob_access=t
 deter=false
@@ -47,7 +47,7 @@ MN=80
 SN=20
 CN=0
 ###Just to test
-specula_read=specula
+specula_read=true
 do_specula=true
 fast_reply=true
 locals="1 2 3"
@@ -109,7 +109,7 @@ done
 MN=80    
 SN=20    
 CN=0
-specula_read=nospecula
+specula_read=false
 for len in $length
 do
     if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
@@ -135,7 +135,7 @@ done
 
 prob_access=t
 locals="1 2 3"
-specula_read=nospecula
+specula_read=false
 do_specula=false
 fast_reply=false
 MN=20 SN=80 CN=0
@@ -154,7 +154,7 @@ for lo in $locals
     runNTimes
 done
 
-specula_read=nospecula
+specula_read=false
 do_specula=false
 fast_reply=false
 deter=false
@@ -215,7 +215,7 @@ done
 ### 70
 
 #Test remote read
-specula_read=specula
+specula_read=true
 do_specula=true
 fast_reply=true
 prob_access=t
@@ -252,7 +252,7 @@ done
 MN=80    
 SN=20    
 CN=0
-specula_read=nospecula
+specula_read=false
 do_specula=false
 fast_reply=false
 deter=false
@@ -280,7 +280,7 @@ do
 done
 ######188######
 
-specula_read=nospecula
+specula_read=false
 do_specula=false
 fast_reply=false
 len=0

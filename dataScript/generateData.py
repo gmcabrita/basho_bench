@@ -33,6 +33,7 @@ def init_node_data(nodes):
 
 def add_throughput(nodes, dict, total_dict, folder):
     all_committed = 0
+    all_notified_abort = 0
     all_r_abort = 0
     all_r_invalid = 0
     all_cert_abort = 0
@@ -45,13 +46,13 @@ def add_throughput(nodes, dict, total_dict, folder):
         th_lines = [line.rstrip('\n') for line in open(th_file)]
         th_lines = th_lines[1:]
         committed = 0
-        aborted = 0
+        notified_abort = 0
         duration=0
         for line in th_lines:
             words = line.split(",")
             #print words[3]+words[4]
             committed += int(words[3])
-            aborted += int(words[4])
+            notified_abort += int(words[4])
             duration=max(duration,float(words[0]))
             #print("Duration is"+str(int(duration)))
         stat_line = stat_lines[index] #[x for x in stat_lines if x[0].isdigit()]
@@ -62,9 +63,9 @@ def add_throughput(nodes, dict, total_dict, folder):
             cert_abort = int(stat_data[2])
             cascade_abort = int(stat_data[3])
             if int(stat_data[4]) == 0:
-                # This is specula!
+                # This is not specula!
                 real_committed = committed
-                cert_abort = aborted
+                cert_abort = notified_abort
             else:
                 real_committed = int(stat_data[4])
         #elif len(stat_data) == 26:
@@ -85,15 +86,16 @@ def add_throughput(nodes, dict, total_dict, folder):
         
         #print str(committed)+' '+str(aborted) +' '+str(read_abort)+' '+str(specula_abort)+' '+str(cascade_abort) 
         if node in dict:
-            dict[node].append([real_committed, cert_abort, read_abort, read_invalid, cascade_abort])
+            dict[node].append([real_committed, cert_abort, read_abort, read_invalid, cascade_abort, notified_abort])
         all_committed += real_committed
         all_cert_abort += cert_abort
         all_r_abort += read_abort
         all_r_invalid += read_invalid
         all_c_abort += cascade_abort
+        all_notified_abort += notified_abort
         all_abort += cert_abort + read_abort + read_invalid + cascade_abort
     print('All committed is'+str(real_committed))
-    total_dict.append([all_committed/duration, all_cert_abort/duration, all_r_abort/duration, all_r_invalid/duration, all_c_abort/duration, all_abort/duration])
+    total_dict.append([all_committed/duration, all_cert_abort/duration, all_r_abort/duration, all_r_invalid/duration, all_c_abort/duration, all_abort/duration, all_notified_abort/duration, (all_abort-all_notified_abort)/duration])
     
 
 def update_counter(folder, length, key):
@@ -140,19 +142,18 @@ def add_duration(nodes, dict, total_dict, folder):
         stat_line = stat_lines[index] #[x for x in stat_lines if x.startswith(node)]
         stat_data = stat_line.split(',')
         #local_cert_dur = float(stat_data[21])/1000
-        dur_avg.append(float(stat_data[8])/1000) 
-        dur_avg.append(float(stat_data[9])/1000)
-        dur_avg.append(float(stat_data[10])/1000)
-        dur_avg.append(float(stat_data[11])/1000)
-        dur_avg.append(float(stat_data[12])/1000) 
-        dur_avg.append(float(stat_data[13])/1000)
-        dur_avg.append(float(stat_data[14])/1000)
-        dur_avg.append(float(stat_data[15])/1000)
-        dur_avg.append(float(stat_data[16])/1000) 
-        dur_avg.append(float(stat_data[17])/1000)
-        dur_avg.append(float(stat_data[18])/1000)
-        dur_avg.append(float(stat_data[19])/1000)
-        #dur_avg.append(local_cert_dur), 
+        #dur_avg.append(float(stat_data[8])/1000) 
+        #dur_avg.append(float(stat_data[9])/1000)
+        #dur_avg.append(float(stat_data[10])/1000)
+        #dur_avg.append(float(stat_data[11])/1000)
+        #dur_avg.append(float(stat_data[12])/1000) 
+        #dur_avg.append(float(stat_data[13])/1000)
+        #dur_avg.append(float(stat_data[14])/1000)
+        #dur_avg.append(float(stat_data[15])/1000)
+        #dur_avg.append(float(stat_data[16])/1000) 
+        #dur_avg.append(float(stat_data[17])/1000)
+        #dur_avg.append(float(stat_data[18])/1000)
+        #dur_avg.append(float(stat_data[19])/1000)
         if node in dict:
             dict[node].append(dur_avg)
         if total_dur == []:
@@ -259,8 +260,8 @@ for config in dict:
     write_to_file(payment_latency, entry, ['payment'], 'N/A min mean median 95th 99th 99_9th max')
     write_to_file(order_status_latency, entry, ['order-status'], 'N/A min mean median 95th 99th 99_9th max')
 
-    write_to_file(throughput, entry['throughput'], nodes, 'ip committed cert_aborted read_aborted read_invalid cascade_abort') 
-    write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted read_invalid cascade_abort all_abort') 
+    write_to_file(throughput, entry['throughput'], nodes, 'ip committed cert_aborted read_aborted read_invalid cascade_abort notified_abort') 
+    write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted read_invalid cascade_abort all_abort notified_abort specula_abort') 
     write_std(total_throughput, entry['total_throughput'])
     write_to_file(duration, entry['duration'], nodes, 'ip no_read no_local_a no_remote_a no_local_c no_remote_c no_specula_c p_read p_local_a p_remote_a p_local_c p_remote_c p_specula_c nc_local nc_remote na_local na_remote pc_local pc_remote pa_local pa_remote gc_local gc_remote ga_local ga_remote')
     write_to_file(total_duration, entry, ['total_duration'], 'N/A ip no_read no_local_a no_remote_a no_local_c no_remote_c no_specula_c p_read p_local_a p_remote_a p_local_c p_remote_c p_specula_c nc_local nc_remote na_local na_remote pc_local pc_remote pa_local pa_remote gc_local gc_remote ga_local ga_remote') 

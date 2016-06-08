@@ -23,6 +23,7 @@
 
 -export([new/1,
 	    read/5,
+        terminate/2,
         run/4]).
 
 -include("basho_bench.hrl").
@@ -51,6 +52,7 @@
                 no_rep_ids,
                 prev_state,
                 num_nodes,
+                num_replicates,
                 access_master,
                 access_slave,
                 %% Rubis state
@@ -64,13 +66,6 @@
                 percent_unique_item,
                 max_duration,
                 
-		        no_specula,
-                no_local,
-                no_remote,
-                no_local_abort,
-                no_remote_abort,
-		        no_read,
-                new_order_committed,
                 node_id,
                 specula,
                 tx_server,
@@ -128,6 +123,7 @@ new(Id) ->
 
     %lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
     AllNodes = [N || {N, _} <- PartList],
+    [NumReplicates] = [length(L) || {N, L} <- ReplList, N == TargetNode],
     NodeId = index(TargetNode, AllNodes),
     NumNodes = length(AllNodes),
     case Id of 1 -> timer:sleep(MasterToSleep);
@@ -153,6 +149,11 @@ new(Id) ->
     PercentResvItem = dict:fetch(database_percentage_of_items_with_reserve_price, ConfigDict) div dict:fetch(reduce_factor, ConfigDict), 
     PercentUniqueItem = dict:fetch(database_percentage_of_unique_items, ConfigDict) div dict:fetch(reduce_factor, ConfigDict), 
     MaxDuration = dict:fetch(max_duration, ConfigDict) div dict:fetch(reduce_factor, ConfigDict), 
+    TabName = list_to_atom(pid_to_list(MyTxServer)),
+    ets:new(TabName, [set, named_table, {read_concurrency,false}]),
+    ets:insert(TabName, {master, 0}),
+    ets:insert(TabName, {slave, 0}),
+    ets:insert(TabName, {remote, 0}),
     {ok, #state{worker_id=Id,
                tx_server=MyTxServer,
                access_master=AccessMaster,
@@ -160,6 +161,7 @@ new(Id) ->
                part_list = PartList,
                hash_dict = HashDict1,
                prev_state=#prev_state{myself_id= {NodeId, random:uniform(NBUsers)}},
+               num_replicates = NumReplicates,
                nb_users = NBUsers,
                nb_old_items = NBOldItems,
                nb_regions = NBRegions,
@@ -174,18 +176,22 @@ new(Id) ->
                no_rep_ids = DcNoRepIds,
                %no_rep_list = SlaveRepList,
                to_sleep=ToSleep,
-               no_specula={0,0},
-               no_local={0,0},
-               no_remote={0,0},
-               no_local_abort={0,0},
-               no_remote_abort={0,0},
-               no_read=0,
                expand_part_list = ExpandPartList,
                hash_length = HashLength,   
                specula = Specula,
                num_nodes = NumNodes,
                node_id = NodeId,
                target_node=TargetNode}}.
+
+terminate(_, _State=#state{tx_server=TxServer}) ->
+    TabName = list_to_atom(pid_to_list(TxServer)),
+    [{_, MasterRead}]= ets:lookup(TabName, master),
+    [{_, SlaveRead}]= ets:lookup(TabName, slave),
+    [{_, RemoteRead}]= ets:lookup(TabName, remote),
+    File="prep",
+    file:write_file(File, io_lib:fwrite(" ~p ~p ~p ~p\n",
+            [MasterRead, SlaveRead, RemoteRead, RemoteRead/(MasterRead+SlaveRead+RemoteRead)]), [append]).
+
 
 %% VERIFIED
 run(home, _KeyGen, _ValueGen, State=#state{specula=Specula, tx_server=TxServer, prev_state=PrevState,
@@ -194,11 +200,12 @@ run(home, _KeyGen, _ValueGen, State=#state{specula=Specula, tx_server=TxServer, 
     MyselfId = PrevState#prev_state.myself_id,
     MyselfKey = rubis_tool:get_key(MyselfId, user),
     Myself = read_from_node(TxServer, TxId, MyselfKey, MyNode, MyNode, PartList, HashDict),
+    %lager:info("Myself is ~w", [Myself]),
     Region = Myself#user.u_region,
     
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -211,7 +218,7 @@ run(register, _KeyGen, _ValueGen, State) ->
 %% VERIFIED
 %% Register a user that is replicated??
 run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=MyNode, tx_server=TxServer, 
-            specula=Specula, part_list=PartList, hash_dict=HashDict, prev_state=PrevState, nb_regions=NBRegions,
+            specula=Specula, part_list=PartList, hash_dict=HashDict, nb_regions=NBRegions,
             access_master=AccessMaster, access_slave=AccessSlave, dc_rep_ids=DcRepList, no_rep_ids=DcNoRepList}) ->
     UserId = random:uniform(NBUsers) + NBUsers,
     FirstName = "Great" ++ [UserId],
@@ -225,7 +232,7 @@ run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=My
     ToRegisterNode = pick_node(MyNode, DcRepList, DcNoRepList, AccessMaster, AccessSlave), 
 
     %lager:info("Trying to register user ~w !!!!", [UserId]),
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     Now = rubis_tool:now_nsec(),
 
     UserKey = rubis_tool:get_key({ToRegisterNode, UserId}, user),
@@ -235,23 +242,23 @@ run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=My
             NewUser = rubis_tool:create_user(FirstName, LastName, NickName, Password, Email, Now, 0, 0, RegionId),
             WS1 = dict:store({ToRegisterNode, UserKey}, NewUser, dict:new()), 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS1, PartList, MyNode),
-            Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, general}, ?TIMEOUT),%, length(DepsList)}),
+            Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
             case Response of
                 {ok, {committed, _}} ->
-                    {ok, State#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}};
-                {ok, {specula_committed, _}} ->
-                    {ok, State#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}};
+                    {ok, State}; %{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}};
+                {ok, {specula_commit, _}} ->
+                    {ok, State}; %#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}};
                 {aborted, _} ->
-                    {error, aborted, State#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}}
+                    {error, aborted, State} %#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}}
             end;
         _ -> 
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
-            {error, aborted, State#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}}
+            {error, aborted, State} %#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}}
     end;
 
 %% VERIFIED
@@ -269,13 +276,14 @@ run(browse_categories, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, nb_c
                 end, Seq),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
     {ok, State};
 
 %% VERIFIED
+%% READ_SPECULA
 run(search_items_in_category, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories, node_id=MyNode, tx_server=TxServer, 
             hash_dict=HashDict, prev_state=PrevState, part_list=PartList, specula=Specula, dc_rep_ids=DcRepIds,
             no_rep_ids=DcNoRepIds, access_master=AccessMaster, access_slave=AccessSlave}) ->
@@ -286,7 +294,7 @@ run(search_items_in_category, _KeyGen, _ValueGen, State=#state{nb_categories=NBC
     CategoryNewItems = read_from_node(TxServer, TxId, CategoryNewItemKey, CategoryNode, MyNode, PartList, HashDict),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -311,7 +319,7 @@ run(browse_regions, _KeyGen, _ValueGen, State=#state{nb_regions=NBRegions, tx_se
                 end, Seq),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -328,13 +336,14 @@ run(browse_categories_in_region, _KeyGen, _ValueGen, State=#state{nb_categories=
                 end, Seq),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
     {ok, State};
 
 %% KINDA VERIFIED
+%% READ_SPECULA
 run(search_items_in_region, _KeyGen, _ValueGen, State=#state{node_id=MyNode, nb_regions=NBRegions, 
             tx_server=TxServer, prev_state=PrevState, hash_dict=HashDict, part_list=PartList, specula=Specula,
             access_master=AccessMaster, access_slave=AccessSlave, dc_rep_ids=DcRepIds, no_rep_ids=DcNoRepIds}) ->
@@ -348,7 +357,7 @@ run(search_items_in_region, _KeyGen, _ValueGen, State=#state{node_id=MyNode, nb_
     RegionNewItems = read_from_node(TxServer, TxId, RegionNewItemKey, RegionNode, MyNode, PartList, HashDict),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -362,6 +371,7 @@ run(search_items_in_region, _KeyGen, _ValueGen, State=#state{node_id=MyNode, nb_
     end;
 
 %% VERIFIED
+%% READ_SPECULA
 run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, 
             part_list=PartList, prev_state=PrevState, node_id=MyNode, hash_dict=HashDict, specula=Specula}) ->
     ItemId = PrevState#prev_state.item_id,
@@ -391,7 +401,7 @@ run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
                           end, BidIds),
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -399,14 +409,16 @@ run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     end;
 
 %%% VERIFIED 
+%% READ_SPECULA
 run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_server=TxServer,
-        hash_dict=HashDict, node_id=MyNode, part_list=PartList, specula=Specula}) ->
+        hash_dict=HashDict, node_id=MyNode, part_list=PartList, specula=Specula, 
+        num_replicates=NumReplicates, num_nodes=NumNodes}) ->
     UserId = PrevState#prev_state.last_user_id,
-    {UserNode, _} = UserId,
     case UserId of
         undef ->
             {prev_state, State};
         _ ->
+            {UserNode, _} = UserId,
             %lager:info("UerId is ~w", [UserId]),
             UserKey = rubis_tool:get_key(UserId, user), 
             TxId = gen_server:call(TxServer, {start_tx}),
@@ -416,29 +428,37 @@ run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_se
             case NumComments of 0 ->  
                             case Specula of
                                 true ->
-                                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                                 _ ->
                                     ok
                             end,
                             {ok, State};
                 _ ->
-                    ToFetchCommentList = lists:seq(max(NumComments - ?COMMENT_NUM+1, 1), NumComments),
-                    RandCommentId = random(ToFetchCommentList), 
-                    %RandFromUser = RandComment#comment.c_from_id,
-                    RandUser = lists:foldl(fun(CId, RU) ->
+                    %ToFetchCommentList = lists:seq(max(NumComments - ?COMMENT_NUM+1, 1), NumComments),
+                    CommentNodeList = User#user.u_comment_nodes,
+                    RandCommentId = case CommentNodeList of [] -> 0;
+                                        _ -> random:uniform(length(CommentNodeList)) %random(ToFetchCommentList), 
+                                    end,
+                    {_, _, RandUser} = lists:foldl(fun(Node, {CId, I, RU}) ->
                                 CommentKey = rubis_tool:get_key({UserId, CId}, comment),
-                                %lager:warning("Trying to read comment ~p, user node is ~w", [CommentKey, UserNode]),
-                                Comment = read_from_node(TxServer, TxId, CommentKey, UserNode, MyNode, PartList, HashDict),
-                                %CFromId = Comment#comment.c_from_id,
-                                %CFromKey = rubis_tool:get_key(CFromId, user),
-                                %_ = read_from_node(TxServer, TxId, CFromKey, MyNode, MyNode, PartList, HashDict),
-                                case CId of RandCommentId -> Comment#comment.c_from_id;
-                                            _ -> RU
-                                end end, undef, ToFetchCommentList),
-                    %lager:info("************* RAND USER IS ~w *************", [RandUser]),
+                                Comment = case replicate_node(Node, MyNode, NumReplicates, NumNodes) of true -> 
+                                            read_from_node(TxServer, TxId, CommentKey, Node, MyNode, PartList, HashDict);
+                                            false ->
+                                            %lager:warning("WTF, do not replicate?? ~w, i am ~w, user node ~w", [Node, MyNode, UserNode]),
+                                            read_from_node(TxServer, TxId, CommentKey, UserNode, MyNode, PartList, HashDict)
+                                          end,
+                                case Comment of [] -> 
+                                            lager:warning("Empty comment trying to read from ~w", [UserId]),
+                                            {CId-1, I+1, RU};
+                                    _ ->
+                                    case I of RandCommentId -> {CId-1, I+1, Comment#comment.c_from_id};
+                                                            _ -> {CId-1, I+1, RU}
+                                    end
+                                end 
+                                end, {User#user.u_num_comments, 1, UserId}, CommentNodeList),
                     case Specula of
                         true ->
-                            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                         _ ->
                             ok
                     end,
@@ -447,6 +467,7 @@ run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_se
     end;
 
 %% VERIFIED
+%% READ_SPECULA
 run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, 
             part_list=PartList, prev_state=PrevState, node_id=MyNode, hash_dict=HashDict, specula=Specula}) ->
     ItemId = PrevState#prev_state.item_id,
@@ -459,7 +480,7 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
         [] ->
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -484,7 +505,7 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
                         end, undef, ItemBids),
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -492,11 +513,15 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     end;
 
 %% VERIFIED
-run(buy_now_auth, _KeyGen, _ValueGen, State) ->
+run(buy_now_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    %lager:info("Mhuahau, buy now auth"),
+    TxId = gen_server:call(TxServer, {start_tx}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     {ok, State};
 
 %% Buy now should be placed as the user's location
 %% VERIFIED
+%% READ_SPECULA
 run(buy_now, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
               part_list=PartList, prev_state=PrevState, node_id=MyNode, hash_dict=HashDict, specula=Specula}) -> 
     ItemId = PrevState#prev_state.item_id,
@@ -514,7 +539,7 @@ run(buy_now, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     %              end, BidIds),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -530,7 +555,7 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     %% Qty always <= MaxQty!!!
     %MaxQty = Request#request.max_qty,
 
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     ItemKey = rubis_tool:get_key(ItemId, item),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     OldQuantity = Item#item.i_quantity,
@@ -538,7 +563,7 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
         0 ->
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -571,7 +596,7 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
             WS4 = dict:store({MyNode, MyselfKey}, Myself1, WS3), 
 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, MyNode),
-            Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, general}, ?TIMEOUT),%, length(DepsList)}),
+            Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
             RT3 = os:timestamp(),
             case Response of
                 {ok, {committed, _}} ->
@@ -587,10 +612,14 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     end;
 
 %% VERIFIED
-run(put_bid_auth, _KeyGen, _ValueGen, State) ->
+run(put_bid_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    TxId = gen_server:call(TxServer, {start_tx}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+    %lager:info("Mhuahau, put bid auth"),
     {ok, State};
 
 %% KINDA VERIFIED, MAYBE NEED TO FETCH MORE BIDS
+%% READ_SPECULA
 run(put_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, prev_state=PrevState, 
         hash_dict=HashDict, node_id=MyNode, specula=Specula}) ->
     %lager:warning("In put_bid, state is ~w", [PrevState]),
@@ -611,7 +640,7 @@ run(put_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
             _Seller = read_from_node(TxServer, TxId, SellerKey, ItemNode, MyNode, PartList, HashDict),
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -632,7 +661,7 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %%% Qty should be smaller than maxQty, maxBid >= minBid, bid >= minBid, maxBid >= Bid 
 
     WS = dict:new(),
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
 
     ItemKey = rubis_tool:get_key(ItemId, item),
 	Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
@@ -640,7 +669,7 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     case ItemQty of 0 ->
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -681,7 +710,7 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, MyNode),
             %DepsList = ets:lookup(dep_table, TxId),
-            Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, payment}, ?TIMEOUT),%, length(DepsList)}),
+            Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
             case Response of
                 {ok, {committed, _}} ->
                     {ok, State};
@@ -696,10 +725,14 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
             end
     end;
 
-run(put_comment_auth, _KeyGen, _ValueGen, State) ->
+run(put_comment_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    TxId = gen_server:call(TxServer, {start_tx}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+    %lager:info("Mhuahau, put comment auth"),
     {ok, State};
 
 %% VERIFIED
+%% READ_SPECULA
 run(put_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
         hash_dict=HashDict, node_id=MyNode, prev_state=PrevState, specula=Specula}) ->
     ToUserId = PrevState#prev_state.last_user_id,
@@ -719,7 +752,7 @@ run(put_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=
             _Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
                 _ ->
                     ok
             end,
@@ -733,14 +766,13 @@ run(store_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     ItemId = PrevState#prev_state.item_id,
     ToId = PrevState#prev_state.last_user_id, 
     MyselfId = PrevState#prev_state.myself_id, 
+    {MyselfNode, _} = MyselfId, 
 
     Comments = ["Very bad", "Bad", "Normal", "Good", "Very good"],
     Rating = random:uniform(5) - 3,
     Comment = lists:nth(Rating+3, Comments),
 
-    WS = dict:new(),
-
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     {ToNode, _} = ToId,
     ToIdKey = rubis_tool:get_key(ToId, user), 
     %lager:warning("Trying to read from user key ~w", [ToIdKey]),
@@ -752,18 +784,19 @@ run(store_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     CommentKey = rubis_tool:get_key({ToId, NextCommentId}, comment),
     CommentObj = rubis_tool:create_comment(MyselfId, ToId, ItemId, Rating, Now, Comment),
 
-	WS1 = dict:store({ToNode, CommentKey}, CommentObj, WS),
+	WS1 = dict:store({ToNode, CommentKey}, CommentObj, dict:new()),
+	WS2 = dict:store({MyselfNode, CommentKey}, CommentObj, WS1),
     
-    %ExistComments = ToUser#user.u_comments, 
-    %RemainList = lists:sublist(ExistComments, ?COMMENT_NUM), 
+    CommentNodes = ToUser#user.u_comment_nodes, 
+    RemainList = lists:sublist(CommentNodes, ?COMMENT_NUM), 
 
-    NewToUser = ToUser#user{u_rating=ToUser#user.u_rating+Rating, u_num_comments=NumComments+1},
+    NewToUser = ToUser#user{u_rating=ToUser#user.u_rating+Rating, u_num_comments=NumComments+1, u_comment_nodes=[MyselfNode|RemainList]},
 
-	WS2 = dict:store({ToNode, ToIdKey}, NewToUser, WS1),
+	WS3 = dict:store({ToNode, ToIdKey}, NewToUser, WS2),
 
-    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS2, PartList, MyNode),
+    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS3, PartList, MyNode),
     %DepsList = ets:lookup(dep_table, TxId),
-    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, general}, ?TIMEOUT),%, length(DepsList)}),
+    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
     case Response of
         {ok, {committed, _}} ->
             {ok, State};
@@ -791,7 +824,7 @@ run(select_category_to_sell_item, _KeyGen, _ValueGen, State=#state{nb_categories
                 end, Seq),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -838,7 +871,7 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
     CategoryNewItemsKey = rubis_tool:get_key({ItemNode, CategoryId}, categorynewitems), 
     RegionNewItemsKey = rubis_tool:get_key({ItemNode, RegionId}, regionnewitems), 
 
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     LocalItemId = read_from_node(TxServer, TxId, LocalItemIdKey, ItemNode, MyNode, PartList, HashDict),
     LocalNextItemId = LocalItemId + 1,
 
@@ -882,7 +915,7 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
     WS5 = dict:store({ItemNode, RegionNewItemsKey}, RegionNewItems, WS4),
 
     {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS5, PartList, MyNode),
-    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, general}, ?TIMEOUT),%, length(DepsList)}),
+    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
     case Response of
         {ok, {committed, _}} ->
             {ok, State};
@@ -897,9 +930,13 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
             {error, Reason, State}
     end;
 
-run(about_me_auth, _KeyGen, _ValueGen, State) ->
+run(about_me_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    TxId = gen_server:call(TxServer, {start_tx}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+    %lager:info("Mhuahau, abou me auth"),
     {ok, State};
 
+%% READ_SPECULA
 run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNode, prev_state=PrevState,
               specula=Specula, part_list=PartList, hash_dict=HashDict}) ->
     TxId = gen_server:call(TxServer, {start_tx}),
@@ -951,7 +988,7 @@ run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNod
                                     _ -> {IncI+1, IncU+1, RI, RU}
                 end
         end
-        end, {1, 1, undef, undef}, Myself#user.u_bids),
+        end, {1, 1, PrevState#prev_state.item_id, PrevState#prev_state.last_user_id}, Myself#user.u_bids),
     %% List items
     {CI2, RI2} = lists:foldl(fun(ItemIndex, {IncI, RI}) ->
         ItemKey = rubis_tool:get_key(ItemIndex, item), 
@@ -988,16 +1025,16 @@ run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNod
         CommentKey = rubis_tool:get_key({MyselfId, CI}, comment), 
         %lager:warning("Trying to read comment ~p, user node is ~w", [CommentKey, MyNode]),
         Comment = read_from_node(TxServer, TxId, CommentKey, MyNode, MyNode, PartList, HashDict),
-        FromUserId = Comment#comment.c_from_id,
-        %FromUserKey = rubis_tool:get_key(FromUserId, user), 
-        %_FromUser = read_from_node(TxServer, TxId, FromUserKey, MyNode, MyNode, PartList, HashDict),
-        case IncU of RandUserIndex ->  {IncU+1, FromUserId}; 
-                             _ ->  {IncU+1, RU}
+        case Comment of [] -> {IncU+1, RU};
+                        _ ->
+                        case IncU of RandUserIndex ->  {IncU+1, Comment#comment.c_from_id}; 
+                                             _ ->  {IncU+1, RU}
+                        end
         end
         end, {CU2, RU2}, ToFetchCommentList),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], general}, ?TIMEOUT);
+            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
         _ ->
             ok
     end,
@@ -1054,20 +1091,23 @@ empty_read_from_node(TxServer, TxId, Key, Node, MyNode, PartList, HashDict) ->
             {_, L} = lists:nth(Node, PartList),
             Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
             Part = lists:nth(Index, L),
+            ets:update_counter(list_to_atom(pid_to_list(TxServer)), master, 1),
             gen_server:call(TxServer, {read, Key, TxId, Part}, ?READ_TIMEOUT);
         _ ->
             case dict:find(Node, HashDict) of
                 error ->
-                    lager:error("WTF, Reading from cache!!! Key is ~p, Node is ~p, MyNode is ~w, HashDict is ~w", [Key, Node, MyNode, dict:to_list(HashDict)]),
+                    %lager:error("WTF, Reading from cache!!! Key is ~p, Node is ~p, MyNode is ~w, HashDict is ~w", [Key, Node, MyNode, dict:to_list(HashDict)]),
                     {_, L} = lists:nth(Node, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
                     CacheServName = dict:fetch(cache, HashDict), 
+                    ets:update_counter(list_to_atom(pid_to_list(TxServer)), remote, 1),
                     gen_server:call(CacheServName, {read, Key, TxId, Part}, ?READ_TIMEOUT);
                 {ok, N} ->
                     {_, L} = lists:nth(Node, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
+                    ets:update_counter(list_to_atom(pid_to_list(TxServer)), slave, 1),
                     gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT)
             end
     end,
@@ -1079,21 +1119,24 @@ read_from_node(TxServer, TxId, Key, Node, MyNode, PartList, HashDict) ->
             {_, L} = lists:nth(Node, PartList),
             Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
             Part = lists:nth(Index, L),
+            ets:update_counter(list_to_atom(pid_to_list(TxServer)), master, 1),
             gen_server:call(TxServer, {read, Key, TxId, Part}, ?READ_TIMEOUT);
         _ ->
             case dict:find(Node, HashDict) of
                 error ->
                     %lager:error("WTF, Reading from cache!!! Key is ~p, Node is ~p", [Key, Node]),
-                    lager:error("WTF, Reading from cache!!! Key is ~p, Node is ~p, MyNode is ~w, HashDict is ~w", [Key, Node, MyNode, dict:to_list(HashDict)]),
+                    %lager:error("WTF, Reading from cache!!! Key is ~p, Node is ~p, MyNode is ~w, HashDict is ~w", [Key, Node, MyNode, dict:to_list(HashDict)]),
                     {_, L} = lists:nth(Node, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
                     CacheServName = dict:fetch(cache, HashDict), 
+                    ets:update_counter(list_to_atom(pid_to_list(TxServer)), remote, 1),
                     gen_server:call(CacheServName, {read, Key, TxId, Part}, ?READ_TIMEOUT);
                 {ok, N} ->
                     {_, L} = lists:nth(Node, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
+                    ets:update_counter(list_to_atom(pid_to_list(TxServer)), slave, 1),
                     gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT)
             end
     end,
@@ -1159,3 +1202,10 @@ load_config([{Key, Value} | Rest], D) ->
 load_config([ Other | Rest], D) ->
     io:format("Ignoring non-tuple config value: ~p\n", [Other]),
     load_config(Rest, D).
+
+replicate_node(MyNode, MyNode, _, _) -> 
+    true;
+replicate_node(Node, MyNode, NumReplicates, NumAllNodes) -> 
+    case MyNode < Node of true -> (Node-MyNode) =< NumReplicates;
+                          false -> (Node+NumAllNodes-MyNode) =< NumReplicates
+    end.

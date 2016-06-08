@@ -15,45 +15,42 @@ from helper import *
 input_folder='./stat/2016-03-08-023721/'
 output_folder='./figures/final_micro/'
 bench_type='micro'
-dict1={'title':'Low local contention, low remote contention', 'big':True, 'no_title':True, 'x_labels':False, 'y_labels':'Transactions per second(tps)', 'y_lim':5000, 'legend_type':'read'}
+dict1={'title':'Low local contention, low remote contention', 'big':True, 'no_title':True, 'x_labels':False, 'y_labels':'Transactions per second(tps)', 'y_lim':5000, 'legend_type':'read', 'base_line':True}
 series1=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 20000, 40000, 'true', 'specula', 'new', 9])
 series12=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 40000, 60000, 'true', 'specula', 'old', 9])
 series13=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 20000, 40000, 'true', 'nospecula', 'new', 9])
 [base_serie1]=get_matching_serie([input_folder, 'micro', 1, 2, 4, 6, 7, 80, 20, 20000, 40000, 'false'])
-series1 = [[base_serie1]+s  for s in series1]
-series12 = [[base_serie1]+s  for s in series12]
-series13 = [[base_serie1]+s  for s in series13]
-plot_multi_lines(input_folder, output_folder, bench_type, series1+series12+series13, ['SP3', 'SP2', 'SP1'], dict1)
+plot_multi_lines(input_folder, output_folder, bench_type, [[base_serie1]]+series1+series12+series13, ['SP3', 'SP2', 'SP1'], dict1)
 
-dict2={'title':'Low local contention, high remote contention','big':True, 'no_title':True, 'x_labels':False, 'y_axis':False, 'y_labels':False, 'y_lim':5000, 'legend_type':'read'}
+dict2={'title':'Low local contention, high remote contention','big':True, 'no_title':True, 'x_labels':False, 'y_axis':False, 'y_labels':False, 'y_lim':5000, 'legend_type':'read', 'base_line':True}
 series2=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 20000, 2000, 'true', 'specula', 'new', 9])
 series22=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 40000, 2000, 'true', 'specula', 'old', 9])
 series23=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 40000, 2000, 'true', 'nospecula', 'old', 9])
 [base_serie2]=get_matching_serie([input_folder, 'micro', 1, 2, 4, 6, 7, 80, 20, 20000, 2000, 'false'])
-series2 = [[base_serie2]+s  for s in series2]
-series22 = [[base_serie2]+s  for s in series22]
-series23 = [[base_serie2]+s  for s in series23]
-plot_multi_lines(input_folder, output_folder, bench_type, series2+series22+series23, ['SP3', 'SP2', 'SP1'], dict2)
+#series2 = [[base_serie2]+s  for s in series2]
+#series22 = [[base_serie2]+s  for s in series22]
+#series23 = [[base_serie2]+s  for s in series23]
+plot_multi_lines(input_folder, output_folder, bench_type, [[base_serie2]]+series2+series22+series23, ['SP3', 'SP2', 'SP1'], dict2)
 
-dict3={'title':'High local contention, low remote contention','big':True, 'no_title':True, 'x_labels':False, 'y_labels':'Transactions per second(tps)', 'y_lim':5000, 'legend_type':'read'}
+dict3={'title':'High local contention, low remote contention','big':True, 'no_title':True, 'x_labels':False, 'y_labels':'Transactions per second(tps)', 'y_lim':5000, 'legend_type':'read', 'base_line':True}
 series3=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 40000, 'true', 'specula', 'new', 9])
 series32=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 60000, 'true', 'specula', 'old', 9])
 series33=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 60000, 'true', 'nospecula', 'old', 9])
 [base_serie3]=get_matching_serie([input_folder, 'micro', 1, 2, 4, 6, 7, 80, 20, 1000, 40000, 'false'])
-series3 = [[base_serie3]+s  for s in series3]
-series32 = [[base_serie3]+s  for s in series32]
-series33 = [[base_serie3]+s  for s in series33]
-plot_multi_lines(input_folder, output_folder, bench_type, series3+series32+series33, ['SP3', 'SP2', 'SP1'], dict3)
+#series3 = [[base_serie3]+s  for s in series3]
+#series32 = [[base_serie3]+s  for s in series32]
+#series33 = [[base_serie3]+s  for s in series33]
+plot_multi_lines(input_folder, output_folder, bench_type, [[base_serie3]]+series3+series32+series33, ['SP3', 'SP2', 'SP1'], dict3)
 
-dict4={'title':'High local contention, high remote contention','big':True, 'no_title':True, 'x_labels':False, 'y_labels':False, 'y_axis':False, 'y_lim':5000, 'legend_type':'read'}
+dict4={'title':'High local contention, high remote contention','big':True, 'no_title':True, 'x_labels':False, 'y_labels':False, 'y_axis':False, 'y_lim':5000, 'legend_type':'read', 'base_line':True}
 series4=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 2000, 'true', 'specula', 'new', 9])
 series42=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 2000, 'true', 'specula', 'old', 9])
 series43=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 2000, 'true', 'nospecula', 'old', 9])
 [base_serie4]=get_matching_serie([input_folder, 'micro', 0, 1, 2, 4, 6, 7, 8, 80, 20, 1000, 2000, 'false'])
-series4 = [[base_serie4]+s  for s in series4]
-series42 = [[base_serie4]+s  for s in series42]
-series43 = [[base_serie4]+s  for s in series43]
-plot_multi_lines(input_folder, output_folder, bench_type, series4+series42+series43, ['SP3', 'SP2', 'SP1'], dict4)
+#series4 = [[base_serie4]+s  for s in series4]
+#series42 = [[base_serie4]+s  for s in series42]
+#series43 = [[base_serie4]+s  for s in series43]
+plot_multi_lines(input_folder, output_folder, bench_type, [[base_serie4]]+series4+series42+series43, ['SP3', 'SP2', 'SP1'], dict4)
 
 dict5={'title':'Remote read', 'no_title':True, 'x_labels':False, 'y_labels':'Transactions per second(tps)', 'big':True, 'y_lim':5000, 'legend_type':'remote read'}
 series5=get_matching_series_delete([input_folder, 'micro', 1, 4, 6, 80, 20000, 40000, 3],  [(7, 'true'), (9, 'nospecula')], {'order':'ascend'})
