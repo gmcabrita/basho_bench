@@ -4,19 +4,19 @@
 #./script/runSpeculaBench.sh 4 70 20 true true 4 specula_tests
 seq="1"
 threads="8"
-workloads="1 2 3 4 8"
-length="1 2 4 8 16"
+workloads="1 2 3 4"
+length="0"
 warehouse="2 4"
-rep=5
-parts=28
+rep=2
+parts=4
 start_ind=1
-skip_len=100
+skip_len=0
 skipped=0
 inited=0
 AM=80
 AS=0
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 for t in $threads
 do
     for len in $length
@@ -24,8 +24,8 @@ do
     if [ $skipped -eq 1 ] 
     then
 	sudo ./script/configBeforeRestart.sh $t true true $len $rep $parts true 
-	sudo ./script/restartAndConnect.sh
-	sleep 20
+	#sudo ./script/restartAndConnect.sh
+	#sleep 20
     fi
 	for wl in $workloads
 	do

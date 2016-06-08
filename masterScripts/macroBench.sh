@@ -28,18 +28,18 @@ function runRubis {
 }
 
 ## Just to test.. 
-seq="1 2"
+seq="1"
 threads="8"
 workloads="1 2 3 4"
-length="8"
+length="0"
 warehouse="2"
 
 #rep=8
 #parts=28
 #rep=5
 #parts=20
-rep=1
-parts=12
+rep=2
+parts=4
 
 start_ind=1
 skip_len=0
@@ -84,7 +84,7 @@ do
 	done
     done
 done
-runRubis
+#runRubis
 
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 specula_read=false
@@ -109,4 +109,4 @@ do
             done
         done
 done
-runRubis
+#runRubis
