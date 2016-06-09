@@ -555,7 +555,7 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     %% Qty always <= MaxQty!!!
     %MaxQty = Request#request.max_qty,
 
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     ItemKey = rubis_tool:get_key(ItemId, item),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     OldQuantity = Item#item.i_quantity,
@@ -772,7 +772,7 @@ run(store_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     Rating = random:uniform(5) - 3,
     Comment = lists:nth(Rating+3, Comments),
 
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     {ToNode, _} = ToId,
     ToIdKey = rubis_tool:get_key(ToId, user), 
     %lager:warning("Trying to read from user key ~w", [ToIdKey]),
@@ -871,7 +871,7 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
     CategoryNewItemsKey = rubis_tool:get_key({ItemNode, CategoryId}, categorynewitems), 
     RegionNewItemsKey = rubis_tool:get_key({ItemNode, RegionId}, regionnewitems), 
 
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     LocalItemId = read_from_node(TxServer, TxId, LocalItemIdKey, ItemNode, MyNode, PartList, HashDict),
     LocalNextItemId = LocalItemId + 1,
 
