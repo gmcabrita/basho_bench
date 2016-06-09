@@ -31,13 +31,13 @@ AS=20
 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
-sudo ./masterScripts/initMachnines.sh 1  benchmark_no_specula
+#sudo ./masterScripts/initMachnines.sh 1  benchmark_no_specula
 #sudo ./script/stopNodes.sh
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-do_specula=false
-specula_reads="false"
-fast_reply=false
-sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 0 $rep $parts false 
+do_specula=true
+specula_reads="true false"
+fast_reply=true
+#sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 0 $rep $parts true 
 sudo ./script/restartAndConnect.sh
 for t in $threads
 do

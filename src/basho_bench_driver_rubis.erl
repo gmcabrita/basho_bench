@@ -661,7 +661,7 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %%% Qty should be smaller than maxQty, maxBid >= minBid, bid >= minBid, maxBid >= Bid 
 
     WS = dict:new(),
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
 
     ItemKey = rubis_tool:get_key(ItemId, item),
 	Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
