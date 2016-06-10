@@ -516,7 +516,7 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
 %% VERIFIED
 run(buy_now_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
     %lager:info("Mhuahau, buy now auth"),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     {ok, State};
 
@@ -614,7 +614,7 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
 
 %% VERIFIED
 run(put_bid_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     %lager:info("Mhuahau, put bid auth"),
     {ok, State};
@@ -727,7 +727,7 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     end;
 
 run(put_comment_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     %lager:info("Mhuahau, put comment auth"),
     {ok, State};
@@ -932,7 +932,7 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
     end;
 
 run(about_me_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     %lager:info("Mhuahau, abou me auth"),
     {ok, State};
