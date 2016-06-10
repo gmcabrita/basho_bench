@@ -196,7 +196,7 @@ terminate(_, _State=#state{tx_server=TxServer}) ->
 %% VERIFIED
 run(home, _KeyGen, _ValueGen, State=#state{specula=Specula, tx_server=TxServer, prev_state=PrevState,
             part_list=PartList, hash_dict=HashDict, node_id=MyNode}) ->
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     MyselfId = PrevState#prev_state.myself_id,
     MyselfKey = rubis_tool:get_key(MyselfId, user),
     Myself = read_from_node(TxServer, TxId, MyselfKey, MyNode, MyNode, PartList, HashDict),
