@@ -290,7 +290,7 @@ run(search_items_in_category, _KeyGen, _ValueGen, State=#state{nb_categories=NBC
     CategoryNode = pick_node(MyNode, DcRepIds, DcNoRepIds, AccessMaster, AccessSlave),
     CategoryId = random:uniform(NBCategories),
     CategoryNewItemKey = rubis_tool:get_key({CategoryNode, CategoryId}, categorynewitems), 
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     CategoryNewItems = read_from_node(TxServer, TxId, CategoryNewItemKey, CategoryNode, MyNode, PartList, HashDict),
     case Specula of
         true ->
@@ -353,7 +353,7 @@ run(search_items_in_region, _KeyGen, _ValueGen, State=#state{node_id=MyNode, nb_
     %lager:info("Before reading region new items in search"),
     RegionNewItemKey = rubis_tool:get_key({RegionNode, RegionId}, regionnewitems), 
     %lager:info("After reading region new items in search"),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     RegionNewItems = read_from_node(TxServer, TxId, RegionNewItemKey, RegionNode, MyNode, PartList, HashDict),
     case Specula of
         true ->
@@ -382,7 +382,7 @@ run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
             %lager:info("Item Id is ~w", [ItemId]),
             ItemKey = rubis_tool:get_key(ItemId, item), 
             {ItemNode, _} = ItemId,
-            TxId = gen_server:call(TxServer, {start_tx, true, true}),
+            TxId = gen_server:call(TxServer, {start_tx}),
             Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
             {ItemNode, _} = Item#item.i_seller,
             SellerKey = rubis_tool:get_key(Item#item.i_seller, user),
@@ -421,7 +421,7 @@ run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_se
             {UserNode, _} = UserId,
             %lager:info("UerId is ~w", [UserId]),
             UserKey = rubis_tool:get_key(UserId, user), 
-            TxId = gen_server:call(TxServer, {start_tx, true, true}),
+            TxId = gen_server:call(TxServer, {start_tx}),
             %lager:warning("Trying to read from user key ~p", [UserKey]),
             User = read_from_node(TxServer, TxId, UserKey, UserNode, MyNode, PartList, HashDict),
             NumComments = User#user.u_num_comments,
@@ -473,7 +473,7 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     ItemId = PrevState#prev_state.item_id,
     {ItemNode, _} = ItemId,
     ItemKey = rubis_tool:get_key(ItemId, item), 
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     ItemBids = Item#item.i_bid_ids,
     case ItemBids of
@@ -527,7 +527,7 @@ run(buy_now, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     ItemId = PrevState#prev_state.item_id,
     ItemKey = rubis_tool:get_key(ItemId, item),
     {ItemNode, _} = ItemId,
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     SellerKey = rubis_tool:get_key(Item#item.i_seller, user),
     %lager:warning("Trying to read from user key ~w", [SellerKey]),
@@ -555,7 +555,7 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     %% Qty always <= MaxQty!!!
     %MaxQty = Request#request.max_qty,
 
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     ItemKey = rubis_tool:get_key(ItemId, item),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     OldQuantity = Item#item.i_quantity,
@@ -627,7 +627,7 @@ run(put_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
     case ItemId of
         undef -> {prev_state, State};
         _ ->
-            TxId = gen_server:call(TxServer, {start_tx, true, true}),
+            TxId = gen_server:call(TxServer, {start_tx}),
             {ItemNode, _} = ItemId,
             ItemKey = rubis_tool:get_key(ItemId, item),
             %MyselfKey = rubis_tool:get_key(MyselfId, user),
@@ -746,7 +746,7 @@ run(put_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=
             {ToUserNode, _} = ToUserId,
             ItemKey = rubis_tool:get_key(ItemId, item),
             %lager:warning("Trying to read from user key ~w", [FromUserKey]),
-            TxId = gen_server:call(TxServer, {start_tx, true, true}),
+            TxId = gen_server:call(TxServer, {start_tx}),
             %lager:warning("Trying to read from user key ~p", [ToUserKey]),
             _ToUser = read_from_node(TxServer, TxId, ToUserKey, ToUserNode, MyNode, PartList, HashDict),
             _Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
