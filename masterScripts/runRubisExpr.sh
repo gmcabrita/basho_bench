@@ -33,7 +33,7 @@ AS=20
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_choose_specula 
 #sudo ./masterScripts/initMachnines.sh 1  benchmark_no_specula
 #sudo ./script/stopNodes.sh
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 do_specula=true
 specula_reads="true"
 fast_reply=true
