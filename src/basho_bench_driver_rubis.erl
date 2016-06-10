@@ -353,7 +353,7 @@ run(search_items_in_region, _KeyGen, _ValueGen, State=#state{node_id=MyNode, nb_
     %lager:info("Before reading region new items in search"),
     RegionNewItemKey = rubis_tool:get_key({RegionNode, RegionId}, regionnewitems), 
     %lager:info("After reading region new items in search"),
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     RegionNewItems = read_from_node(TxServer, TxId, RegionNewItemKey, RegionNode, MyNode, PartList, HashDict),
     case Specula of
         true ->
@@ -421,7 +421,7 @@ run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_se
             {UserNode, _} = UserId,
             %lager:info("UerId is ~w", [UserId]),
             UserKey = rubis_tool:get_key(UserId, user), 
-            TxId = gen_server:call(TxServer, {start_tx}),
+            TxId = gen_server:call(TxServer, {start_tx, true, true}),
             %lager:warning("Trying to read from user key ~p", [UserKey]),
             User = read_from_node(TxServer, TxId, UserKey, UserNode, MyNode, PartList, HashDict),
             NumComments = User#user.u_num_comments,
