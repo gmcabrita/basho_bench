@@ -629,7 +629,7 @@ run(put_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
     case ItemId of
         undef -> {prev_state, State};
         _ ->
-            TxId = gen_server:call(TxServer, {start_tx}),
+            TxId = gen_server:call(TxServer, {start_tx, true, true}),
             {ItemNode, _} = ItemId,
             ItemKey = rubis_tool:get_key(ItemId, item),
             %MyselfKey = rubis_tool:get_key(MyselfId, user),
