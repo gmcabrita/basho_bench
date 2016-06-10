@@ -35,7 +35,7 @@ AS=20
 #sudo ./script/stopNodes.sh
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 do_specula=true
-specula_reads="true false"
+specula_reads="true"
 fast_reply=true
 sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 8 $rep $parts true 
 #sudo ./script/restartAndConnect.sh
