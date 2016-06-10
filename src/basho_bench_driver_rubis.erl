@@ -527,7 +527,7 @@ run(buy_now, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     ItemId = PrevState#prev_state.item_id,
     ItemKey = rubis_tool:get_key(ItemId, item),
     {ItemNode, _} = ItemId,
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     SellerKey = rubis_tool:get_key(Item#item.i_seller, user),
     %lager:warning("Trying to read from user key ~w", [SellerKey]),
@@ -627,7 +627,7 @@ run(put_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
     case ItemId of
         undef -> {prev_state, State};
         _ ->
-            TxId = gen_server:call(TxServer, {start_tx, true, true}),
+            TxId = gen_server:call(TxServer, {start_tx}),
             {ItemNode, _} = ItemId,
             ItemKey = rubis_tool:get_key(ItemId, item),
             %MyselfKey = rubis_tool:get_key(MyselfId, user),
@@ -746,7 +746,7 @@ run(put_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=
             {ToUserNode, _} = ToUserId,
             ItemKey = rubis_tool:get_key(ItemId, item),
             %lager:warning("Trying to read from user key ~w", [FromUserKey]),
-            TxId = gen_server:call(TxServer, {start_tx, true, true}),
+            TxId = gen_server:call(TxServer, {start_tx}),
             %lager:warning("Trying to read from user key ~p", [ToUserKey]),
             _ToUser = read_from_node(TxServer, TxId, ToUserKey, ToUserNode, MyNode, PartList, HashDict),
             _Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
