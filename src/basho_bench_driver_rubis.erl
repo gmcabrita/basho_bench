@@ -270,7 +270,7 @@ run(browse, _KeyGen, _ValueGen, State) ->
 run(browse_categories, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, nb_categories=NBCategories, 
             hash_dict=HashDict, part_list=PartList, node_id=MyNode, specula=Specula}) ->
     Seq = lists:seq(1, NBCategories),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     lists:foreach(fun(N) ->
                 CategoryKey = rubis_tool:get_key(N, category),
                 _ = read_from_node(TxServer, TxId, CategoryKey, MyNode, MyNode, PartList, HashDict)
@@ -313,7 +313,7 @@ run(search_items_in_category, _KeyGen, _ValueGen, State=#state{nb_categories=NBC
 run(browse_regions, _KeyGen, _ValueGen, State=#state{nb_regions=NBRegions, tx_server=TxServer, 
             hash_dict=HashDict, node_id=MyNode, part_list=PartList, specula=Specula}) ->
     Seq = lists:seq(1, NBRegions),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     lists:foreach(fun(N) ->
                 RegionKey = rubis_tool:get_key(N, region),
                 _ = read_from_node(TxServer, TxId, RegionKey, MyNode, MyNode, PartList, HashDict)
@@ -330,7 +330,7 @@ run(browse_regions, _KeyGen, _ValueGen, State=#state{nb_regions=NBRegions, tx_se
 run(browse_categories_in_region, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories, hash_dict=HashDict, 
             node_id=MyNode, part_list=PartList, tx_server=TxServer, specula=Specula}) ->
     Seq = lists:seq(1, NBCategories),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     lists:foreach(fun(N) ->
                 CategoryKey = rubis_tool:get_key(N, category),
                 _ = read_from_node(TxServer, TxId, CategoryKey, MyNode, MyNode, PartList, HashDict)
@@ -818,7 +818,7 @@ run(sell, _KeyGen, _ValueGen, State) ->
 run(select_category_to_sell_item, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories, tx_server=TxServer, 
             hash_dict=HashDict, part_list=PartList, node_id=MyNode, specula=Specula}) ->
     Seq = lists:seq(1, NBCategories),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     lists:foreach(fun(N) ->
                 CategoryKey = rubis_tool:get_key(N, category),
                 _ = read_from_node(TxServer, TxId, CategoryKey, MyNode, MyNode, PartList, HashDict)
