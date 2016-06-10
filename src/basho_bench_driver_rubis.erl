@@ -232,7 +232,7 @@ run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=My
     ToRegisterNode = pick_node(MyNode, DcRepList, DcNoRepList, AccessMaster, AccessSlave), 
 
     %lager:info("Trying to register user ~w !!!!", [UserId]),
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     Now = rubis_tool:now_nsec(),
 
     UserKey = rubis_tool:get_key({ToRegisterNode, UserId}, user),
@@ -772,7 +772,7 @@ run(store_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     Rating = random:uniform(5) - 3,
     Comment = lists:nth(Rating+3, Comments),
 
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     {ToNode, _} = ToId,
     ToIdKey = rubis_tool:get_key(ToId, user), 
     %lager:warning("Trying to read from user key ~w", [ToIdKey]),
