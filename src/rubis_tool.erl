@@ -13,7 +13,7 @@ get_next_state(PreviousStates, Dict, CurrentState) ->
     %lager:info("T is ~p", [T]),
     S = find_next_state(T, Num, 0.0, 0, CurrentState),
     End = length(T),
-    Previous = End -1,
+    Previous = End,
     case S of
         Previous -> %% Go back to previous state
             case PreviousStates of [] ->  {[], 1};
