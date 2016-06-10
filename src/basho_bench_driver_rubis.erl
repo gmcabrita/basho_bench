@@ -269,7 +269,7 @@ run(browse, _KeyGen, _ValueGen, State) ->
 run(browse_categories, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, nb_categories=NBCategories, 
             hash_dict=HashDict, part_list=PartList, node_id=MyNode, specula=Specula}) ->
     Seq = lists:seq(1, NBCategories),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     lists:foreach(fun(N) ->
                 CategoryKey = rubis_tool:get_key(N, category),
                 _ = read_from_node(TxServer, TxId, CategoryKey, MyNode, MyNode, PartList, HashDict)
@@ -312,7 +312,7 @@ run(search_items_in_category, _KeyGen, _ValueGen, State=#state{nb_categories=NBC
 run(browse_regions, _KeyGen, _ValueGen, State=#state{nb_regions=NBRegions, tx_server=TxServer, 
             hash_dict=HashDict, node_id=MyNode, part_list=PartList, specula=Specula}) ->
     Seq = lists:seq(1, NBRegions),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     lists:foreach(fun(N) ->
                 RegionKey = rubis_tool:get_key(N, region),
                 _ = read_from_node(TxServer, TxId, RegionKey, MyNode, MyNode, PartList, HashDict)
@@ -329,7 +329,7 @@ run(browse_regions, _KeyGen, _ValueGen, State=#state{nb_regions=NBRegions, tx_se
 run(browse_categories_in_region, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories, hash_dict=HashDict, 
             node_id=MyNode, part_list=PartList, tx_server=TxServer, specula=Specula}) ->
     Seq = lists:seq(1, NBCategories),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     lists:foreach(fun(N) ->
                 CategoryKey = rubis_tool:get_key(N, category),
                 _ = read_from_node(TxServer, TxId, CategoryKey, MyNode, MyNode, PartList, HashDict)
@@ -515,7 +515,7 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
 %% VERIFIED
 run(buy_now_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
     %lager:info("Mhuahau, buy now auth"),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     {ok, State};
 
@@ -613,7 +613,7 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
 
 %% VERIFIED
 run(put_bid_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     %lager:info("Mhuahau, put bid auth"),
     {ok, State};
@@ -726,7 +726,7 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     end;
 
 run(put_comment_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     %lager:info("Mhuahau, put comment auth"),
     {ok, State};
@@ -817,7 +817,7 @@ run(sell, _KeyGen, _ValueGen, State) ->
 run(select_category_to_sell_item, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories, tx_server=TxServer, 
             hash_dict=HashDict, part_list=PartList, node_id=MyNode, specula=Specula}) ->
     Seq = lists:seq(1, NBCategories),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     lists:foreach(fun(N) ->
                 CategoryKey = rubis_tool:get_key(N, category),
                 _ = read_from_node(TxServer, TxId, CategoryKey, MyNode, MyNode, PartList, HashDict)
@@ -931,7 +931,7 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
     end;
 
 run(about_me_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     %lager:info("Mhuahau, abou me auth"),
     {ok, State};
