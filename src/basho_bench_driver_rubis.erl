@@ -292,7 +292,7 @@ run(search_items_in_category, _KeyGen, _ValueGen, State=#state{nb_categories=NBC
     CategoryNode = pick_node(MyNode, DcRepIds, DcNoRepIds, AccessMaster, AccessSlave),
     CategoryId = random:uniform(NBCategories),
     CategoryNewItemKey = rubis_tool:get_key({CategoryNode, CategoryId}, categorynewitems), 
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     CategoryNewItems = read_from_node(TxServer, TxId, CategoryNewItemKey, CategoryNode, MyNode, PartList, HashDict),
     case Specula of
         true ->
@@ -355,7 +355,7 @@ run(search_items_in_region, _KeyGen, _ValueGen, State=#state{node_id=MyNode, nb_
     %lager:info("Before reading region new items in search"),
     RegionNewItemKey = rubis_tool:get_key({RegionNode, RegionId}, regionnewitems), 
     %lager:info("After reading region new items in search"),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     RegionNewItems = read_from_node(TxServer, TxId, RegionNewItemKey, RegionNode, MyNode, PartList, HashDict),
     case Specula of
         true ->
@@ -384,7 +384,7 @@ run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
             %lager:info("Item Id is ~w", [ItemId]),
             ItemKey = rubis_tool:get_key(ItemId, item), 
             {ItemNode, _} = ItemId,
-            TxId = gen_server:call(TxServer, {start_tx, true, true}),
+            TxId = gen_server:call(TxServer, {start_tx}),
             Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
             {ItemNode, _} = Item#item.i_seller,
             SellerKey = rubis_tool:get_key(Item#item.i_seller, user),
