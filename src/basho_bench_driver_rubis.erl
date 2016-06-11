@@ -475,7 +475,7 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     ItemId = PrevState#prev_state.item_id,
     {ItemNode, _} = ItemId,
     ItemKey = rubis_tool:get_key(ItemId, item), 
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     ItemBids = Item#item.i_bid_ids,
     case ItemBids of
@@ -663,7 +663,7 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %%% Qty should be smaller than maxQty, maxBid >= minBid, bid >= minBid, maxBid >= Bid 
 
     WS = dict:new(),
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
 
     ItemKey = rubis_tool:get_key(ItemId, item),
 	Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
@@ -873,7 +873,7 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
     CategoryNewItemsKey = rubis_tool:get_key({ItemNode, CategoryId}, categorynewitems), 
     RegionNewItemsKey = rubis_tool:get_key({ItemNode, RegionId}, regionnewitems), 
 
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     LocalItemId = read_from_node(TxServer, TxId, LocalItemIdKey, ItemNode, MyNode, PartList, HashDict),
     LocalNextItemId = LocalItemId + 1,
 
