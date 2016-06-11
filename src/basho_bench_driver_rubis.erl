@@ -748,7 +748,7 @@ run(put_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=
             {ToUserNode, _} = ToUserId,
             ItemKey = rubis_tool:get_key(ItemId, item),
             %lager:warning("Trying to read from user key ~w", [FromUserKey]),
-            TxId = gen_server:call(TxServer, {start_tx, true, true}),
+            TxId = gen_server:call(TxServer, {start_tx}),
             %lager:warning("Trying to read from user key ~p", [ToUserKey]),
             _ToUser = read_from_node(TxServer, TxId, ToUserKey, ToUserNode, MyNode, PartList, HashDict),
             _Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
@@ -941,7 +941,7 @@ run(about_me_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
 %% READ_SPECULA
 run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNode, prev_state=PrevState,
               specula=Specula, part_list=PartList, hash_dict=HashDict}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     %% Display user info
     MyselfId = PrevState#prev_state.myself_id, 
     MyselfKey = rubis_tool:get_key(MyselfId, user),
