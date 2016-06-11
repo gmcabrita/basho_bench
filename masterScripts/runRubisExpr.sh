@@ -37,7 +37,7 @@ AS=20
 do_specula=true
 specula_reads="true"
 fast_reply=true
-sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 8 $rep $parts true 
+#sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 8 $rep $parts true 
 #sudo ./script/restartAndConnect.sh
 for t in $threads
 do
