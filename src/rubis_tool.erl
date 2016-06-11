@@ -64,9 +64,9 @@ load_transition() ->
                 0 -> dict:store(K, {not_back, V}, D);
                 _ -> dict:store(K, {back, V}, D)
             end end, dict:new(), ND0),
-    %lists:foreach(fun(N) ->
-    %    lager:info("~w", [dict:fetch(N, ND)])
-    %            end,  lists:seq(1, NumCols)),
+    lists:foreach(fun(N) ->
+        lager:info("~w", [dict:fetch(N, ND)])
+                end,  lists:seq(1, 27)),
     %lager:info("Info ~p", [dict:to_list(ND)]),
     ND.
 
