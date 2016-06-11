@@ -557,7 +557,7 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     %% Qty always <= MaxQty!!!
     %MaxQty = Request#request.max_qty,
 
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     ItemKey = rubis_tool:get_key(ItemId, item),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     OldQuantity = Item#item.i_quantity,
