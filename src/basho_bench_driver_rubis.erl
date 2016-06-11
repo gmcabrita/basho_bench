@@ -197,7 +197,7 @@ terminate(_, _State=#state{tx_server=TxServer}) ->
 run(home, _KeyGen, _ValueGen, State=#state{specula=Specula, tx_server=TxServer, prev_state=PrevState,
             part_list=PartList, hash_dict=HashDict, node_id=MyNode, nb_users=NBUsers}) ->
     random:seed(now()),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     PrevState1 = PrevState#prev_state{myself_id= {MyNode, random:uniform(NBUsers)}},
     MyselfId = PrevState#prev_state.myself_id,
     MyselfKey = rubis_tool:get_key(MyselfId, user),
@@ -475,7 +475,7 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     ItemId = PrevState#prev_state.item_id,
     {ItemNode, _} = ItemId,
     ItemKey = rubis_tool:get_key(ItemId, item), 
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     ItemBids = Item#item.i_bid_ids,
     case ItemBids of
