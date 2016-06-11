@@ -59,44 +59,12 @@ def add_throughput(nodes, dict, total_dict, folder):
         stat_line = stat_lines[index]
         stat_data = stat_line.split(',')
         if len(stat_data) == 20 or len(stat_data) == 7:
-            read_abort = int(stat_data[0])
-            read_invalid = int(stat_data[1])
-            cert_abort = int(stat_data[2])
-            cascade_abort = int(stat_data[3])
             if int(stat_data[4]) == 0:
                 # This is not specula!
                 real_committed = committed
-                cert_abort = notified_abort
             else:
                 real_committed = int(stat_data[4])
-        #elif len(stat_data) == 26:
-        #    read_abort = int(stat_data[1])
-        #    read_invalid = 0 
-        #    cert_abort = int(stat_data[3])
-        #    cascade_abort = int(stat_data[5])
-        #    if int(stat_data[7]) == 0:
-        #        # This is specula!
-        #        real_committed = committed
-        #        cert_abort = aborted
-        #    else:
-        #        real_committed = int(stat_data[7])
-        else:
-            print("***WTF, data dimenstion is wrong!!!***")
-            print("Stat data is "+str(stat_data))
-        index += 1 
-        
-        #print str(committed)+' '+str(aborted) +' '+str(read_abort)+' '+str(specula_abort)+' '+str(cascade_abort) 
-        if node in dict:
-            dict[node].append([real_committed, cert_abort, read_abort, read_invalid, cascade_abort, notified_abort])
-        all_committed += real_committed
-        all_cert_abort += cert_abort
-        all_r_abort += read_abort
-        all_r_invalid += read_invalid
-        all_c_abort += cascade_abort
-        all_notified_abort += notified_abort
-        all_abort += cert_abort + read_abort + read_invalid + cascade_abort
-    print('All committed is'+str(real_committed))
-    total_dict.append([all_committed/duration, all_cert_abort/duration, all_r_abort/duration, all_r_invalid/duration, all_c_abort/duration, all_abort/duration, all_notified_abort/duration, (all_abort-all_notified_abort)/duration])
+    print('Avg committed is'+str(real_committed/duration))
     
 
 def update_counter(folder, length, key):
