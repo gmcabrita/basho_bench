@@ -195,8 +195,10 @@ terminate(_, _State=#state{tx_server=TxServer}) ->
 
 %% VERIFIED
 run(home, _KeyGen, _ValueGen, State=#state{specula=Specula, tx_server=TxServer, prev_state=PrevState,
-            part_list=PartList, hash_dict=HashDict, node_id=MyNode}) ->
+            part_list=PartList, hash_dict=HashDict, node_id=MyNode, nb_users=NBUsers}) ->
+    random:seed(now()),
     TxId = gen_server:call(TxServer, {start_tx}),
+    PrevState1 = PrevState#prev_state{myself_id= {MyNode, random:uniform(NBUsers)}},
     MyselfId = PrevState#prev_state.myself_id,
     MyselfKey = rubis_tool:get_key(MyselfId, user),
     Myself = read_from_node(TxServer, TxId, MyselfKey, MyNode, MyNode, PartList, HashDict),
@@ -209,7 +211,7 @@ run(home, _KeyGen, _ValueGen, State=#state{specula=Specula, tx_server=TxServer, 
         _ ->
             ok
     end,
-    {ok, State#state{prev_state=PrevState#prev_state{region={MyNode, Region}}}};
+    {ok, State#state{prev_state=PrevState1#prev_state{region={MyNode, Region}}}};
 
 %% VERIFIED
 run(register, _KeyGen, _ValueGen, State) ->

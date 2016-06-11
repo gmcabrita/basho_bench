@@ -153,7 +153,7 @@ new(Id) ->
     {ok, C_C_LAST} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key1, Part1]),
     {ok, C_C_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key2, Part2]),
     {ok, C_OL_I_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key3, Part3]),
-	C_C_LAST=10, C_C_ID=10, C_OL_I_ID=10,
+	%C_C_LAST=10, C_C_ID=10, C_OL_I_ID=10,
     ItemRanges = init_item_ranges(NumNodes, ?NB_MAX_ITEM),
     lager:info("Cclast ~w, ccid ~w, coliid ~w", [C_C_LAST, C_C_ID, C_OL_I_ID]),
     {ok, #state{time={1,1,1}, worker_id=Id,
