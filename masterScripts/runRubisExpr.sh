@@ -7,6 +7,7 @@ function runRubis {
         ./script/runRubisBench.sh $t $AM $AS $do_specula $specula_read $len specula_tests $start_ind
         #echo $t $MN $SN $CN $MR $SR $CR $do_specula $len random $rep $comp specula_tests $start_ind
         skipped=1
+	exit
         else
         echo "Skipped..."$start_ind
         fi
