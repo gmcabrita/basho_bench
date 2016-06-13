@@ -60,8 +60,8 @@ echo micro specula $do_specula >> config
 echo micro deter $deter >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*800+10000))
-ToSleep=$(((8000 + 500*NumNodes) / ${1}))
+MasterToSleep=$((NumNodes*500+10000))
+ToSleep=$(((8000 + 800*NumNodes) / ${1}))
 echo micro master_to_sleep $MasterToSleep >> config
 echo micro to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
@@ -73,13 +73,12 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #sleep 10
 
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/micro.config"
-#wait
 
 ./script/gatherThroughput.sh $Folder &
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
 ./script/copyFromAll.sh txn_latencies.csv ./basho_bench/tests/current/ $Folder & 
 wait
-./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
+#./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
 timeout 60 ./script/fetchAndParseStat.sh $Folder
 if [ $? -eq 124 ]; then
@@ -93,4 +92,3 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency
 ./script/copyFromAll.sh latency_final ./antidote/rel/antidote/ $Folder 
 ./script/copyFromAll.sh latency_percv ./antidote/rel/antidote/ $Folder 
 
-#sudo pkill -P $$

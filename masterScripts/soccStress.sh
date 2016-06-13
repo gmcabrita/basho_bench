@@ -5,6 +5,7 @@ function runNTimes {
     for i in $seq
     do
         if [ $start_ind -gt $skip_len ]; then
+        sudo ./script/preciseTime.sh
         ./script/runMicroBench.sh $t $MN $SN $CN $MR $SR $CR $do_specula $len $specula_read $rep $prob_access $deter specula_tests $start_ind $clock 
         skipped=1
         else
@@ -23,7 +24,7 @@ contentions="1 4"
 length="2 4 8"
 start_ind=1
 skipped=1
-skip_len=0
+skip_len=6
 rep=2
 parts=4
 #rep=5
@@ -45,7 +46,7 @@ MN=80
 SN=20
 CN=0
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 clock="new"
@@ -75,10 +76,6 @@ do
         elif [ $cont == 2 ]; then MR=$MSML CR=$CBIG
         elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
         elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
-        fi
-        if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
-        then
-        sudo ./script/preciseTime.sh
         fi
         runNTimes
     done
@@ -113,11 +110,6 @@ do
     elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
     elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
     fi
-    if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
-    then
-    sudo ./script/preciseTime.sh
-    fi
-    sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
     runNTimes
 done
 done
