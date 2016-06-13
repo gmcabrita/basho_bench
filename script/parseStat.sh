@@ -9,13 +9,12 @@ for i in `seq 1 100`
 do
 Results=`sudo ./localScripts/getStat.sh "$1" $FetchName`
 echo "Result is " "$Results"
-Results=`echo "$Results" | tr '\n' ' ' `
-Results=`cut -d "[" -f 2 <<< "$Results"`
-Results=`cut -d "]" -f 1 <<< "$Results"`
-if [[ $Results == *"Eshell"* ]]
+if [[ $Results == *"badrpc"* ]]
 then
     echo "Wrong format, try again!"
 else
+    Results=`cut -d "[" -f 2 <<< "$Results"`
+    Results=`cut -d "]" -f 1 <<< "$Results"`
     break
 fi
 done

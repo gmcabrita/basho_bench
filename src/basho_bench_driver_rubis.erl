@@ -197,7 +197,7 @@ terminate(_, _State=#state{tx_server=TxServer}) ->
 run(home, _KeyGen, _ValueGen, State=#state{specula=Specula, tx_server=TxServer, prev_state=PrevState,
             part_list=PartList, hash_dict=HashDict, node_id=MyNode, nb_users=NBUsers}) ->
     random:seed(now()),
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     PrevState1 = PrevState#prev_state{myself_id= {MyNode, random:uniform(NBUsers)}},
     MyselfId = PrevState#prev_state.myself_id,
     MyselfKey = rubis_tool:get_key(MyselfId, user),
@@ -234,7 +234,7 @@ run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=My
     ToRegisterNode = pick_node(MyNode, DcRepList, DcNoRepList, AccessMaster, AccessSlave), 
 
     %lager:info("Trying to register user ~w !!!!", [UserId]),
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     Now = rubis_tool:now_nsec(),
 
     UserKey = rubis_tool:get_key({ToRegisterNode, UserId}, user),
@@ -774,7 +774,7 @@ run(store_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     Rating = random:uniform(5) - 3,
     Comment = lists:nth(Rating+3, Comments),
 
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     {ToNode, _} = ToId,
     ToIdKey = rubis_tool:get_key(ToId, user), 
     %lager:warning("Trying to read from user key ~w", [ToIdKey]),
@@ -873,7 +873,7 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
     CategoryNewItemsKey = rubis_tool:get_key({ItemNode, CategoryId}, categorynewitems), 
     RegionNewItemsKey = rubis_tool:get_key({ItemNode, RegionId}, regionnewitems), 
 
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     LocalItemId = read_from_node(TxServer, TxId, LocalItemIdKey, ItemNode, MyNode, PartList, HashDict),
     LocalNextItemId = LocalItemId + 1,
 

@@ -15,4 +15,3 @@ sudo ./script/getCDF.sh $Ip
 cd ../antidote/rel/antidote
 for l in `ls *final-latency`; do echo $l >> latency_final; cat $l >> latency_final;  done
 for l in `ls *percv-latency`; do echo $l >> latency_percv; cat $l >> latency_percv;  done
-rm ./*latency*
