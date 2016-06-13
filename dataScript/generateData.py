@@ -7,6 +7,16 @@ from operator import add
 from os import rename, listdir
 from time import gmtime, strftime
 
+def parse_line(line):
+    if line[0]=='[':
+        arr=line.split('[')[1]
+        arr=arr.split(',')
+        return int(arr[-1][:-2])/1000
+    elif line[0]=='a':
+        return ''
+    else:
+        return int(line[:-1])/1000
+
 def get_nodes(str_list):
     nodes = []
     for file in str_list:
@@ -19,6 +29,8 @@ def init_dict(nodes):
     dict['throughput'] = init_node_data(nodes)
     dict['total_throughput'] = [] 
     dict['total_duration'] = [] 
+    dict['-latency_percv'] = []
+    dict['-latency_final'] = []
     dict['duration'] = init_node_data(nodes)
     dict['new-order'] = [] #init_node_data(nodes)
     dict['payment'] = [] #init_node_data(nodes)
@@ -173,15 +185,20 @@ def add_latency(nodes, tag, dict, folder):
             dict.append(total_latency)
             return
         data = np.loadtxt(lat_file, delimiter=',', skiprows=1, usecols=range(3,10))
-        #print data 
-        #(lines, num_elem) = data.shape
-        #lat_sum = data.sum(axis=0)
-        #lat_avg = [x/lines for x in lat_sum]
         latency_avg = list(np.average(data, axis=0))
         total_latency = list(map(add, total_latency, latency_avg))
 
     total_latency = [x/len(nodes) for x in total_latency]
     dict.append(total_latency)
+
+def add_real_latency(tag, list, folder):
+    lat_files = glob.glob(folder+'/*'+tag) 
+    for file in lat_files:
+        with open(file) as f:
+            for line in f:
+                lat= parse_line(line)
+                if lat != '':
+                    list.append(lat)
 
 def write_to_file(file_name, dict, keys, title):
     file = open(file_name, 'w')
@@ -189,12 +206,9 @@ def write_to_file(file_name, dict, keys, title):
     for key in keys:
         if key in dict:
             data_list = dict[key]
-            #if key == 'total_duration' :
-            #    print(dict)
-            #    print(data_list)
             data_array = np.array(data_list).astype(np.float)
-            #print("Key is"+str(key))
-            #print("Data array is"+str(data_array))
+            print(data_list)
+            print(data_array)
             if data_array.ndim == 2:
                 data_avg = list(np.average(data_array, axis=0))
             else:
@@ -243,6 +257,8 @@ for f in sub_folders:
         add_latency(nodes, 'new-order', dict[config]['new-order'], input_folder)
         add_latency(nodes, 'payment', dict[config]['payment'], input_folder)
         add_latency(nodes, 'order-status', dict[config]['order-status'], input_folder)
+        add_real_latency('-latency_percv', dict[config]['-latency_percv'], input_folder)
+        add_real_latency('-latency_final', dict[config]['-latency_final'], input_folder)
         config_folder = os.path.join(output_fold, config)
         update_counter(config_folder, len(dict[config]['total_throughput']), f)
 
@@ -253,6 +269,7 @@ for config in dict:
     total_throughput = os.path.join(config_folder, 'total_throughput')
     duration = os.path.join(config_folder, 'duration')
     total_duration = os.path.join(config_folder, 'total_duration')
+    real_latency = os.path.join(config_folder, 'real_latency')
 
     new_order_latency = os.path.join(config_folder, 'new-order-latency')
     payment_latency = os.path.join(config_folder, 'payment-latency')
@@ -262,6 +279,11 @@ for config in dict:
     write_to_file(order_status_latency, entry, ['order-status'], 'N/A min mean median 95th 99th 99_9th max')
 
     write_to_file(throughput, entry['throughput'], nodes, 'ip committed cert_aborted read_aborted read_invalid cascade_abort notified_abort') 
+
+    entry['-latency_percv'] = [sum(entry['-latency_percv'])/len(entry['-latency_percv'])]
+    entry['-latency_final'] = [sum(entry['-latency_final'])/len(entry['-latency_final'])]
+
+    write_to_file(real_latency, entry, ['-latency_percv', '-latency_final'], 'percvlat finallat') 
     write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted read_invalid cascade_abort all_abort notified_abort specula_abort') 
     write_std(total_throughput, entry['total_throughput'])
     write_to_file(duration, entry['duration'], nodes, 'ip no_read no_local_a no_remote_a no_local_c no_remote_c no_specula_c p_read p_local_a p_remote_a p_local_c p_remote_c p_specula_c nc_local nc_remote na_local na_remote pc_local pc_remote pa_local pa_remote gc_local gc_remote ga_local ga_remote')

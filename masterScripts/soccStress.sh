@@ -19,7 +19,7 @@ fast_reply=true
 seq="1"
 threads="8 16 32 64"
 t=8
-contentions="1 2 3 4"
+contentions="1 4"
 length="2 4 8"
 start_ind=1
 skipped=1
@@ -92,7 +92,7 @@ sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 rm -rf ./config
 echo micro cdf true >> config
 echo ant cdf true >> ./config
-echo micro duration 150 >> config
+echo micro duration 120 >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
@@ -104,7 +104,7 @@ len=0
 prob_access=t
 sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
-for t in $thread
+for t in $threads
 do
 for cont in $contentions
 do
