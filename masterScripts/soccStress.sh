@@ -8,7 +8,6 @@ function runNTimes {
         sudo ./script/preciseTime.sh
         ./script/runMicroBench.sh $t $MN $SN $CN $MR $SR $CR $do_specula $len $specula_read $rep $prob_access $deter specula_tests $start_ind $clock 
         skipped=1
-	exit
         else
         echo "Skipped..."$start_ind
         fi
@@ -19,12 +18,10 @@ function runNTimes {
 do_specula=true
 fast_reply=true
 seq="1"
-#threads="8 16 32 64"
-threads="16 32 64"
+threads="64 32 16 8"
 t=8
-contentions="1 4"
-#length="2 4 8"
-length="1 2 4 8"
+contentions="4 1"
+length="2 4 8"
 start_ind=1
 skipped=1
 skip_len=0
@@ -60,7 +57,7 @@ prob_access=t
 
 rm -rf ./config
 echo micro cdf true >> config
-echo micro duration 240 >> config
+echo micro duration 120 >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
