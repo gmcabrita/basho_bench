@@ -59,13 +59,13 @@ echo $BenchConfig
 echo "$BenchConfig" >> $File
 sed -i "5i {concurrent, $Thread}." $File
 
-#if [ $Type = "counter" ]; then
-#    sed -i "6i {operations, [{append, $Writes}, {read, $Reads}]}." $File
-#else
-#    sed -i "6i {operations, [{update, $Writes}, {read, $Reads}]}." $File
-#fi
+if [ $Type = "counter" ]; then
+    sed -i "6i {operations, [{append, $Writes}, {read, $Reads}]}." $File
+else
+    sed -i "6i {operations, [{update, $Writes}, {read, $Reads}]}." $File
+fi
 #use just transactions.
-sed -i "6i {operations, [{txn, 1}]}." $File
+#sed -i "6i {operations, [{txn, 1}]}." $File
 
 
 if [ $Writes -eq 1 ]; then
