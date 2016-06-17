@@ -18,10 +18,12 @@ function runNTimes {
 do_specula=true
 fast_reply=true
 seq="1"
-threads="64 32 16 8"
+#threads="64 32 16 8"
+threads="64"
+#threads="4 128 180"
 t=8
-contentions="2 3"
-length="8 4 2"
+contentions="2"
+length="8"
 start_ind=1
 skipped=1
 skip_len=0
@@ -46,8 +48,8 @@ MN=80
 SN=20
 CN=0
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 clock="new"
 specula_read=true
@@ -62,8 +64,8 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply 8 $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply 8 $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
@@ -81,8 +83,9 @@ do
     done
 done
 done
-######100#######
 exit
+
+######100#######
 
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
