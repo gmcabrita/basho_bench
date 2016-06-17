@@ -85,7 +85,7 @@ else
 fi
 
 sed -i "7i {num_reads, $ReadTxn}." $File
-sed -i "7i {num_updates, $Writes}." $File
+sed -i "7i {num_updates, $WriteTxn}." $File
 
 sed -i '/key_generator/d' $File
 #sed -i "3i {key_generator, {dc_bias, $NumDCs, $DcId, $NodesPerDC, 10000}}." $File
