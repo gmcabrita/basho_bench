@@ -16,6 +16,7 @@ for i in `seq 1 10`;
 do
 if ls ../antidote/rel/antidote/*final-latency 1> /dev/null 2>&1; then
     echo "Files do exist"
+    break
 else
     echo "Files do not exist, try again!!"
     sudo ./script/getCDF.sh $Ip
