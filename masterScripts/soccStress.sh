@@ -18,11 +18,11 @@ function runNTimes {
 do_specula=true
 fast_reply=true
 seq="1"
-threads="16 24 32 40 48 56 64"
+threads="120 136 152 178 194"
 #threads="4 128 180"
 t=8
 contentions="2"
-length="4"
+length="2"
 start_ind=1
 skipped=1
 skip_len=0
