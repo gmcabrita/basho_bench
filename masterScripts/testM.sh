@@ -15,7 +15,6 @@ function runNTimes {
 } 
 
 do_specula=true
-fast_reply=true
 ## Just to test.. 
 seq="1 2"
 t="8"
@@ -32,7 +31,6 @@ sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 #Test number of involved DCs
 specula_read=specula
 do_specula=true
-fast_reply=true
 deters="1 2 3 4 5"
 MN=20 SN=80 CN=0
 skipped=0
@@ -43,7 +41,7 @@ for len in $length
 do
     if [ $skip_len == 0 ] || [ $skipped == 1 ]
     then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
     sleep 25
     fi
@@ -65,13 +63,12 @@ prob_access=t
 locals="1 2 3"
 specula_read=nospecula
 do_specula=false
-fast_reply=false
 deters="1 2 3 4 5"
 MN=20 SN=80 CN=0
 len=0
 if [ $skip_len == 0 ] || [ $skipped == 1 ]
 then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
     sleep 25
 fi

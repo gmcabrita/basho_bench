@@ -16,7 +16,6 @@ function runNTimes {
 } 
 
 do_specula=true
-fast_reply=true
 ## Just to test.. 
 seq="1"
 t="8"
@@ -54,7 +53,6 @@ CN=0
 clock="new"
 specula_read=true
 do_specula=true
-fast_reply=true
 prob_access=t
 
 rm -rf ./config
@@ -64,14 +62,14 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply 8 $rep $parts $specula_read
+sudo ./script/configBeforeRestart.sh $t $do_specula 8 $rep $parts $specula_read
 #sudo ./script/restartAndConnect.sh
 
 for len in $length
 do
     #if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
     #then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     #sudo ./script/restartAndConnect.sh
     #sleep 25
     #fi
@@ -106,12 +104,11 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 clock="old"
 specula_read=false
 do_specula=false
-fast_reply=false
 len=0
 prob_access=t
 #if [ $skip_len == 0 ] || [ $skipped == 1 ]
 #then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read 
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read 
     sudo ./script/restartAndConnect.sh
 #    sleep 30 
 #fi

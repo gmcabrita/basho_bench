@@ -4,7 +4,7 @@ function runRubis {
     for i in $seq
     do
         if [ $start_ind -gt $skip_len ]; then
-        ./script/runRubisBench.sh $t $AM $AS $do_specula $specula_read $len specula_tests $start_ind
+        ./script/runRubisBench.sh $t $AM $AS $do_specula 0 $len specula_tests $start_ind
         #echo $t $MN $SN $CN $MR $SR $CR $do_specula $len random $rep $comp specula_tests $start_ind
         skipped=1
 	exit
@@ -37,8 +37,7 @@ AS=20
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 do_specula=true
 specula_reads="true"
-fast_reply=true
-#sudo ./script/configBeforeRestart.sh 8 $do_specula $fast_reply 8 $rep $parts true 
+#sudo ./script/configBeforeRestart.sh 8 $do_specula 8 $rep $parts true 
 #sudo ./script/restartAndConnect.sh
 for t in $threads
 do
@@ -48,7 +47,7 @@ do
 	do
             if [ $skipped -eq 1 ] 
             then
-	       sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read 
+	       sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read 
 	       #sudo ./script/restartAndConnect.sh
                sudo ./script/preciseTime.sh
 	       #sleep 20
@@ -63,13 +62,12 @@ exit
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 do_specula=false
 specula_read=false
-fast_reply=false
 len=0
 for t in $threads
 do
     if [ $skipped -eq 1 ] 
     then
-       sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+       sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
        sudo ./script/restartAndConnect.sh
        sudo ./script/preciseTime.sh
        sleep 20

@@ -37,6 +37,7 @@
 -record(state, { id,
                  keygen,
                  valgen,
+                 think_time,
                  driver,
                  driver_state,
                  shutdown_on_error,
@@ -104,6 +105,10 @@ init([SupChild, Id]) ->
                 true -> true;
                 _ -> false
             end,
+   
+    ThinkTime = case basho_bench_config:get(think_time, 0) of
+                Time -> Time
+            end,
 
     CDF = case basho_bench_config:get(cdf, false) of
                 true -> Tab = ets:new(list_to_atom(integer_to_list(Id)), [public, set]),
@@ -132,6 +137,7 @@ init([SupChild, Id]) ->
                      shutdown_on_error = ShutdownOnError,
                      ops = Ops, ops_len = size(Ops),
                      rng_seed = RngSeed,
+                     think_time = ThinkTime,
                      retry = Retry,
                      transition = Transition,
                      todo_op = ToDoOp,
@@ -305,11 +311,14 @@ worker_next_op(State) ->
     ToDo = case State#state.retry of 
                 true ->
                     case State#state.todo_op of
-                        false -> element(random:uniform(State#state.ops_len), State#state.ops);
+                        false -> 
+                            timer:sleep(State#state.think_time),
+                            element(random:uniform(State#state.ops_len), State#state.ops);
                         Op ->  Op
                     end;
                 false ->
                     ST = State#state.transition,
+                    timer:sleep(State#state.think_time),
                     case ST of
                         undef ->
                             element(random:uniform(State#state.ops_len), State#state.ops);

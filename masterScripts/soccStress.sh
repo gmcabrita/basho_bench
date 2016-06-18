@@ -16,7 +16,6 @@ function runNTimes {
 } 
 
 do_specula=true
-fast_reply=true
 seq="1"
 threads="16 32 48 64 80 96 120 136 152 178 194"
 #threads="4 128 180"
@@ -53,7 +52,6 @@ CN=0
 clock="new"
 specula_read=true
 do_specula=true
-fast_reply=true
 prob_access=t
 
 rm -rf ./config
@@ -63,14 +61,14 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply 8 $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh $t $do_specula 8 $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
 for len in $length
 do
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
@@ -99,10 +97,9 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 clock="old"
 specula_read=false
 do_specula=false
-fast_reply=false
 len=0
 prob_access=t
-sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read 
+sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
 for t in $threads
 do

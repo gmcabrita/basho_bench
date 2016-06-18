@@ -16,7 +16,6 @@ function runNTimes {
 
 
 do_specula=true
-fast_reply=true
 ## Just to test.. 
 seq="1 2"
 t="8"
@@ -41,7 +40,7 @@ deter=false
 
 len=8
 specula_read=true
-sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
 sleep 25
 
@@ -134,7 +133,7 @@ for len in $length
 do
     if [  $skipped == 1 ]
     then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
     sleep 25
     fi
@@ -164,7 +163,7 @@ for len in $length
 do
     if [ $skip_len == 0 ] || [ $skipped == 1 ]
     then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
     sleep 25
     fi
@@ -187,14 +186,13 @@ fi
 #Test remote read
 spcula_read=specula
 do_specula=true
-fast_reply=true
 prob_access=t
 locals="1 2 3"
 for len in $length
 do
     if [ $skip_len == 0 ] || [ $skipped == 1 ]
     then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
     sleep 25
     fi
@@ -216,14 +214,13 @@ done
 #Test number of involved DCs
 spcula_read=specula
 do_specula=true
-fast_reply=true
 deters="1 2 3 4 5"
 MN=20 SN=80 CN=0
 for len in $length
 do
     if [ $skip_len == 0 ] || [ $skipped == 1 ]
     then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
     sleep 25
     fi
@@ -244,7 +241,6 @@ SN=20
 CN=0
 specula_read=false
 do_specula=false
-fast_reply=false
 deter=false
 len=0
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
@@ -253,7 +249,7 @@ sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 
 if [ $skip_len == 0 ] || [ $skipped == 1 ]
   then
-  sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+  sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
   sudo ./script/restartAndConnect.sh
   sleep 25
 fi
@@ -273,13 +269,12 @@ done
 
 spcula_read=nospecula
 do_specula=false
-fast_reply=false
 len=0
 prob_access=t
 locals="1 2 3"
 if [ $skip_len == 0 ] || [ $skipped == 1 ]
 then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read 
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read 
     sudo ./script/restartAndConnect.sh
 sleep 25
 fi
@@ -300,13 +295,12 @@ done
 #Test number of involved DCs
 spcula_read=nospecula
 do_specula=false
-fast_reply=false
 deters="1 2 3 4 5"
 MN=20 SN=80 CN=0
 len=0
 if [ $skip_len == 0 ] || [ $skipped == 1 ]
 then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
     sleep 25
 fi

@@ -56,22 +56,16 @@ def plot_stress(specula_folders, nospecula_folders, input_folder, output_folder,
     #colors=['#397fb8', '#ed7e7e', '#944fa1', '#4fb04c', '#000000', '#e31b1b', '#e37f1b']
     colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#000000']
     markers=["^", "8", "s", "h", "p", "v", "d", '1', 'd']
-    legends=[]
     handlers=[]
     lines_to_plot=1+len(specula_folders)*2
-    #postfixes=['-latency_bench', '-latency_ant']
-    #postfixes=['-latency_percv', '-latency_final']
-    #nospecula_postfix='-latency_final'
         
-    legends=['SL2: specula', 'SL2: final', 'SL4: specula', 
-                'SL4: final', 'SL8: specula', 'SL8: final','No specula']
+    legends=['Specula: percv', 'Specula: real', 'No specula: real']
 
     plt.clf()
     spec_list=[[[] for i in specula_folders] for j in range(2)] 
     spec_th_list=[[[] for i in specula_folders] for j in range(2)] 
-    nospec_list=[[] for i in specula_folders]
-    nospec_th_list=[[] for i in specula_folders]
-    print(specula_folders)
+    nospec_list=[[] for i in nospecula_folders]
+    nospec_th_list=[[] for i in nospecula_folders]
     for j, folder in enumerate(specula_folders):
         maxv=0
         #### Get spec latency
@@ -87,21 +81,25 @@ def plot_stress(specula_folders, nospecula_folders, input_folder, output_folder,
                     spec_list[1][j] = line.split(' ')[1][:-1]
                 linenum += 1
 
-    print(nospecula_folders)
+    print("Specula folders are" +str(specula_folders))
+    print(spec_th_list)
+    print(spec_list)
+
     for i, folder in enumerate(nospecula_folders):
         #### No spec latency
         folder = os.path.join(input_folder, folder)
-        file = os.path.join(folder, '/real_latency')
-        print("File is "+ file)
-        spec_th_list[i] = get_throughput(folder)
+        file = folder + '/real_latency'
+        nospec_th_list[i] = get_throughput(folder)
         with open(file) as f:
-            linnum = 0
+            linenum = 0
             for line in f:
-                if linenum == 1:
-                    nospec_list[0][j] = line.split(' ')[1][:-1]
-                elif linenum == 2:
-                    nospec_list[1][j] = line.split(' ')[1][:-1]
-            linenum += 1
+                if linenum == 2:
+                    nospec_list[i] = line.split(' ')[1][:-1]
+                linenum += 1
+
+    print("No pecula folders are" +str(nospecula_folders))
+    print(nospec_th_list)
+    print(nospec_list)
 
     hld, = plt.plot(spec_th_list[0], spec_list[0], color=colors[0], marker=markers[0], linewidth=width,  markersize=marksize)
     handlers.append(hld)
@@ -111,8 +109,8 @@ def plot_stress(specula_folders, nospecula_folders, input_folder, output_folder,
         hld, = plt.plot(nospec_th_list, nospec_list, color=colors[2], marker=markers[2], linewidth=width,  markersize=marksize)
         handlers.append(hld)
 
-    plt.xlim([0, 5000])
-    plt.legend(handlers, legends, loc=4, labelspacing=0.2, borderpad=0.2, fontsize=lsize)
+    plt.xlim([0, 1000])
+    plt.legend(handlers, legends, loc=1, labelspacing=0.2, borderpad=0.2, fontsize=lsize)
     plt.grid(True)
 
     plt.ylabel('Latency', fontsize=labsize)

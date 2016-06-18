@@ -127,7 +127,7 @@ new(Id) ->
     TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
     true = erlang:set_cookie(node(), Cookie),
 
-    %?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
+    ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
     _Result = net_adm:ping(TargetNode),
     %?INFO("Result of ping is ~p \n", [Result]),
 
@@ -148,7 +148,7 @@ new(Id) ->
     HashLength = length(ExpandPartList),
     {OtherMasterIds, DcRepIds, DcNoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
-    lager:info("OtherMasterIds ~w, DcRepIds ~w, NoRepIds ~w, D ~w", [OtherMasterIds, DcRepIds, DcNoRepIds, dict:to_list(HashDict1)]),
+    lager:info("MyTxServer is  ~w, DcRepIds ~w, NoRepIds ~w, D ~w", [list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)), DcRepIds, DcNoRepIds, dict:to_list(HashDict1)]),
 
     %lager:info("Part list is ~w",[PartList]),
     MyTable = ets:new(my_table, [private, set]),

@@ -6,7 +6,7 @@ function runNTimes {
         if [[ ${array[$start_ind]} ]]; then
             if [  $skipped -eq 0 ]
             then
-            sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+            sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
             sudo ./script/restartAndConnect.sh
             sleep 25
             fi
@@ -21,7 +21,6 @@ function runNTimes {
 } 
 
 do_specula=true
-fast_reply=true
 ## Just to test.. 
 seq="1 2"
 t="8"
@@ -60,7 +59,7 @@ for len in $length
 do
     if [  $skipped -eq 1 ]
     then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
     sleep 25
     fi
@@ -91,7 +90,7 @@ for len in $length
 do
     if [ $skipped -eq 1 ]
     then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
     sleep 25
     fi
@@ -116,14 +115,13 @@ exit
 #Test remote read
 specula_read=specula
 do_specula=true
-fast_reply=true
 prob_access=t
 locals="1 2 3"
 for len in $length
 do
     if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
     then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
     sleep 25
     fi
@@ -150,7 +148,6 @@ SN=20
 CN=0
 specula_read=false
 do_specula=false
-fast_reply=false
 deter=false
 len=0
 if [ $skip_len -eq 1 ]; then
@@ -161,7 +158,7 @@ fi
 
 if [ $skip_len == 0 ] || [ $skipped == 1 ]
   then
-  sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+  sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
   sudo ./script/restartAndConnect.sh
   sleep 25
 fi
@@ -183,13 +180,12 @@ done
 
 specula_read=false
 do_specula=false
-fast_reply=false
 len=0
 prob_access=t
 locals="1 2 3"
 if [ $skip_len == 0 ] || [ $skipped == 1 ]
 then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read 
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read 
     sudo ./script/restartAndConnect.sh
 sleep 25
 fi
@@ -213,7 +209,6 @@ done
 skipped=0
 specula_read=specula
 do_specula=true
-fast_reply=true
 deters="1 2 3 4 5"
 MN=20 SN=80 CN=0
 MBIG=40000
@@ -222,7 +217,7 @@ for len in $length
 do
     if [ $skip_len == 0 ] || [ $skipped == 1 ]
     then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
     sleep 25
     fi
@@ -244,13 +239,12 @@ prob_access=t
 locals="1 2 3"
 specula_read=false
 do_specula=false
-fast_reply=false
 deters="1 2 3 4 5"
 MN=20 SN=80 CN=0
 len=0
 if [ $skip_len == 0 ] || [ $skipped == 1 ]
 then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     sudo ./script/restartAndConnect.sh
     sleep 25
 fi

@@ -8,7 +8,7 @@ function runNTimes {
         if [[ ${array[$start_ind]} ]]; then
         if [ $restarted == 0 ]
         then
-            sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts
+            sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts
             sudo ./script/restartAndConnect.sh
             sleep 25
 	        sudo ./script/preciseTime.sh
@@ -27,11 +27,9 @@ function runNTimes {
 if [ $1 == true ]
 then
     do_specula=true
-    fast_reply=true
     length="8 4 2 1"
 else
     do_specula=false
-    fast_reply=false
     length="0"
 fi
 ## Just to test.. 
@@ -60,7 +58,7 @@ for len in $length
 do
     #if [ $skipped == 1 ]
     #then
-    #sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts
+    #sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts
     #sudo ./script/restartAndConnect.sh
     #sleep 25
     #fi
@@ -105,7 +103,7 @@ do
     do
         #if  [ $skipped == 1 ]
         #then
-        #sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts 
+        #sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts 
         #sudo ./script/restartAndConnect.sh
         #sleep 25
         #fi
