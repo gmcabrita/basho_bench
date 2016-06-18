@@ -15,7 +15,6 @@ function runNTimes {
 } 
 
 do_specula=true
-fast_reply=true
 ## Just to test.. 
 seq="1 2"
 t="8"
@@ -47,14 +46,13 @@ deter=false
 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-#sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply 8 $rep $parts $specula_read
+#sudo ./script/configBeforeRestart.sh $t $do_specula 8 $rep $parts $specula_read
 #sudo ./script/restartAndConnect.sh
 
 locals="3 4"
 clock="new"
 specula_read=true
 do_specula=true
-fast_reply=true
 prob_access=t
 if [ 1 == 0 ];
 then
@@ -62,7 +60,7 @@ for len in $length
 do
     if [ $skip_len -eq 0 ] || [ $skipped -eq 1 ]
     then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     #sudo ./script/restartAndConnect.sh
     #sleep 25
     fi
@@ -87,12 +85,11 @@ fi
 clock="old"
 specula_read=false
 do_specula=false
-fast_reply=false
 len=0
 prob_access=t
 #if [ $skip_len == 0 ] || [ $skipped == 1 ]
 #then
-    sudo ./script/configBeforeRestart.sh $t $do_specula $fast_reply $len $rep $parts $specula_read 
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read 
     sudo ./script/restartAndConnect.sh
 #    sleep 25
 #fi

@@ -18,6 +18,7 @@ then
     order_status=10
 elif [ $# == 12 ]
 then
+    think_time=$5
     WPerDc=$8
     new_order=$9
     payment=${10}
@@ -41,6 +42,7 @@ echo tpcc access_master $2  >> config
 echo tpcc access_slave $3 >> config
 echo load concurrent 4 >> config
 echo tpcc duration 60 >> config
+echo tpcc think_time $think_time >> config
 echo tpcc specula $4 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 #ToSleep=$((40000 / ${1}))

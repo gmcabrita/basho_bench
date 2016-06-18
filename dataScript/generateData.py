@@ -67,7 +67,6 @@ def add_throughput(nodes, dict, total_dict, folder):
             notified_abort += int(words[4])
             duration=max(duration,float(words[0]))
             #print("Duration is"+str(int(duration)))
-        print(index)
         stat_line = stat_lines[index]
         stat_data = stat_line.split(',')
         if len(stat_data) == 20 or len(stat_data) == 7:
@@ -207,8 +206,8 @@ def write_to_file(file_name, dict, keys, title):
         if key in dict:
             data_list = dict[key]
             data_array = np.array(data_list).astype(np.float)
-            print(data_list)
-            print(data_array)
+            #print(data_list)
+            #print(data_array)
             if data_array.ndim == 2:
                 data_avg = list(np.average(data_array, axis=0))
             else:
@@ -263,6 +262,7 @@ for f in sub_folders:
         update_counter(config_folder, len(dict[config]['total_throughput']), f)
 
 for config in dict:
+    print(config)
     entry = dict[config]
     config_folder = os.path.join(output_fold, config)
     throughput = os.path.join(config_folder, 'throughput')
@@ -279,8 +279,7 @@ for config in dict:
     write_to_file(order_status_latency, entry, ['order-status'], 'N/A min mean median 95th 99th 99_9th max')
 
     write_to_file(throughput, entry['throughput'], nodes, 'ip committed cert_aborted read_aborted read_invalid cascade_abort notified_abort') 
-
-    entry['-latency_percv'] = [sum(entry['-latency_percv'])/len(entry['-latency_percv'])]
+    entry['-latency_percv'] = [sum(entry['-latency_percv'])/max(len(entry['-latency_percv']), 1)]
     entry['-latency_final'] = [sum(entry['-latency_final'])/len(entry['-latency_final'])]
 
     write_to_file(real_latency, entry, ['-latency_percv', '-latency_final'], 'percvlat finallat') 
