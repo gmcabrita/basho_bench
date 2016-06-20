@@ -29,12 +29,12 @@ function runRubis {
 
 ## Just to test.. 
 seq="1"
-threads="1 2 4"
-workloads="1 2 3 4"
-length="0"
+threads="16 32 64 128"
+workloads="2 4"
+length="8"
 warehouse="2"
 
-think_times="250 500 1000 2000 4000"
+think_times="0 250 500 1000 2000"
 
 #rep=8
 #parts=28
@@ -89,6 +89,7 @@ do
         done
     done
 done
+exit
 
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 specula_read=false
