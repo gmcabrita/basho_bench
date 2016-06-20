@@ -7,7 +7,6 @@ function runRubis {
         ./script/runRubisBench.sh $t $AM $AS $do_specula 0 $len specula_tests $start_ind
         #echo $t $MN $SN $CN $MR $SR $CR $do_specula $len random $rep $comp specula_tests $start_ind
         skipped=1
-	exit
         else
         echo "Skipped..."$start_ind
         fi
@@ -36,7 +35,7 @@ AS=20
 #sudo ./script/stopNodes.sh
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 do_specula=true
-specula_reads="true"
+specula_reads="false"
 #sudo ./script/configBeforeRestart.sh 8 $do_specula 8 $rep $parts true 
 #sudo ./script/restartAndConnect.sh
 for t in $threads
@@ -48,9 +47,7 @@ do
             if [ $skipped -eq 1 ] 
             then
 	       sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read 
-	       #sudo ./script/restartAndConnect.sh
                sudo ./script/preciseTime.sh
-	       #sleep 20
             fi
             runRubis
 	done

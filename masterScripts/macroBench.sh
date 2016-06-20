@@ -30,8 +30,8 @@ function runRubis {
 ## Just to test.. 
 seq="1"
 threads="16 32 64 128"
-workloads="2 4"
-length="8"
+workloads=""
+length="1"
 warehouse="2"
 
 think_times="0 250 500 1000 2000"
@@ -54,11 +54,13 @@ do_specula=true
 
 t=8
 len=8
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-sudo ./script/configBeforeRestart.sh $t $do_specula 8 $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./script/configBeforeRestart.sh $t $do_specula 8 $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 
+if [ 1 -eq 2 ];
+then
 for t in $threads
 do
     for think_time in $think_times
@@ -89,7 +91,7 @@ do
         done
     done
 done
-exit
+fi
 
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 specula_read=false
