@@ -24,7 +24,7 @@ def get_path(input_folders, name):
         return os.path.join(input_folders, name)
 
 # input data
-def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, legend_index, plot_dict):
+def plot_speedup_abort(input_folder, output_folder, bench_type, data_multi_list, baseline_list, legend_index, plot_dict):
     plt.clf()
     ncols=7
     fig = plt.figure()
@@ -45,7 +45,6 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     abort_handlers = []
     legend_type = plot_dict['legend_type'] 
     markers=["^", "8", "s", "h", ".", "1", "v"]
-    line_index=0
     barwidth = max(0.15, 0.6/len(data_multi_list))
     #colors=['#000000', '#397fb8', '#4fb04c', '#ed7e7e','#944fa1', '#e31b1b', '#e37f1b']
     #colors=['#000000', '#9E9FDB', '#01c07c', '#8D1010','#944fa1', '#e31b1b', '#e37f1b']
@@ -58,83 +57,44 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     start_pos = 0
     ## Draw baseline
     #print(data_multi_list)
-    if 'base_line' in plot_dict and plot_dict['base_line']:
-        base_line=data_multi_list[0] 
-        print(base_line)
-        path = get_path(input_folder, base_line+'/total_throughput')
-        data = np.loadtxt(path, skiprows=1, usecols=range(1,ncols))
-        if len(data) < 8:
-            sa = (data[0,5]-data[0,1])/(data[0,0]+data[0,5])
-        else:
-            sa = data[0,7]/(data[0,0]+data[0,5])
-        ar = data[0,5]/(data[0,0]+data[0,5])
-        h, = ax1.bar(-barwidth/2, data[0,0]/1000, barwidth, color=colors[0])
-        handlers.append(h)
-
-        xx = -barwidth/2
-        hlt1 = ax2.add_patch(Polygon([[xx,sa], [xx,ar], [xx+barwidth,ar], [xx+barwidth, sa]], hatch=hatches[0], color=colors[0], fill=False))
-        abort_handlers.append(hlt1)
-        
-        line_index = 1
-        data_multi_list = data_multi_list[1:]
-        num_xticks = 1+ len(data_multi_list[0])
-        offset = len(data_multi_list)/2*barwidth
-        offset -= 1 - barwidth
-    else:
-        num_xticks = len(data_multi_list[0])
-        offset = len(data_multi_list)/2*barwidth
+    num_xticks = len(data_multi_list[0])
+    offset = len(data_multi_list)/2*barwidth
 
     if 'not_reverse' not in plot_dict:
         data_multi_list.reverse()
     #print(data_multi_list)
-    for data_list in data_multi_list: 
+    for line_index, data_list in enumerate(data_multi_list): 
         data_list = sort_by_num(data_list)
-        print(data_list)
+        baseline = sort_by_num(baseline_list[line_index])
             
-        index = 0
         specula_abort=[]
         data1=[]
-        data1_e=[]
+        #data1_e=[]
         data2=[]
         data2_e=[]
         minvalue = 1000000000 
-        for f in data_list:
-            if 'type' in plot_dict:
-                path = get_path(input_folder, f+'/total_duration')
-                data = np.loadtxt(path, skiprows=1, usecols=range(1,23))
-                if plot_dict['type'] == 'commit':
-                    maxv=max(maxv, data[0,18]+data[0,19])
-                    minvalue = min(minvalue, float(data[0,0]))
-                    data1.append(data[0,18]+data[0,19])
-                    data1_e.append(data[1,18]+data[1,19])
-                else:
-                    maxv=max(maxv, data[0,20]+data[0,21])
-                    minvalue = min(minvalue, float(data[0,20]+data[0,21]))
-                    data1.append(data[0,20]+data[0,21])
-                    data1_e.append(data[1,20]+data[1,21])
+        for i, f in enumerate(data_list):
+            path = get_path(input_folder, f+'/total_throughput')
+            data = np.loadtxt(path, skiprows=1, usecols=range(1,ncols))
+
+            baseline_path = get_path(input_folder, baseline[i]+'/total_throughput')
+            baseline_data = np.loadtxt(baseline_path, skiprows=1, usecols=range(1,ncols))
+            #print(data[0,0]/baseline_data[0,0])
+            maxv=max(maxv, data[0,0], data[0,5])
+            minvalue = min(minvalue, float(data[0,0]))
+            data1.append(data[0,0]/baseline_data[0,0])
+            #data1_e.append(data[1,0])
+            data2.append(data[0,5]/(data[0,0]+data[0,5]))
+            data2_e.append(0)
+            if len(data) < 8:
+                specula_abort.append((data[0,5]-data[0,1])/(data[0,0]+data[0,5]))
             else:
-                path = get_path(input_folder, f+'/total_throughput')
-                data = np.loadtxt(path, skiprows=1, usecols=range(1,ncols))
-                print(data)
-                maxv=max(maxv, data[0,0], data[0,5])
-                minvalue = min(minvalue, float(data[0,0]))
-                data1.append(data[0,0])
-                data1_e.append(data[1,0])
-                data2.append(data[0,5]/(data[0,0]+data[0,5]))
-                data2_e.append(0)
-                if len(data) < 8:
-                    specula_abort.append((data[0,5]-data[0,1])/(data[0,0]+data[0,5]))
-                else:
-                    specula_abort.append(data[0,7]/(data[0,0]+data[0,5]))
-                #print("Data 2 is ")
-                #print(data2)
-                #print(specula_abort)
-            index += 1
+                specula_abort.append(data[0,7]/(data[0,0]+data[0,5]))
 
         s = [10 for num in data1]
         h = []
         for i, v in enumerate(data1):
-            h, = ax1.bar(i+line_index*barwidth-offset, v/1000, barwidth, color=colors[line_index])
+            h, = ax1.bar(i+line_index*barwidth-offset, v, barwidth, color=colors[line_index])
         handlers.append(h)
 
         if data2 != []:
@@ -149,7 +109,6 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
                 hlt2 = ax2.add_patch(Polygon([[xx,0], [xx,sv], [xx+barwidth,sv], [xx+barwidth, 0]], color=colors[line_index]))
         abort_handlers.append(hlt1)
         abort_handlers.append(hlt2)
-        line_index += 1
 
     ylim = maxv * 1.5
     handler_idx = [i for i, x in enumerate(handlers) if x == None]
@@ -181,7 +140,6 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
 
     ### For plt2
     #plt.subplot(212)
-    #xlabels=['NOSPEC', 'SL1','SL2','SL4','SL8', 'SL16']
     xlabels=['16 cls', '32 cls', '64 cls', '128 cls']
     ax2.set_xticks([i for i in range(num_xticks)])
     ax2.set_xticklabels(xlabels, minor=False, fontsize=fsize)
@@ -204,7 +162,7 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
         ax2.yaxis.set_major_formatter(NullFormatter())
         
     if 'has_legend' in plot_dict and plot_dict['has_legend']:
-        ax1.legend(handlers, plot_dict['commit_legend'], fontsize=lsize, loc=2, labelspacing=0.0, borderpad=0.2)
+        ax1.legend(handlers, plot_dict['commit_legend'], fontsize=lsize, loc=2, labelspacing=0.0, borderpad=0.2, ncol=3)
         if 'legend_loc' in  plot_dict:
             location = plot_dict['legend_loc']
         else:

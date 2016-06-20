@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+
+###!/usr/bin/env python3
 import sys
 import os
 import glob
@@ -279,10 +281,12 @@ for config in dict:
     write_to_file(order_status_latency, entry, ['order-status'], 'N/A min mean median 95th 99th 99_9th max')
 
     write_to_file(throughput, entry['throughput'], nodes, 'ip committed cert_aborted read_aborted read_invalid cascade_abort notified_abort') 
-    entry['-latency_percv'] = [sum(entry['-latency_percv'])/max(len(entry['-latency_percv']), 1)]
-    entry['-latency_final'] = [sum(entry['-latency_final'])/len(entry['-latency_final'])]
 
-    write_to_file(real_latency, entry, ['-latency_percv', '-latency_final'], 'percvlat finallat') 
+    if len(entry['-latency_final']) != 0:
+        entry['-latency_percv'] = [sum(entry['-latency_percv'])/max(len(entry['-latency_percv']), 1)]
+        entry['-latency_final'] = [sum(entry['-latency_final'])/len(entry['-latency_final'])]
+        write_to_file(real_latency, entry, ['-latency_percv', '-latency_final'], 'percvlat finallat') 
+
     write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted read_invalid cascade_abort all_abort notified_abort specula_abort') 
     write_std(total_throughput, entry['total_throughput'])
     write_to_file(duration, entry['duration'], nodes, 'ip no_read no_local_a no_remote_a no_local_c no_remote_c no_specula_c p_read p_local_a p_remote_a p_local_c p_remote_c p_specula_c nc_local nc_remote na_local na_remote pc_local pc_remote pa_local pa_remote gc_local gc_remote ga_local ga_remote')
