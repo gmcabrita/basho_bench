@@ -354,6 +354,7 @@ worker_next_op(State) ->
                 _ ->
                     {PreviousStates, CurrentState} = State#state.todo_op,
                     NextToDo = rubis_tool:get_next_state(PreviousStates, T, CurrentState), 
+                    timer:sleep(State#state.think_time),
                     {ok, State#state { driver_state = DriverState, todo_op=NextToDo}}
             end;
         {Res, DriverState} when Res == silent orelse element(1, Res) == silent ->

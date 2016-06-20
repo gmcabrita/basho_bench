@@ -93,9 +93,9 @@ done
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 specula_read=false
 do_specula=false
-len=8
+len=0
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-sudo ./script/configBeforeRestart.sh 8 $do_specula 0 $rep $parts $specula_read 
+sudo ./script/configBeforeRestart.sh 64 $do_specula 0 $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
 for t in $threads
 do  

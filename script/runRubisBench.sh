@@ -26,7 +26,7 @@ echo rubis to_sleep $ToSleep >> config
 echo load duration 130 >> config
 
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
-echo $1 $2 $3 $4 $5 $6 $8 > $Folder/config
+echo $1 $2 $3 $4 $5 $6 > $Folder/config
 touch $Folder/$8
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 

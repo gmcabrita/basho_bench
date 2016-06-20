@@ -1,4 +1,10 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+
+
+
+
+#######!/usr/bin/env python3
+
 
 import matplotlib.pyplot as plt
 from pylab import *
