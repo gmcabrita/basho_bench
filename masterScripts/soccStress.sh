@@ -17,10 +17,10 @@ function runNTimes {
 
 do_specula=true
 seq="1"
-threads="16 32 48 64 80 96 120 136 152 178 194"
+threads="16 32 64 96 120"
 #threads="4 128 180"
 t=8
-contentions="8"
+contentions="1 2"
 length="4"
 start_ind=1
 skipped=1
@@ -56,7 +56,7 @@ prob_access=t
 
 rm -rf ./config
 echo micro cdf true >> config
-echo micro duration 90 >> config
+echo micro duration 240 >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
