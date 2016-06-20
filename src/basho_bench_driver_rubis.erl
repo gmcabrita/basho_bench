@@ -529,7 +529,7 @@ run(buy_now, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     ItemId = PrevState#prev_state.item_id,
     ItemKey = rubis_tool:get_key(ItemId, item),
     {ItemNode, _} = ItemId,
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    TxId = gen_server:call(TxServer, {start_tx}),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     SellerKey = rubis_tool:get_key(Item#item.i_seller, user),
     %lager:warning("Trying to read from user key ~w", [SellerKey]),
@@ -557,7 +557,7 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     %% Qty always <= MaxQty!!!
     %MaxQty = Request#request.max_qty,
 
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    TxId = gen_server:call(TxServer, {start_tx, true, true}),
     ItemKey = rubis_tool:get_key(ItemId, item),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     OldQuantity = Item#item.i_quantity,
