@@ -46,8 +46,8 @@ MN=80
 SN=20
 CN=0
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 clock="new"
 specula_read=true
