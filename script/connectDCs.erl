@@ -96,9 +96,12 @@ wait_ready_nodes([Node|Rest], [Cookie|RestCookie], IsPubSub, IsPartial, IsEC) ->
 	    case IsPubSub of 
 		true ->
 		    wait_until_registered(Node, inter_dc_pub),
-		    wait_until_registered(Node, inter_dc_log_reader_response),
-		    wait_until_registered(Node, inter_dc_log_reader_query),
+		    wait_until_registered(Node, inter_dc_query_receive_socket),
+		    wait_until_registered(Node, inter_dc_query_response_sup),
+		    wait_until_registered(Node, inter_dc_query),
 		    wait_until_registered(Node, inter_dc_sub),
+		    wait_until_registered(Node, meta_data_sender_sup),
+		    wait_until_registered(Node, meta_data_manager_sup),
 		    case IsEC of
 			false ->
 			    wait_until_registered(Node, meta_data_sender_sup),
