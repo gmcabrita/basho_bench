@@ -29,12 +29,12 @@ function runRubis {
 
 ## Just to test.. 
 seq="1"
-threads="16 32 64 128"
+threads="64 128 256 384 512"
 workloads=""
-length="1"
+length="8"
 warehouse="2"
 
-think_times="0 250 500 1000 2000"
+think_times="tpcc"
 
 #rep=8
 #parts=28
@@ -52,15 +52,19 @@ AS=0
 specula_read=true
 do_specula=true
 
-t=8
-len=8
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-#sudo ./script/configBeforeRestart.sh $t $do_specula 8 $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
-if [ 1 -eq 2 ];
-then
+rm -rf ./config
+echo micro cdf true >> config
+echo micro duration 180 >> config
+echo ant cdf true >> ./config
+sudo ./script/copy_to_all.sh ./config ./basho_bench/
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+
+sudo ./script/configBeforeRestart.sh 8 $do_specula 8 $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
+
 for t in $threads
 do
     for think_time in $think_times
@@ -84,22 +88,33 @@ do
                     then
 		                sudo ./script/preciseTime.sh
                     fi
+                    think_time="tpcc"
                     runTpccNTimes
 	            done
 	        done
+            think_time="rubis"
             runRubis
         done
     done
 done
-fi
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 specula_read=false
 do_specula=false
 len=0
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+
+rm -rf ./config
+echo micro cdf true >> config
+echo micro duration 180 >> config
+echo ant cdf true >> ./config
+sudo ./script/copy_to_all.sh ./config ./basho_bench/
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+
 sudo ./script/configBeforeRestart.sh 64 $do_specula 0 $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
+
+
 for t in $threads
 do  
     for think_time in $think_times
@@ -113,9 +128,11 @@ do
             fi
             for wh in $warehouse
             do
+                think_time="tpcc"
                 runTpccNTimes 
             done
         done
+        think_time="rubis"
         runRubis
     done
 done
