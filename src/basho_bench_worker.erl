@@ -117,14 +117,14 @@ init([SupChild, Id]) ->
             end,
     {ToDoOp, Transition} = case basho_bench_config:get(transition, false) of
                 true -> LoadTransition = rubis_tool:load_transition(), 
-                     case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time({1,1}, LoadTransition));
-                                         _ -> timer:sleep(ThinkTime)
-                     end,
+                     %case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time({1,1}, LoadTransition));
+                     %                    _ -> timer:sleep(ThinkTime)
+                     %end,
                      {{[], 1}, LoadTransition}; 
                 _ -> {Info, FirstOpTag} = element(random:uniform(size(Ops)), Ops), 
-                     case ThinkTime of tpcc -> timer:sleep(tpcc_tool:get_key_time(FirstOpTag));
-                                       _ -> timer:sleep(ThinkTime)
-                     end,
+                     %case ThinkTime of tpcc -> timer:sleep(tpcc_tool:get_key_time(FirstOpTag));
+                     %                  _ -> timer:sleep(ThinkTime)
+                     %end,
                      {{Info, FirstOpTag}, undef}
             end,
 
