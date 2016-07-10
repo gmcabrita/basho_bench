@@ -58,15 +58,6 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
     postfixes=['-latency_percv', '-latency_final']
     nospecula_postfix='-latency_final'
         
-    #nodes=['52.50.96.232', '52.51.100.143', '52.50.93.10']
-    #nodes=['52.58.192.183', '52.58.171.238', '52.58.1.28']
-    #nodes=['54.153.110.236', '52.53.239.93', '54.153.27.71']
-    #nodes=['54.169.174.170', '54.169.206.147', '54.169.170.71']
-    #nodes=['54.175.90.88', '54.174.146.21', '54.173.41.4']
-    #nodes=['52.68.242.101', '52.196.64.46', '52.192.10.101']
-    #nodes=['52.68.242.101']
-    #nodes=['52.37.133.145','52.39.150.38','52.38.124.81']
-    #nodes=['52.63.122.187', '52.63.109.133', '52.64.57.168']
     legends=['SL1: specula', 'SL1: final', 'SL2: specula', 'SL2: final', 'SL4: specula', 
                 'SL4: final', 'SL8: specula', 'SL8: final','No specula']
     lat_list=[[] for i in range(lines_to_plot)]

@@ -515,10 +515,10 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     end;
 
 %% VERIFIED
-run(buy_now_auth, _KeyGen, _ValueGen, State) ->
+run(buy_now_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
     %lager:info("Mhuahau, buy now auth"),
-    %TxId = gen_server:call(TxServer, {start_tx, true, false}),
-    %_ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     {ok, State};
 
 %% Buy now should be placed as the user's location
@@ -614,9 +614,9 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     end;
 
 %% VERIFIED
-run(put_bid_auth, _KeyGen, _ValueGen, State) ->
-    %TxId = gen_server:call(TxServer, {start_tx, true, false}),
-    %_ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+run(put_bid_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     %lager:info("Mhuahau, put bid auth"),
     {ok, State};
 
@@ -727,9 +727,9 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
             end
     end;
 
-run(put_comment_auth, _KeyGen, _ValueGen, State) ->
-    %TxId = gen_server:call(TxServer, {start_tx, true, false}),
-    %_ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+run(put_comment_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     %lager:info("Mhuahau, put comment auth"),
     {ok, State};
 
@@ -932,9 +932,9 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
             {error, Reason, State}
     end;
 
-run(about_me_auth, _KeyGen, _ValueGen, State) ->
-    %TxId = gen_server:call(TxServer, {start_tx, true, false}),
-    %_ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+run(about_me_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     %lager:info("Mhuahau, abou me auth"),
     {ok, State};
 

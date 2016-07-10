@@ -42,9 +42,12 @@ def get_lists(root_folder, config_str):
 
     return config_list
 
-input_folder='./stat/2016-06-18-115824/'
+#input_folder='./stat/2016-06-18-115824/'
+#input_folder='./stat/2016-06-20-231215/'
+input_folder='./stat/2016-06-21-214313/'
 ss1=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 20000, 40000, 'true', 'true', 8])
-[ns1]=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 20000, 40000, 'false', 'false', 8])
+#[ns1]=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 20000, 40000, 'false', 'false', 8])
+ns1=[]
 for i, ss in enumerate(ss1):
     s_ss1 = sort_by_num(ss)
     s_ns1 = sort_by_num(ns1)
@@ -53,6 +56,7 @@ for i, ss in enumerate(ss1):
     spec_length = get_field(s_ss1[0], 8)
     plot_stress(s_ss1, s_ns1, input_folder, './figures/stress/', 'lowlow'+str(spec_length))
 
+comm='''
 #ss2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 1000, 2000, 'true', 'true', 8])
 ss2=[]
 [ns2]=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 1000, 2000, 'false', 'false', 8])
@@ -63,9 +67,11 @@ for i, ss in enumerate(ss2):
     #print(s_ns1)
     spec_length = get_field(s_ss1[0], 8)
     plot_stress(s_ss1, s_ns1, input_folder, './figures/stress/', 'highhigh'+str(spec_length))
+'''
 
 ss3=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 1000, 40000, 'true', 'true', 8])
-[ns3]=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 1000, 40000, 'false', 'false', 8])
+#[ns3]=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 1000, 40000, 'false', 'false', 8])
+ns3=[]
 for i, ss in enumerate(ss3):
     s_ss1 = sort_by_num(ss)
     s_ns1 = sort_by_num(ns3)
@@ -76,6 +82,7 @@ for i, ss in enumerate(ss3):
 
 
 #ss4=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 20000, 2000, 'true', 'true', 8])
+comm='''
 ss4=[]
 [ns4]=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 20000, 2000, 'false', 'false', 8])
 for i, ss in enumerate(ss4):
@@ -85,3 +92,4 @@ for i, ss in enumerate(ss4):
     #print(s_ns1)
     spec_length = get_field(s_ss1[0], 8)
     plot_stress(s_ss1, s_ns1, input_folder, './figures/stress/', 'lowhigh'+str(spec_length))
+'''

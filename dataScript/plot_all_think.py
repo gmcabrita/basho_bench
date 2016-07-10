@@ -38,14 +38,14 @@ def get_lists(root_folder, config_str):
 
     return config_list
 
-input_folder='./stat/2016-06-19-153051/tpcc/'
+input_folder='./stat/2016-06-20-163239/'
 output_folder='./figures/think/'
 bench_type='tpcc'
 dict1={'y_labels':'K txs/s', 'x_labels':False, 'y_lim':1, 'legend_type':'warehouse', 'commit_legend':['T0', 'T250', 'T500', 'T1000', 'T2000'], 'abort_legend':[], 'has_legend':True}
 
 dict1['title']='10% n, 80% p baseline'
 dict1['y_lim']=0.2
-base1=get_matching_series([input_folder, 'tpcc', 5, 7, 8, 10, 4])
+base1=get_matching_series([input_folder, 'tpcc', 3, 5, 7, 'false', 8, 10, 4])
 plot_multi_lines(input_folder, output_folder, bench_type, base1, 4, dict1)
 
 dict1['y_lim']=25
@@ -58,11 +58,15 @@ dict1['title']='10% n, 80% p, SL2'
 series2=get_matching_series([input_folder, 'tpcc', 5, 7, 2, 10, 4])
 plot_speedup_abort(input_folder, output_folder, bench_type, series2, base1, 4, dict1)
 
+dict1['title']='10% n, 80% p, SL8'
+series2=get_matching_series([input_folder, 'tpcc', 3, 5, 7, 'true', 8, 10, 4])
+plot_speedup_abort(input_folder, output_folder, bench_type, series2, base1, 4, dict1)
+
 #### 1% new-order, 9% payment
 dict1['title']='1% n, 9% p baseline'
 dict1['y_lim']=3
 dict1['y_labels']='K txs/s'
-base2=get_matching_series([input_folder, 'tpcc', 5, 7, 8, 1, 4])
+base2=get_matching_series([input_folder, 'tpcc', 3, 5, 7, 'false', 8, 1, 4])
 plot_multi_lines(input_folder, output_folder, bench_type, base2, 4, dict1)
 
 dict1['title']='1% n, 9% p, SL1'
@@ -73,6 +77,10 @@ plot_speedup_abort(input_folder, output_folder, bench_type, series3, base2, 4, d
 
 dict1['title']='1% n, 9% p, SL2'
 series4=get_matching_series([input_folder, 'tpcc', 5, 7, 2, 1, 4])
+plot_speedup_abort(input_folder, output_folder, bench_type, series4, base2, 4, dict1)
+
+dict1['title']='1% n, 9% p, SL8'
+series4=get_matching_series([input_folder, 'tpcc', 3, 5, 7, 'true', 8, 1, 4])
 plot_speedup_abort(input_folder, output_folder, bench_type, series4, base2, 4, dict1)
 
 #### 9% new-order, 1% payment
@@ -92,6 +100,9 @@ dict1['title']='9% n, 1% p, SL2'
 series6=get_matching_series([input_folder, 'tpcc', 5, 7, 2, 9, 4])
 plot_speedup_abort(input_folder, output_folder, bench_type, series6, base3, 4, dict1)
 
+#dict1['title']='9% n, 1% p, SL8'
+#plot_speedup_abort(input_folder, output_folder, bench_type, series6, base3, 4, dict1)
+
 #### 80% new-order, 10% payment
 dict1['title']='80% n, 10% p baseline'
 dict1['y_lim']=0.3
@@ -109,21 +120,22 @@ dict1['title']='80% n, 10% p, SL2'
 series8=get_matching_series([input_folder, 'tpcc', 5, 7, 2, 80, 4])
 plot_speedup_abort(input_folder, output_folder, bench_type, series8, base4, 4, dict1)
 
-input_folder='./stat/2016-06-19-153051/rubis/'
+
+input_folder='./stat/2016-06-20-165624/'
 output_folder='./figures/think/'
 bench_type='rubis'
 dict1={'title':'Rubis SL1', 'no_title':True, 'x_labels':False, 'y_labels':False, 'y_lim':5, 'legend_type':'warehouse', 'commit_legend':['T0', 'T250', 'T500', 'T1000', 'T2000'], 'abort_legend':[], 'has_legend':True}
 
 dict1['title']='rubis baseline'
 dict1['y_lim']=5
-base1=get_matching_series([input_folder, 'rubis', 5, 8, 4])
+base1=get_matching_series([input_folder, 'rubis', 5, 0, 4])
 plot_multi_lines(input_folder, output_folder, bench_type, base1, 4, dict1)
 
-dict1['y_lim']=10
+dict1['y_lim']=25
 dict1['title']='rubis SL1'
 series1=get_matching_series([input_folder, 'rubis', 5, 1, 4])
 plot_speedup_abort(input_folder, output_folder, bench_type, series1, base1, 4, dict1)
 
-dict1['title']='rubis SL2'
-series2=get_matching_series([input_folder, 'rubis', 5, 2, 4])
+dict1['title']='rubis SL8'
+series2=get_matching_series([input_folder, 'rubis', 5, 8, 4])
 plot_speedup_abort(input_folder, output_folder, bench_type, series2, base1, 4, dict1)

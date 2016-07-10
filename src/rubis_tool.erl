@@ -3,7 +3,7 @@
 -include("rubis.hrl").
 
 -export([random_num/2, get_key/2, now_nsec/0, non_uniform_random/4, 
-        create_item/10, create_bid/6, create_user/9, 
+        create_item/10, create_bid/6, create_user/9, get_think_time/2, 
         load_transition/0, get_next_state/3, create_comment/6, create_buy_now/4, 
 		translate_op/1]).
 
@@ -38,6 +38,11 @@ find_next_state([H|T], Num, ProbAcc, Acc, Current) ->
         false -> find_next_state(T, Num, ProbAcc+H, Acc+1, Current)
     end.
 
+get_think_time({_, OpTag}, T) ->
+    ThinkTime = dict:fetch({sleep, OpTag}, T),
+    %lager:info("In op ~p, going to think for ~w", [translate_op(OpTag), ThinkTime]),
+    ThinkTime.
+
 load_transition() ->
     FileName = basho_bench_config:get(transition_file),
     %NumCols = 27,
@@ -47,36 +52,41 @@ load_transition() ->
     io:get_line(Device, ""),
     io:get_line(Device, ""),
     _L = droplast(io:get_line(Device, "")),
-    Dict = get_all_lines(Device, dict:new(), NumRows, 0),
+    Dict = get_all_lines(Device, dict:new(), NumRows, 1),
     %lager:info("Info ~p", [dict:to_list(Dict)]),
     file:close(Device),
-    L1 = dict:to_list(Dict),
+    {Transit, Sleep} = filter_dict(Dict),
     ND0 = lists:foldl(fun({Num, L}, D) -> 
                Sum = lists:sum(L),
-               %lager:info("Line num is ~w, Sum is ~w, Line is ~p", [Num, Sum, L]),
                NewList = lists:foldl(fun(Elem, ProbList) -> [(Elem/Sum)|ProbList] end, [], L),
-               %lager:info("Line num is ~w, Sum is ~w, new line is ~p", [Num, Sum, lists:reverse(NewList)]),
                dict:store(Num, lists:reverse(NewList), D)
-                end,  dict:new(), L1),
+                end, dict:new(), Transit),
 
     ND = dict:fold(fun(K, V, D) ->
             case lists:nth(NumRows-1, V) of
                 0 -> dict:store(K, {not_back, V}, D);
                 _ -> dict:store(K, {back, V}, D)
             end end, dict:new(), ND0),
-    %lists:foreach(fun(N) ->
-    %    lager:info("~w", [dict:fetch(N, ND)])
-    %            end,  lists:seq(1, 27)),
-    %lager:info("Info ~p", [dict:to_list(ND)]),
-    ND.
+    SleepDict = dict:from_list(Sleep),
+    dict:merge(fun(_Key, V1, V2) -> V1 ++ V2 end, ND, SleepDict).
+    %lager:info("Merge Dict is ~w", [dict:to_list(MergeD)]),
+    %MergeD.
 
-get_all_lines(Device, Dict, NumRows, LineNum) when NumRows == LineNum + 1 ->
+filter_dict(Dict) ->
+    dict:fold(fun(K, V, {L1, L2}) -> 
+                case K of {sleep, _} -> {L1, [{K, V}|L2]};
+                           _ -> {[{K, V}|L1], L2}
+                end
+              end, {[], []}, Dict).
+
+get_all_lines(Device, Dict, NumRows, LineNum) when NumRows == LineNum ->
     case io:get_line(Device, "") of
         Line0 -> 
             %lager:info("Last line is ~p", [Line0]),
             Line = droplast(Line0),
             [_CurrentGo|Splitted0] = re:split(Line, "\\t", [{return, list}]),            
             Splitted = droplast(Splitted0),
+            SleepTime = lists:last(Splitted0),
             %lager:info("Splitted ~p", [Splitted0]),
             {_, ND} = lists:foldl(fun(V, {Acc, D}) -> 
                     case V of
@@ -85,22 +95,27 @@ get_all_lines(Device, Dict, NumRows, LineNum) when NumRows == LineNum + 1 ->
                              [First|Rest] = List,
                              {Acc+1, dict:store(Acc, [(First+list_to_float(V))|Rest], D)}
                     end end, {1, Dict}, Splitted),
-            ND
+            dict:store({sleep, LineNum}, list_to_integer(SleepTime), ND)
     end;
 get_all_lines(Device, Dict, NumRows, LineNum) ->
     case io:get_line(Device, "") of
         eof -> Dict;
         Line0 -> 
+            %lager:info("Org line is ~p", [Line0]),
             Line = droplast(Line0),
+            %lager:info("Dropped line is ~p", [Line]),
             [_CurrentGo|Splitted0] = re:split(Line, "\\t", [{return, list}]),            
             Splitted = droplast(Splitted0),
+            SleepTime = lists:last(Splitted0),
+            %lager:info("Sleep time is ~p", [SleepTime]),
             {_, ND} = lists:foldl(fun(V, {Acc, D}) -> 
                     %Header = lists:nth(Acc, Headers),
                     case V of
                         "0" -> {Acc+1, dict:append(Acc, 0, D)};
                         _ -> {Acc+1, dict:append(Acc, list_to_float(V), D)}
                     end end, {1, Dict}, Splitted),
-            get_all_lines(Device, ND, NumRows, LineNum+1)
+            ND1 = dict:store({sleep, LineNum}, list_to_integer(SleepTime), ND),
+            get_all_lines(Device, ND1, NumRows, LineNum+1)
     end.
 
 non_uniform_random(Type, X, Min, Max) ->

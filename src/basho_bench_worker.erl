@@ -116,15 +116,17 @@ init([SupChild, Id]) ->
                 _ -> false
             end,
     {ToDoOp, Transition} = case basho_bench_config:get(transition, false) of
-                true -> {{[], 1}, rubis_tool:load_transition()}; 
-                _ -> {false, undef} 
+                true -> LoadTransition = rubis_tool:load_transition(), 
+                     case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time({1,1}, LoadTransition));
+                                         _ -> timer:sleep(ThinkTime)
+                     end,
+                     {{[], 1}, LoadTransition}; 
+                _ -> {Info, FirstOpTag} = element(random:uniform(size(Ops)), Ops), 
+                     case ThinkTime of tpcc -> timer:sleep(tpcc_tool:get_key_time(FirstOpTag));
+                                       _ -> timer:sleep(ThinkTime)
+                     end,
+                     {{Info, FirstOpTag}, undef}
             end,
-
-    %L = dict:to_list(Transition),
-    %lists:foreach(fun({Num, {_, TList}}) ->
-    %                  AccV = lists:foldl(fun(V, Acc) -> Acc+V end, 0, TList),
-    %                  lager:info("Num is ~w, Sum is ~w", [Num, AccV])
-    %              end, L), 
 
     %lager:info("Transition is ~w", [dict:to_list(Transition)]),
     %% Finally, initialize key and value generation. We pass in our ID to the
@@ -308,53 +310,48 @@ worker_next_op2(State, OpTag) ->
    catch (State#state.driver):run(OpTag, State#state.keygen, State#state.valgen,
                                   State#state.driver_state).
 worker_next_op(State) ->
-    ToDo = case State#state.retry of 
-                true ->
-                    case State#state.todo_op of
-                        false -> 
-                            timer:sleep(State#state.think_time),
-                            element(random:uniform(State#state.ops_len), State#state.ops);
-                        Op ->  Op
-                    end;
-                false ->
-                    ST = State#state.transition,
-                    timer:sleep(State#state.think_time),
-                    case ST of
-                        undef ->
-                            element(random:uniform(State#state.ops_len), State#state.ops);
-                        _ ->
-                            %% Stick to register user
-                            State#state.todo_op
-                    end
-            end,
+    Transition = State#state.transition,
+    ToDo = State#state.todo_op,
+    ThinkTime = State#state.think_time,
     {PreviousOps, OpTag} = ToDo,
     TranslatedOp = rubis_tool:translate_op(OpTag),
-    %lager:warning("Current ToDo is ~w", [ToDo]),
-    %lager:warning("Current Op is ~w", [TranslatedOp]),
     Start = os:timestamp(),
     Result = worker_next_op2(State, TranslatedOp),
     ElapsedUs = erlang:max(0, timer:now_diff(os:timestamp(), Start)),
     case Result of
         {prev_state, DriverState} ->
             case PreviousOps of
-                [] -> {ok, State#state {driver_state = DriverState, todo_op={[], 1}}};
+                [] ->
+                    case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time({1,1}, Transition));
+                                        _ -> timer:sleep(ThinkTime)
+                    end, 
+                    {ok, State#state {driver_state = DriverState, todo_op={[], 1}}};
                 [H|T] ->
+                    case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time({H,H}, Transition));
+                                        _ -> timer:sleep(ThinkTime)
+                    end,
                     {ok, State#state {driver_state = DriverState, todo_op={T, H}}}
             end;
         {Res, DriverState} when Res == ok orelse element(1, Res) == ok ->
             basho_bench_stats:op_complete({TranslatedOp, TranslatedOp}, Res, ElapsedUs),
-            T = State#state.transition,
-            case T of
+            case Transition of %% Probably tpc-c
                 undef -> 
-                    case State#state.cdf of false -> {ok, State#state { driver_state = DriverState, todo_op=false}};
-                                {Count, Table} -> 
-                                                    ets:insert(Table, {Count+1, ElapsedUs}),
-                                                    {ok, State#state{driver_state = DriverState, todo_op=false, cdf={Count+1, Table}}}
+                    {Info, NewOpTag} = element(random:uniform(State#state.ops_len), State#state.ops),
+                    case ThinkTime of tpcc -> timer:sleep(tpcc_tool:get_think_time(OpTag)), timer:sleep(tpcc_tool:get_key_time(NewOpTag));
+                                      _ -> timer:sleep(State#state.think_time)
+                    end,
+                    case State#state.cdf of false -> {ok, State#state { driver_state = DriverState, todo_op={Info, NewOpTag}}};
+                                {Count, Table} ->    ets:insert(Table, {Count+1, ElapsedUs}),
+                                                     {ok, State#state{driver_state = DriverState, todo_op={Info, NewOpTag}, cdf={Count+1, Table}}}
                     end;
-                _ ->
+                _ -> %% Rubis. Decide next op already
                     {PreviousStates, CurrentState} = State#state.todo_op,
-                    NextToDo = rubis_tool:get_next_state(PreviousStates, T, CurrentState), 
-                    timer:sleep(State#state.think_time),
+                    NextToDo = rubis_tool:get_next_state(PreviousStates, Transition, CurrentState), 
+                    %{_Hist, NextToDoOp} = NextToDo,
+                    %lager:info("NextToDo is ~p, NextToDoOp is ~w", [NextToDo, NextToDoOp]),
+                    case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time(NextToDo, Transition));
+                                      _ -> timer:sleep(ThinkTime)
+                    end,
                     {ok, State#state { driver_state = DriverState, todo_op=NextToDo}}
             end;
         {Res, DriverState} when Res == silent orelse element(1, Res) == silent ->

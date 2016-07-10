@@ -6,7 +6,30 @@
         create_item/1, create_warehouse/1, create_stock/2, create_district/2, name_by_num/1,
         create_customer/6, create_customer_lookup/3, create_history/4, create_history/8, 
 		create_order/6, create_order/7, create_orderline/6, create_orderline/9, 
-		create_neworder/3, get_key_by_param/2, random_data/0]).
+		create_neworder/3, get_key_by_param/2, random_data/0, get_key_time/1, get_think_time/1]).
+
+get_key_time(new_order) -> 
+    %lager:info("New order, going to key for 18000"),
+    18000;
+get_key_time(payment) -> 
+    %lager:info("Payment, going to key for 3000"),
+    3000;
+get_key_time(order_status) -> 
+    %lager:info("Order status, going to key for 2000"),
+    2000.
+
+get_think_time(new_order) -> 
+    T = trunc(-math:log(random:uniform())*12000),
+    %lager:info("New order, going to think for ~w", [T]),
+    T;
+get_think_time(payment) -> 
+    T = trunc(-math:log(random:uniform())*12000),
+    %lager:info("Payment, going to think for ~w", [T]),
+    T;
+get_think_time(order_status) -> 
+    T = trunc(-math:log(random:uniform())*10000),
+    %lager:info("Order status, going to think for ~w", [T]),
+    T.
 
 last_name(Num) ->
     lists:nth((Num div 100) rem ?NUM_NAMES +1, ?NAMES) ++
