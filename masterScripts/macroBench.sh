@@ -29,7 +29,7 @@ function runRubis {
 
 ## Just to test.. 
 seq="1"
-threads="1000 2000 5000 10000 20000"
+threads="5000 10000 20000"
 workloads="1 2 3 4"
 length="8"
 warehouse="2"
@@ -113,6 +113,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 
 sudo ./script/configBeforeRestart.sh 64 $do_specula 0 $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
+threads="1000 2000 5000 10000 20000"
 
 
 for t in $threads

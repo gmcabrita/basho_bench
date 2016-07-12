@@ -30,7 +30,7 @@ echo $1 $2 $3 $4 $5 $6 > $Folder/config
 touch $Folder/$8
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/rubis.config" &
+sleep 10 && ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/rubis.config" &
 ./script/clean_data.sh
 ./script/load.sh `head -1 ./script/allnodes` rubis 1 
 wait
