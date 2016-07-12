@@ -41,7 +41,7 @@ echo tpcc concurrent $1 >> config
 echo tpcc access_master $2  >> config
 echo tpcc access_slave $3 >> config
 echo load concurrent 4 >> config
-echo tpcc duration 60 >> config
+#echo tpcc duration 60 >> config
 echo tpcc think_time $think_time >> config
 echo tpcc specula $4 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config

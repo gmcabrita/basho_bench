@@ -17,7 +17,7 @@ function runNTimes {
 
 do_specula=true
 seq="1"
-threads="16"
+threads="64 128 256 512"
 #threads="4 128 180"
 t=8
 contentions="1 2 3 4"

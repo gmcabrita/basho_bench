@@ -15,7 +15,7 @@ echo rubis access_master $2  >> config
 echo rubis access_slave $3 >> config
 echo rubis think_time $5 >> config
 echo load concurrent 4 >> config
-echo rubis duration 60 >> config
+#echo rubis duration 60 >> config
 echo rubis specula $4 >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
