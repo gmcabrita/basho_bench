@@ -116,7 +116,7 @@ get_replicas(NodesId, ReplList, AllNodes) ->
                    [M] = [L || {N, L} <- ReplList, N == Node],
                    lists:foldl(fun(N, S) -> sets:add_element(index(N, AllNodes), S) end, Set, M)
             end, sets:new(), NodesId),
-    lager:info("Rs is ~w", [sets:to_list(RS)]),
+    %lager:info("Rs is ~w", [sets:to_list(RS)]),
     sets:to_list(RS).
 
 get_pid(TargetNode, Name) ->

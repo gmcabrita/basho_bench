@@ -71,6 +71,7 @@ non_uniform_random(Type, X, Min, Max) ->
     A = random_num(0, X),
     B = random_num(Min, Max),
     Bor = A bor B,
+    lager:info("A is ~w, B is ~w, Bor is ~w, Max ~w, Min ~w", [A, B, Bor, Max, Min]),
     (( Bor + Type) rem (Max - Min + 1)) + Min.
 
 random_num(Start, End) ->
