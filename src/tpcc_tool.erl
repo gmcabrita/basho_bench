@@ -19,15 +19,15 @@ get_key_time(order_status) ->
     2000.
 
 get_think_time(new_order) -> 
-    T = trunc(-math:log(random:uniform())*12000),
+    T = trunc(min(-math:log(random:uniform()), 10000)*12000),
     %lager:info("New order, going to think for ~w", [T]),
     T;
 get_think_time(payment) -> 
-    T = trunc(-math:log(random:uniform())*12000),
+    T = trunc(min(-math:log(random:uniform()), 10000)*12000),
     %lager:info("Payment, going to think for ~w", [T]),
     T;
 get_think_time(order_status) -> 
-    T = trunc(-math:log(random:uniform())*10000),
+    T = trunc(min(-math:log(random:uniform()), 10000)*10000),
     %lager:info("Order status, going to think for ~w", [T]),
     T.
 
