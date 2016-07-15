@@ -43,7 +43,7 @@
                  shutdown_on_error,
                  ops,
                  todo_op,
-                 cdf,
+                 %cdf,
                  retry,
                  transition,
                  ops_len,
@@ -110,11 +110,11 @@ init([SupChild, Id]) ->
                 Time -> Time
             end,
 
-    CDF = case basho_bench_config:get(cdf, false) of
-                true -> Tab = ets:new(list_to_atom(integer_to_list(Id)), [public, set]),
-                        {0, Tab};
-                _ -> false
-            end,
+    %CDF = case basho_bench_config:get(cdf, false) of
+    %            true -> Tab = ets:new(list_to_atom(integer_to_list(Id)), [public, set]),
+    %                    {0, Tab};
+    %            _ -> false
+    %        end,
     {ToDoOp, Transition} = case basho_bench_config:get(transition, false) of
                 true -> LoadTransition = rubis_tool:load_transition(), 
                      %case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time({1,1}, LoadTransition));
@@ -135,7 +135,7 @@ init([SupChild, Id]) ->
     ValGen = basho_bench_valgen:new(basho_bench_config:get(value_generator), Id),
 
     State = #state { id = Id, keygen = KeyGen, valgen = ValGen,
-                     driver = Driver, cdf=CDF,
+                     driver = Driver, %cdf=CDF,
                      shutdown_on_error = ShutdownOnError,
                      ops = Ops, ops_len = size(Ops),
                      rng_seed = RngSeed,
@@ -214,18 +214,18 @@ handle_info({'CLEANUP', nothing}, State=#state{ worker_pid = WorkerPid }) ->
     end.
 
 terminate(_Reason, State) ->
-    case State#state.cdf of false -> ok;
-                _ ->
-                    {_, Tab} = State#state.cdf,
-                    List = ets:tab2list(Tab),
-                    FileName = integer_to_list(State#state.id) ++ "latency",
-                    {ok, File} = file:open(FileName, [raw, binary, write]),
-                    lists:foreach(fun({_, Lat}) ->
-                                  %lager:info("Lat is ~p", [Lat]),
-                                  file:write(File,  io_lib:format("~w\n", [Lat]))
-                                  end, List),
-                    file:close(File)
-    end,
+    %case State#state.cdf of false -> ok;
+    %            _ ->
+    %                {_, Tab} = State#state.cdf,
+    %                List = ets:tab2list(Tab),
+    %                FileName = integer_to_list(State#state.id) ++ "latency",
+    %                {ok, File} = file:open(FileName, [raw, binary, write]),
+    %                lists:foreach(fun({_, Lat}) ->
+    %                              %lager:info("Lat is ~p", [Lat]),
+    %                              file:write(File,  io_lib:format("~w\n", [Lat]))
+    %                              end, List),
+    %                file:close(File)
+    %end,
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -340,10 +340,11 @@ worker_next_op(State) ->
                     case ThinkTime of tpcc -> timer:sleep(tpcc_tool:get_think_time(OpTag)), timer:sleep(tpcc_tool:get_key_time(NewOpTag));
                                       _ -> timer:sleep(State#state.think_time)
                     end,
-                    case State#state.cdf of false -> {ok, State#state { driver_state = DriverState, todo_op={Info, NewOpTag}}};
-                                {Count, Table} ->    ets:insert(Table, {Count+1, ElapsedUs}),
-                                                     {ok, State#state{driver_state = DriverState, todo_op={Info, NewOpTag}, cdf={Count+1, Table}}}
-                    end;
+	            {ok, State#state { driver_state = DriverState, todo_op={Info, NewOpTag}}};
+                    %case State#state.cdf of false -> {ok, State#state { driver_state = DriverState, todo_op={Info, NewOpTag}}};
+                    %            {Count, Table} ->    ets:insert(Table, {Count+1, ElapsedUs}),
+                    %                                 {ok, State#state{driver_state = DriverState, todo_op={Info, NewOpTag}, cdf={Count+1, Table}}}
+                    %end;
                 _ -> %% Rubis. Decide next op already
                     {PreviousStates, CurrentState} = State#state.todo_op,
                     NextToDo = rubis_tool:get_next_state(PreviousStates, Transition, CurrentState), 
