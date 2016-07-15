@@ -213,7 +213,7 @@ handle_info({'CLEANUP', nothing}, State=#state{ worker_pid = WorkerPid }) ->
 	    {noreply, State}
     end.
 
-terminate(_Reason, State) ->
+terminate(_Reason, _State) ->
     %case State#state.cdf of false -> ok;
     %            _ ->
     %                {_, Tab} = State#state.cdf,
@@ -461,7 +461,7 @@ max_worker_run_loop(State) ->
                     max_worker_run_loop(State2)
             end;
         ExitReason ->
-            lager:info("CDF is ~w", [State#state.cdf]),
+            %lager:info("CDF is ~w", [State#state.cdf]),
             exit(ExitReason)
     end.
 

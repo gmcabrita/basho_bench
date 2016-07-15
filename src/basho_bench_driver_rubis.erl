@@ -90,7 +90,7 @@ new(Id) ->
     %_PbPorts = basho_bench_config:get(antidote_pb_port),
     MyNode = basho_bench_config:get(antidote_mynode),
     Cookie = basho_bench_config:get(antidote_cookie),
-    Concurrent = basho_bench_config:get(Concurrent),
+    Concurrent = basho_bench_config:get(concurrent),
     IPs = basho_bench_config:get(antidote_pb_ips),
     ToSleep = basho_bench_config:get(to_sleep),
     MasterToSleep = basho_bench_config:get(master_to_sleep),
@@ -130,18 +130,21 @@ new(Id) ->
     MyTxServer = case length(IPs) of 1 ->
     		     case Id of 1 -> timer:sleep(MasterToSleep),
     		     		ets:new(meta_info, [set, named_table]),
-	             		NameLists = lists:foldl(fun(WorkerId, Acc) -> WorkerTargetNode = lists:nth((WorkerId rem length(IPs)+1), IPs),
-							[list_to_atom(atom_to_list(WorkerTargetNode) ++ "-cert-" ++ integer_to_list((WorkerId-1) div length(IPs)+1)))|Acc]
-					    end, [], lists:seq(1, Concurrent)),
+	             		NameLists = lists:foldl(fun(WorkerId, Acc) -> WorkerTargetNode = lists:nth(WorkerId rem length(IPs)+1, IPs),
+							[list_to_atom(atom_to_list(WorkerTargetNode) ++ "-cert-" ++ integer_to_list((WorkerId-1) div length(IPs)+1))|Acc]
+					    		end, [], lists:seq(1, Concurrent)),
     		     		Pids = locality_fun:get_pids(TargetNode, lists:reverse(NameLists)), 
-		     		lists:foldl(fun(P, Acc) -> ets:insert(meta_info, {Acc, P}), Acc+1, 1, Pids),
+		     		lists:foldl(fun(P, Acc) -> ets:insert(meta_info, {Acc, P}), Acc+1 end, 1, Pids),
 		     		hd(Pids);
     	       	            _ ->  [{Id, Pid}] = ets:lookup(meta_info, Id),
 		                  Pid
 		    end;
 		_ ->
-		    MyTxServer = locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode)
-            						++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
+		    case Id of 1 -> timer:sleep(MasterToSleep);
+			       _ -> 
+		    		    locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode)
+            						++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)))
+		    end
     end,
     lager:info("Id ~p, TxServer is ~p", [Id, MyTxServer]),
 
@@ -162,7 +165,7 @@ new(Id) ->
     PercentResvItem = dict:fetch(database_percentage_of_items_with_reserve_price, ConfigDict) div dict:fetch(reduce_factor, ConfigDict), 
     PercentUniqueItem = dict:fetch(database_percentage_of_unique_items, ConfigDict) div dict:fetch(reduce_factor, ConfigDict), 
     MaxDuration = dict:fetch(max_duration, ConfigDict) div dict:fetch(reduce_factor, ConfigDict), 
-    TabName = list_to_atom(pid_to_list(MyTxServer)),
+    %TabName = list_to_atom(pid_to_list(MyTxServer)),
     %ets:new(TabName, [set, named_table, {read_concurrency,false}]),
     %ets:insert(TabName, {master, 0}),
     %ets:insert(TabName, {slave, 0}),
