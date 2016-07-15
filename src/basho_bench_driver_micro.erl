@@ -62,6 +62,8 @@
                 local_hot_rate,
                 remote_hot_range,
                 remote_hot_rate,
+                cache_hot_range,
+                cache_hot_rate,
 		        specula,
                 local_commit,
                 remote_commit,
@@ -110,6 +112,8 @@ new(Id) ->
     LocalHotRate = basho_bench_config:get(local_hot_rate),
     RemoteHotRange = basho_bench_config:get(remote_hot_range),
     RemoteHotRate = basho_bench_config:get(remote_hot_rate),
+    CacheHotRange = basho_bench_config:get(cache_hot_range, LocalHotRange),
+    CacheHotRate = basho_bench_config:get(cache_hot_rate, LocalHotRate),
     Deter = basho_bench_config:get(deter),
 
     case net_kernel:start(MyNode) of
@@ -181,6 +185,8 @@ new(Id) ->
                local_hot_rate=LocalHotRate,
                remote_hot_range=RemoteHotRange,
                remote_hot_rate=RemoteHotRate,
+               cache_hot_range=CacheHotRange,
+               cache_hot_rate=CacheHotRate,
                expand_part_list = ExpandPartList,
                hash_length = HashLength,   
                num_nodes = NumNodes,
@@ -192,6 +198,7 @@ new(Id) ->
 run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter, total_key=TotalKey,
         dc_rep_ids=DcRepIds, node_id=MyNodeId,  hash_dict=HashDict, no_rep_ids=NoRepIds, prob_access=ProbAccess,
         local_hot_rate=LocalHotRate, local_hot_range=LocalHotRange, remote_hot_rate=RemoteHotRate, remote_hot_range=RemoteHotRange,
+        cache_hot_range=CacheHotRange, cache_range=CRange, cache_hot_rate=CacheHotRate,
         master_num=MNum, slave_num=SNum, master_range=MRange, slave_range=SRange, local_commit=LocalCommit, local_abort=LocalAbort,
         remote_commit=RemoteCommit, remote_abort=RemoteAbort, specula=Specula, read=Read})->
     RT1 = os:timestamp(),
@@ -240,7 +247,7 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
                                                                             {Ind+1, dict:store({DcNode, Key}, V+Add, WS)}
                                                                         end;
                                                             false -> OtherDcNode = lists:nth(Rand rem NoRepLen +1, NoRepIds),
-                                                                     Key = hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate),
+                                                                     Key = hot_or_not(MRange+SRange+1, CacheHotRange, CRange, CacheHotRate),
                                                                      V = read_from_node(TxServer, TxId, Key, OtherDcNode, MyNodeId, PartList, HashDict),
                                                                      {Ind, dict:store({OtherDcNode, Key}, V+Add, WS)} 
                                                          end

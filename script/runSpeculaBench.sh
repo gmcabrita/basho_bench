@@ -100,5 +100,9 @@ wait
 #    fi
 #fi
 
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
+#./script/copyFromAll.sh latency_bench ./basho_bench/tests/current/ $Folder
+./script/copyFromAll.sh latency_final ./antidote/rel/antidote/ $Folder
+./script/copyFromAll.sh latency_percv ./antidote/rel/antidote/ $Folder
 sudo pkill -P $$
 ./script/verifySame.sh $Folder 

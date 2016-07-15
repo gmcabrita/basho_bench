@@ -182,7 +182,10 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     ### For plt2
     #plt.subplot(212)
     #xlabels=['NOSPEC', 'SL1','SL2','SL4','SL8', 'SL16']
-    xlabels=['16 cls', '32 cls', '64 cls', '128 cls']
+    if 'x_labels' in plot_dict:
+        xlabels=plot_dict['x_labels']
+    else:
+        xlabels=['16 cls', '32 cls', '64 cls', '128 cls']
     ax2.set_xticks([i for i in range(num_xticks)])
     ax2.set_xticklabels(xlabels, minor=False, fontsize=fsize)
 
