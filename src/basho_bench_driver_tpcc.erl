@@ -149,7 +149,6 @@ new(Id) ->
                                                         ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)))
                     end
     end,
-    lager:info("Id ~p, TxServer is ~p", [Id, MyTxServer]),
     %case Id of 1 -> timer:sleep(MasterToSleep);
    % 	       _ -> timer:sleep(ToSleep)
    % end,

@@ -146,7 +146,6 @@ new(Id) ->
             						++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)))
 		    end
     end,
-    lager:info("Id ~p, TxServer is ~p", [Id, MyTxServer]),
 
     {OtherMasterIds, DcRepIds, DcNoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),

@@ -85,10 +85,10 @@ wait
 #timeout 200 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 ./script/gatherThroughput.sh $Folder &
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
-./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 
-./script/copyFromAll.sh payment_latencies.csv ./basho_bench/tests/current/ $Folder & 
-./script/copyFromAll.sh order-status_latencies.csv ./basho_bench/tests/current/ $Folder & 
-./script/copyFromAll.sh txn_latencies.csv ./basho_bench/tests/current/ $Folder & 
+#./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 
+#./script/copyFromAll.sh payment_latencies.csv ./basho_bench/tests/current/ $Folder & 
+#./script/copyFromAll.sh order-status_latencies.csv ./basho_bench/tests/current/ $Folder & 
+#./script/copyFromAll.sh txn_latencies.csv ./basho_bench/tests/current/ $Folder & 
 wait
 #./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
@@ -100,6 +100,9 @@ wait
 #        timeout 60 ./script/fetchAndParseStat.sh $Folder
 #    fi
 #fi
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
+./script/copyFromAll.sh latency_final ./antidote/rel/antidote/ $Folder
+./script/copyFromAll.sh latency_percv ./antidote/rel/antidote/ $Folder
 
 sudo pkill -P $$
 ./script/verifySame.sh $Folder 
