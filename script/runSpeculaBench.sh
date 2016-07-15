@@ -47,8 +47,9 @@ echo tpcc specula $4 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*400*WPerDc+14000))
-ToSleep=$(((8000 + 500*NumNodes) / ${1}))
+MasterToSleep=$((NumNodes*400*WPerDc+4000))
+ToSleep=$(((18000 + 600*NumNodes) / ${1}))
+ToSleep=$(($ToSleep>200?$ToSleep:200))
 echo tpcc master_to_sleep $MasterToSleep >> config
 echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
@@ -69,7 +70,7 @@ echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10} ${11}  > $Folder/config
 touch $Folder/$seq
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sleep 10 && ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config" &
+./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config" &
 #./script/parallel_command.sh "`cat ./script/allnodes | head -2`" "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config" &
 ./script/clean_data.sh
 ./script/load.sh `head -1 ./script/allnodes` tpcc $WPerDc
