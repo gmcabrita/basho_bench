@@ -41,7 +41,7 @@
                 c_c_last,
                 c_c_id,
                 c_ol_i_id,
-                my_table,
+                %my_table,
                 to_sleep,
                 hash_dict,
                 other_master_ids,
@@ -93,6 +93,7 @@ new(Id) ->
     ToSleep = basho_bench_config:get(to_sleep),
     MasterToSleep = basho_bench_config:get(master_to_sleep),
     Specula = basho_bench_config:get(specula),
+    Concurrent = basho_bench_config:get(concurrent),
    
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
@@ -128,34 +129,54 @@ new(Id) ->
     AllNodes = [N || {N, _} <- PartList],
     NodeId = index(TargetNode, AllNodes),
     NumNodes = length(AllNodes),
-    case Id of 1 -> timer:sleep(MasterToSleep);
-    	       _ -> timer:sleep(ToSleep)
+
+    MyTxServer = case length(IPs) of 1 ->
+                     case Id of 1 -> timer:sleep(MasterToSleep),
+                                ets:new(meta_info, [set, named_table]),
+                                NameLists = lists:foldl(fun(WorkerId, Acc) -> WorkerTargetNode = lists:nth(WorkerId rem length(IPs)+1, IPs),
+                                                        [list_to_atom(atom_to_list(WorkerTargetNode) ++ "-cert-" ++ integer_to_list((WorkerId-1) div length(IPs)+1))|Acc]
+                                                        end, [], lists:seq(1, Concurrent)),
+                                Pids = locality_fun:get_pids(TargetNode, lists:reverse(NameLists)), 
+                                lists:foldl(fun(P, Acc) -> ets:insert(meta_info, {Acc, P}), Acc+1 end, 1, Pids),
+                                hd(Pids);
+                            _ ->  [{Id, Pid}] = ets:lookup(meta_info, Id),
+                                  Pid
+                    end;
+                _ ->
+                    case Id of 1 -> timer:sleep(MasterToSleep);
+                               _ ->
+                                    locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode)
+                                                        ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)))
+                    end
     end,
-    MyTxServer = locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode) 
-            ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
+    %case Id of 1 -> timer:sleep(MasterToSleep);
+   % 	       _ -> timer:sleep(ToSleep)
+   % end,
+    %MyTxServer = locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode) 
+    %        ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
 
     {OtherMasterIds, DcRepIds, DcNoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
-    lager:info("OtherMasterId is ~w, DcRep Id is ~w", [OtherMasterIds, DcRepIds]),
+    %lager:info("OtherMasterId is ~w, DcRep Id is ~w", [OtherMasterIds, DcRepIds]),
 
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     %lager:info("Ex list is ~w", [ExpandPartList]),
     HashLength = length(ExpandPartList),
 
     %lager:info("Part list is ~w, hash dict is ~w",[PartList, dict:to_list(HashDict)]),
-    MyTable =ets:new(my_table, [private, set]),
-    Key1 = "C_C_LAST",
-    Key2 = "C_C_ID",
-    Key3 = "C_OL_I_ID",
-    Part1 = get_partition(Key1, ExpandPartList, HashLength),
-    Part2 = get_partition(Key2, ExpandPartList, HashLength),
-    Part3 = get_partition(Key3, ExpandPartList, HashLength),
-    {ok, C_C_LAST} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key1, Part1]),
-    {ok, C_C_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key2, Part2]),
-    {ok, C_OL_I_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key3, Part3]),
-	%C_C_LAST=10, C_C_ID=10, C_OL_I_ID=10,
+    %MyTable =ets:new(my_table, [private, set]),
+    %Key1 = "C_C_LAST",
+    %Key2 = "C_C_ID",
+    %Key3 = "C_OL_I_ID",
+    %Part1 = get_partition(Key1, ExpandPartList, HashLength),
+    %Part2 = get_partition(Key2, ExpandPartList, HashLength),
+    %Part3 = get_partition(Key3, ExpandPartList, HashLength),
+    %{ok, C_C_LAST} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key1, Part1]),
+    %{ok, C_C_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key2, Part2]),
+    %{ok, C_OL_I_ID} = rpc:call(TargetNode, tx_cert_sup, single_read, [MyTxServer, Key3, Part3]),
+    C_C_LAST=54, C_C_ID=68, C_OL_I_ID=1544,
     ItemRanges = init_item_ranges(NumNodes, ?NB_MAX_ITEM),
-    lager:info("Cclast ~w, ccid ~w, coliid ~w", [C_C_LAST, C_C_ID, C_OL_I_ID]),
+    %lager:info("Cclast ~w, ccid ~w, coliid ~w, item ranges are ~p", [C_C_LAST, C_C_ID, C_OL_I_ID, ItemRanges]),
     {ok, #state{time={1,1,1}, worker_id=Id,
                tx_server=MyTxServer,
                access_master=AccessMaster,
@@ -165,7 +186,7 @@ new(Id) ->
                part_list = PartList,
                hash_dict = HashDict1,
                w_per_dc=WPerNode,
-               my_table=MyTable,
+               %my_table=MyTable,
                other_master_ids = OtherMasterIds,
                dc_rep_ids = DcRepIds,
                no_rep_ids = DcNoRepIds,
@@ -247,8 +268,8 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
                     %            1 ->
                     %                -12345;
                     %            _ ->
+                    %lager:info("C_OL_I_ID is ~w, Min is  ~w", [C_OL_I_ID, Min]),
                     ItemId = tpcc_tool:non_uniform_random(C_OL_I_ID, ?A_OL_I_ID, Min, Max),
-                    %lager:info("MyDc is ~w, item warehouse id is ~w, Id is ~w", [DcId, WId, ItemId]),
                              %end,
                     Quantity = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
                     ItemKey = tpcc_tool:get_key_by_param({ItemId}, item),

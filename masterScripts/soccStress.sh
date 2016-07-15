@@ -17,10 +17,10 @@ function runNTimes {
 
 do_specula=true
 seq="1"
-threads="8 16 32 64"
+threads="64 128 256 512"
 #threads="4 128 180"
 t=8
-contentions="1 2"
+contentions="1 2 3 4"
 length="0"
 start_ind=1
 skipped=1
@@ -55,9 +55,9 @@ do_specula=true
 prob_access=t
 
 rm -rf ./config
-echo micro cdf true >> config
-echo micro duration 240 >> config
-echo ant cdf true >> ./config
+echo micro cdf false >> config
+echo micro duration 120 >> config
+echo ant cdf false >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
@@ -87,9 +87,9 @@ sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
-echo micro cdf true >> config
-echo ant cdf true >> ./config
-echo micro duration 90 >> config
+echo micro cdf false >> config
+echo ant cdf false >> ./config
+echo micro duration 120 >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 

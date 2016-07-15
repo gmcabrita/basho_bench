@@ -2,7 +2,7 @@
 
 -include("tpcc.hrl").
 
--export([get_locality_list/5, get_pid/2, replace_name_by_pid/2]).
+-export([get_locality_list/5, get_pid/2, get_pids/2, replace_name_by_pid/2]).
 
 get_locality_list(PartList, ReplList, NumDcs, MyNode, single_dc_read) ->
     %% The first is the list of partitions that replicated by nodes in your dc and being the primary replicas. 
@@ -116,11 +116,14 @@ get_replicas(NodesId, ReplList, AllNodes) ->
                    [M] = [L || {N, L} <- ReplList, N == Node],
                    lists:foldl(fun(N, S) -> sets:add_element(index(N, AllNodes), S) end, Set, M)
             end, sets:new(), NodesId),
-    lager:info("Rs is ~w", [sets:to_list(RS)]),
+    %lager:info("Rs is ~w", [sets:to_list(RS)]),
     sets:to_list(RS).
 
 get_pid(TargetNode, Name) ->
     rpc:call(TargetNode, tx_cert_sup, get_pid, [Name]).
+
+get_pids(TargetNode, Names) ->
+    rpc:call(TargetNode, tx_cert_sup, get_pids, [Names]).
 
 replace_name_by_pid(TargetNode, Dict) ->
     dict:fold(fun(Key, Value, NewDict) ->

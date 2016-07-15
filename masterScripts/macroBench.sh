@@ -29,8 +29,8 @@ function runRubis {
 
 ## Just to test.. 
 seq="1"
-threads="64 128 256 384 512"
-workloads=""
+threads="1000 2500 5000 7500 10000"
+workloads="1 2 3 4"
 length="8"
 warehouse="2"
 
@@ -52,18 +52,20 @@ AS=0
 specula_read=true
 do_specula=true
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_fast_repl_nodict
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
-echo micro cdf true >> config
-echo micro duration 180 >> config
+echo tpcc cdf true >> config
+echo tpcc duration 120 >> config
+echo rubis cdf true >> config
+echo rubis duration 120 >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 8 $do_specula 8 $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/configBeforeRestart.sh 8 $do_specula 8 $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
@@ -101,19 +103,20 @@ done
 specula_read=false
 do_specula=false
 len=0
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
-echo micro cdf true >> config
-echo micro duration 180 >> config
+echo tpcc cdf true >> config
+echo tpcc duration 120 >> config
+echo rubis cdf true >> config
+echo rubis duration 120 >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 sudo ./script/configBeforeRestart.sh 64 $do_specula 0 $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
-
 
 for t in $threads
 do  

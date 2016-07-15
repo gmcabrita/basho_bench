@@ -15,12 +15,13 @@ echo rubis access_master $2  >> config
 echo rubis access_slave $3 >> config
 echo rubis think_time $5 >> config
 echo load concurrent 4 >> config
-echo rubis duration 60 >> config
+#echo rubis duration 60 >> config
 echo rubis specula $4 >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*600+15000))
-ToSleep=$(((8000 + 600*NumNodes) / ${1}))
+MasterToSleep=$((NumNodes*600+5000))
+ToSleep=$(((18000 + 600*NumNodes) / ${1}))
+ToSleep=$(($ToSleep>200?$ToSleep:200))
 echo rubis master_to_sleep $MasterToSleep >> config
 echo rubis to_sleep $ToSleep >> config
 echo load duration 130 >> config
@@ -58,6 +59,9 @@ if [ $? -eq 124 ]; then
         timeout 60 ./script/fetchAndParseStat.sh $Folder
     fi
 fi
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
+./script/copyFromAll.sh latency_final ./antidote/rel/antidote/ $Folder
+./script/copyFromAll.sh latency_percv ./antidote/rel/antidote/ $Folder
 
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
 #./script/copyFromAll.sh latency_bench ./basho_bench/tests/current/ $Folder

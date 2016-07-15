@@ -41,14 +41,15 @@ echo tpcc concurrent $1 >> config
 echo tpcc access_master $2  >> config
 echo tpcc access_slave $3 >> config
 echo load concurrent 4 >> config
-echo tpcc duration 60 >> config
+#echo tpcc duration 60 >> config
 echo tpcc think_time $think_time >> config
 echo tpcc specula $4 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*400*WPerDc+14000))
-ToSleep=$(((8000 + 500*NumNodes) / ${1}))
+MasterToSleep=$((NumNodes*400*WPerDc+4000))
+ToSleep=$(((18000 + 600*NumNodes) / ${1}))
+ToSleep=$(($ToSleep>200?$ToSleep:200))
 echo tpcc master_to_sleep $MasterToSleep >> config
 echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
@@ -84,10 +85,10 @@ wait
 #timeout 200 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 ./script/gatherThroughput.sh $Folder &
 ./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
-./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 
-./script/copyFromAll.sh payment_latencies.csv ./basho_bench/tests/current/ $Folder & 
-./script/copyFromAll.sh order-status_latencies.csv ./basho_bench/tests/current/ $Folder & 
-./script/copyFromAll.sh txn_latencies.csv ./basho_bench/tests/current/ $Folder & 
+#./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 
+#./script/copyFromAll.sh payment_latencies.csv ./basho_bench/tests/current/ $Folder & 
+#./script/copyFromAll.sh order-status_latencies.csv ./basho_bench/tests/current/ $Folder & 
+#./script/copyFromAll.sh txn_latencies.csv ./basho_bench/tests/current/ $Folder & 
 wait
 #./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
@@ -99,6 +100,9 @@ wait
 #        timeout 60 ./script/fetchAndParseStat.sh $Folder
 #    fi
 #fi
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
+./script/copyFromAll.sh latency_final ./antidote/rel/antidote/ $Folder
+./script/copyFromAll.sh latency_percv ./antidote/rel/antidote/ $Folder
 
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
 #./script/copyFromAll.sh latency_bench ./basho_bench/tests/current/ $Folder
