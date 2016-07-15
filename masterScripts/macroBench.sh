@@ -29,8 +29,8 @@ function runRubis {
 
 ## Just to test.. 
 seq="1"
-threads="5000 7500 10000"
-workloads="1 2 3 4"
+threads="1000 2500 5000 7500"
+workloads=""
 length="8"
 warehouse="2"
 
@@ -64,9 +64,10 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 8 $do_specula 8 $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
-
+#sudo ./script/configBeforeRestart.sh 8 $do_specula 8 $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
+if [ 1 == 2 ];
+then
 for t in $threads
 do
     for think_time in $think_times
@@ -99,14 +100,15 @@ do
         done
     done
 done
+fi
 
 specula_read=false
 do_specula=false
 len=0
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
-threads="1000 2500 5000 7500 10000"
+threads="1000 2500 5000 7500"
 rm -rf ./config
 echo tpcc cdf true >> config
 echo tpcc duration 120 >> config
@@ -116,8 +118,8 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 64 $do_specula 0 $rep $parts $specula_read 
-sudo ./script/restartAndConnect.sh
+#sudo ./script/configBeforeRestart.sh 64 $do_specula 0 $rep $parts $specula_read 
+#sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do  
