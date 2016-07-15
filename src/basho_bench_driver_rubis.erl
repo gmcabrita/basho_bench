@@ -115,6 +115,8 @@ new(Id) ->
         end;
              _ -> ok
     end,
+
+    [{hash_fun, {PartList, ReplList, NumDcs}}] = ets:lookup(meta_info, hash_fun),
 %    case net_kernel:start(MyNode) of
 %        {ok, _} ->
 %	        ok;
