@@ -19,12 +19,10 @@ echo load concurrent 4 >> config
 echo rubis specula $4 >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*600+5000))
-ToSleep=$(((18000 + 600*NumNodes) / ${1}))
-ToSleep=$(($ToSleep>200?$ToSleep:200))
+MasterToSleep=$((NumNodes*600+24000 - ${1}))
+MasterToSleep=$((MasterToSleep<0?0:${MasterToSleep}))
 echo rubis master_to_sleep $MasterToSleep >> config
-echo rubis to_sleep $ToSleep >> config
-echo load duration 130 >> config
+#echo load duration 130 >> config
 
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 echo $1 $2 $3 $4 $5 $6 > $Folder/config
