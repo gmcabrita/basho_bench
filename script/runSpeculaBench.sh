@@ -47,11 +47,13 @@ echo tpcc specula $4 >> config
 echo tpcc operations "[{new_order,$new_order},{payment,$payment},{order_status,$order_status}]" >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*400*WPerDc+4000))
-ToSleep=$(((18000 + 600*NumNodes) / ${1}))
-ToSleep=$(($ToSleep>200?$ToSleep:200))
+#MasterToSleep=$((NumNodes*400*WPerDc+4000))
+#ToSleep=$(((18000 + 600*NumNodes) / ${1}))
+#ToSleep=$(($ToSleep>200?$ToSleep:200))
+MasterToSleep=$((NumNodes*600+16000 - ${1}/100))
+MasterToSleep=$((MasterToSleep<0?0:${MasterToSleep}))
 echo tpcc master_to_sleep $MasterToSleep >> config
-echo tpcc to_sleep $ToSleep >> config
+#echo tpcc to_sleep $ToSleep >> config
 #echo load to_sleep 35000 >> config
 echo tpcc w_per_dc $WPerDc >> config
 echo load w_per_dc $WPerDc >> config
