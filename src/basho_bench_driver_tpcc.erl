@@ -106,7 +106,7 @@ new(Id) ->
 	        ok;
             %?INFO("Net kernel started as ~p\n", [node()]);
         {error, {already_started, _}} ->
-            ?INFO("Net kernel already started as ~p\n", [node()]),
+            %?INFO("Net kernel already started as ~p\n", [node()]),
             ok;
         {error, Reason} ->
             ?FAIL_MSG("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
