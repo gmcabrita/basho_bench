@@ -128,11 +128,29 @@ new(Id) ->
     AllNodes = [N || {N, _} <- PartList],
     NodeId = index(TargetNode, AllNodes),
     NumNodes = length(AllNodes),
-    case Id of 1 -> timer:sleep(MasterToSleep);
-    	       _ -> timer:sleep(ToSleep)
+
+    MyTxServer = case length(IPs) of 1 ->
+                     case Id of 1 -> timer:sleep(MasterToSleep),
+                                ets:new(meta_info, [set, named_table]),
+                                NameLists = lists:foldl(fun(WorkerId, Acc) -> WorkerTargetNode = lists:nth((WorkerId rem length(IPs)+1), IPs),
+                                                        [list_to_atom(atom_to_list(WorkerTargetNode) ++ "-cert-" ++ integer_to_list((WorkerId-1) div length(IPs)+1)))|Acc]
+                                            end, [], lists:seq(1, Concurrent)),
+                                Pids = locality_fun:get_pids(TargetNode, lists:reverse(NameLists)),
+                                lists:foldl(fun(P, Acc) -> ets:insert(meta_info, {Acc, P}), Acc+1, 1, Pids),
+                                hd(Pids);
+                            _ ->  [{Id, Pid}] = ets:lookup(meta_info, Id),
+                                  Pid
+                    end;
+                _ ->
+                    MyTxServer = locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode)
+                                                        ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
     end,
-    MyTxServer = locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode) 
-            ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
+    lager:info("Id ~p, TxServer is ~p", [Id, MyTxServer]),
+    %case Id of 1 -> timer:sleep(MasterToSleep);
+   % 	       _ -> timer:sleep(ToSleep)
+   % end,
+    %MyTxServer = locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode) 
+    %        ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
 
     {OtherMasterIds, DcRepIds, DcNoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
