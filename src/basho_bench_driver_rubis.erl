@@ -99,26 +99,42 @@ new(Id) ->
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
 
-    case net_kernel:start(MyNode) of
-        {ok, _} ->
-	        ok;
-            %?INFO("Net kernel started as ~p\n", [node()]);
-        {error, {already_started, _}} ->
-            ?INFO("Net kernel already started as ~p\n", [node()]),
-            ok;
-        {error, Reason} ->
-            ?FAIL_MSG("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
+
+    TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
+    case Id of 1 ->
+        case net_kernel:start(MyNode) of
+                {ok, _} -> true = erlang:set_cookie(node(), Cookie),  %?INFO("Net kernel started as ~p\n", [node()]);
+                           _Result = net_adm:ping(TargetNode),
+                           HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []),
+                           ets:new(meta_info, [set, named_table]),
+                           ets:insert(meta_info, {hash_fun, HashFun});
+                {error, {already_started, _}} ->
+                        ?INFO("Net kernel already started as ~p\n", [node()]),  ok;
+                {error, Reason} ->
+                ?FAIL_MSG("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
+        end;
+             _ -> ok
     end,
+%    case net_kernel:start(MyNode) of
+%        {ok, _} ->
+%	        ok;
+    %        %?INFO("Net kernel started as ~p\n", [node()]);
+    %    {error, {already_started, _}} ->
+    %        ?INFO("Net kernel already started as ~p\n", [node()]),
+    %        ok;
+    %    {error, Reason} ->
+    %        ?FAIL_MSG("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
+    %end,
 
     %% Choose the node using our ID as a modulus
-    TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
-    true = erlang:set_cookie(node(), Cookie),
+    %TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
+    %true = erlang:set_cookie(node(), Cookie),
 
-    ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
-    _Result = net_adm:ping(TargetNode),
+    %?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
+    %_Result = net_adm:ping(TargetNode),
     %?INFO("Result of ping is ~p \n", [Result]),
 
-    {PartList, ReplList, NumDcs} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
+    %{PartList, ReplList, NumDcs} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
     %lager:info("NumDcs is ~w", [NumDcs]),
     %lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
 

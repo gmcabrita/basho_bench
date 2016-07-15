@@ -101,29 +101,28 @@ new(Id) ->
     PaymentSlave = 100 - PaymentMaster, %basho_bench_config:get(payment_slave),
     WPerNode = basho_bench_config:get(w_per_dc),
 
-    case net_kernel:start(MyNode) of
-        {ok, _} ->
-	        ok;
-            %?INFO("Net kernel started as ~p\n", [node()]);
-        {error, {already_started, _}} ->
-            ?INFO("Net kernel already started as ~p\n", [node()]),
-            ok;
-        {error, Reason} ->
-            ?FAIL_MSG("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
+    TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
+    case Id of 1 ->
+    	case net_kernel:start(MyNode) of
+        	{ok, _} -> true = erlang:set_cookie(node(), Cookie),  %?INFO("Net kernel started as ~p\n", [node()]);
+    			   _Result = net_adm:ping(TargetNode),
+    			   HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
+    			   ets:new(meta_info, [set, named_table]),
+			   ets:insert(meta_info, {hash_fun, HashFun});
+        	{error, {already_started, _}} ->
+            		?INFO("Net kernel already started as ~p\n", [node()]),  ok;
+        	{error, Reason} ->
+            	?FAIL_MSG("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
+    	end;
+	     _ -> ok
     end,
 
     %% Choose the node using our ID as a modulus
-    TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
-    true = erlang:set_cookie(node(), Cookie),
+    [{hash_fun, {PartList, ReplList, NumDcs}}] = ets:lookup(meta_info, hash_fun), 
 
     %?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
-    _Result = net_adm:ping(TargetNode),
-    %?INFO("Result of ping is ~p \n", [Result]),
 
     %% PartList is in the form of [{N, [{Part1, Node}, {Part2, Node}]}, {}]....
-    {PartList, ReplList, NumDcs} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
-    %lager:info("NumDcs is ~w", [NumDcs]),
-    %lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
 
     %lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
     AllNodes = [N || {N, _} <- PartList],
@@ -132,7 +131,6 @@ new(Id) ->
 
     MyTxServer = case length(IPs) of 1 ->
                      case Id of 1 -> timer:sleep(MasterToSleep),
-                                ets:new(meta_info, [set, named_table]),
                                 NameLists = lists:foldl(fun(WorkerId, Acc) -> WorkerTargetNode = lists:nth(WorkerId rem length(IPs)+1, IPs),
                                                         [list_to_atom(atom_to_list(WorkerTargetNode) ++ "-cert-" ++ integer_to_list((WorkerId-1) div length(IPs)+1))|Acc]
                                                         end, [], lists:seq(1, Concurrent)),
