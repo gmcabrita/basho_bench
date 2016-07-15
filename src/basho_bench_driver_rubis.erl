@@ -157,10 +157,10 @@ new(Id) ->
 		    end;
 		_ ->
 		    case Id of 1 -> timer:sleep(MasterToSleep);
-			       _ -> 
-		    		    locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode)
-            						++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)))
-		    end
+			       _ -> ok
+            end, 
+            locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode)
+                    ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)))
     end,
 
     {OtherMasterIds, DcRepIds, DcNoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),

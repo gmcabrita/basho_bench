@@ -337,7 +337,8 @@ worker_next_op(State) ->
             case Transition of %% Probably tpc-c
                 undef -> 
                     {Info, NewOpTag} = element(random:uniform(State#state.ops_len), State#state.ops),
-                    case ThinkTime of tpcc -> timer:sleep(tpcc_tool:get_think_time(OpTag)), timer:sleep(tpcc_tool:get_key_time(NewOpTag));
+                    case ThinkTime of tpcc -> 
+                                        timer:sleep(tpcc_tool:get_think_time(OpTag)), timer:sleep(tpcc_tool:get_key_time(NewOpTag));
                                       _ -> timer:sleep(State#state.think_time)
                     end,
 	            {ok, State#state { driver_state = DriverState, todo_op={Info, NewOpTag}}};

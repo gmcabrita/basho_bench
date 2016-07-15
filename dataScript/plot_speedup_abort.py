@@ -140,7 +140,11 @@ def plot_speedup_abort(input_folder, output_folder, bench_type, data_multi_list,
 
     ### For plt2
     #plt.subplot(212)
-    xlabels=['16 cls', '32 cls', '64 cls', '128 cls']
+    if 'x_labels' in plot_dict:
+        xlabels=plot_dict['x_labels']
+    else:
+        xlabels=['16 cls', '32 cls', '64 cls', '128 cls']
+
     ax2.set_xticks([i for i in range(num_xticks)])
     ax2.set_xticklabels(xlabels, minor=False, fontsize=fsize)
 
