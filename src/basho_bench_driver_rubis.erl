@@ -146,8 +146,7 @@ new(Id) ->
     NumNodes = length(AllNodes),
     MyTxServer = case length(IPs) of 1 ->
     		     case Id of 1 -> timer:sleep(MasterToSleep),
-	             		NameLists = lists:foldl(fun(WorkerId, Acc) -> WorkerTargetNode = lists:nth(WorkerId rem length(IPs)+1, IPs),
-							[list_to_atom(atom_to_list(WorkerTargetNode) ++ "-cert-" ++ integer_to_list((WorkerId-1) div length(IPs)+1))|Acc]
+	             		NameLists = lists:foldl(fun(WorkerId, Acc) -> [WorkerId|Acc]
 					    		end, [], lists:seq(1, Concurrent)),
     		     		Pids = locality_fun:get_pids(TargetNode, lists:reverse(NameLists)), 
 		     		lists:foldl(fun(P, Acc) -> ets:insert(meta_info, {Acc, P}), Acc+1 end, 1, Pids),
@@ -159,8 +158,7 @@ new(Id) ->
 		    case Id of 1 -> timer:sleep(MasterToSleep);
 			       _ -> ok
             end, 
-            locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode)
-                    ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)))
+            locality_fun:get_pid(TargetNode, Id)
     end,
 
     {OtherMasterIds, DcRepIds, DcNoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
