@@ -97,6 +97,7 @@ new(Id) ->
     ToSleep = basho_bench_config:get(to_sleep),
     ProcessTime = basho_bench_config:get(process_time),
     TotalKey = basho_bench_config:get(total_key),
+    Concurrent = basho_bench_config:get(concurrent),
    
     MasterNum = basho_bench_config:get(master_num),
     SlaveNum = basho_bench_config:get(slave_num),
@@ -116,43 +117,51 @@ new(Id) ->
     CacheHotRate = basho_bench_config:get(cache_hot_rate, LocalHotRate),
     Deter = basho_bench_config:get(deter),
 
-    case net_kernel:start(MyNode) of
-        {ok, _} ->
-	        ok;
-            %?INFO("Net kernel started as ~p\n", [node()]);
-        {error, {already_started, _}} ->
-            %?INFO("Net kernel already started as ~p\n", [node()]),
-            ok;
-        {error, Reason} ->
-            ?FAIL_MSG("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
-    end,
-
-    %% Choose the node using our ID as a modulus
     TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
-    true = erlang:set_cookie(node(), Cookie),
-
-    ?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
-    _Result = net_adm:ping(TargetNode),
-    %?INFO("Result of ping is ~p \n", [Result]),
-
     case Id of 1 ->
-                    timer:sleep(MasterToSleep);
-              _ ->  timer:sleep(ToSleep)
+        case net_kernel:start(MyNode) of
+                {ok, _} -> true = erlang:set_cookie(node(), Cookie),  %?INFO("Net kernel started as ~p\n", [node()]);
+                           _Result = net_adm:ping(TargetNode),
+                           HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []),
+                           ets:new(meta_info, [set, named_table]),
+                           ets:insert(meta_info, {hash_fun, HashFun});
+                {error, {already_started, _}} ->
+                        ?INFO("Net kernel already started as ~p\n", [node()]),  ok;
+                {error, Reason} ->
+                ?FAIL_MSG("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
+        end;
+             _ -> ok
     end,
 
-    {PartList, ReplList, NumDcs} =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
+    [{hash_fun, {PartList, ReplList, NumDcs}}] = ets:lookup(meta_info, hash_fun),
+    MyTxServer = case length(IPs) of 1 ->
+                 case Id of 1 -> timer:sleep(MasterToSleep),
+                        NameLists = lists:foldl(fun(WorkerId, Acc) -> [WorkerId|Acc]
+                                end, [], lists:seq(1, Concurrent)),
+                        Pids = locality_fun:get_pids(TargetNode, lists:reverse(NameLists)),
+                    lists:foldl(fun(P, Acc) -> ets:insert(meta_info, {Acc, P}), Acc+1 end, 1, Pids),
+                    hd(Pids);
+                            _ ->  [{Id, Pid}] = ets:lookup(meta_info, Id),
+                          Pid
+            end;
+        _ ->
+            case Id of 1 -> timer:sleep(MasterToSleep);
+                   _ -> ok
+            end,
+            locality_fun:get_pid(TargetNode, Id)
+    end,
+
     %lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
 
     %[M] = [L || {N, L} <- ReplList, N == TargetNode ],
     AllNodes = [N || {N, _} <- PartList],
     NodeId = index(TargetNode, AllNodes),
     NumNodes = length(AllNodes),
-    MyTxServer = locality_fun:get_pid(TargetNode, list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1))),
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     HashLength = length(ExpandPartList),
     {OtherMasterIds, DcRepIds, DcNoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
-    lager:info("MyTxServer is  ~w, DcRepIds ~w, NoRepIds ~w, D ~w", [list_to_atom(atom_to_list(TargetNode) ++ "-cert-" ++ integer_to_list((Id-1) div length(IPs)+1)), DcRepIds, DcNoRepIds, dict:to_list(HashDict1)]),
+    lager:info("MyTxServer is  ~w, DcRepIds ~w, NoRepIds ~w, D ~w", [MyTxServer, DcRepIds, DcNoRepIds, dict:to_list(HashDict1)]),
 
     %lager:info("Part list is ~w",[PartList]),
     MyTable = ets:new(my_table, [private, set]),

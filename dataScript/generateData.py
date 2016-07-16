@@ -59,43 +59,42 @@ def add_throughput(nodes, dict, total_dict, folder):
         th_file = os.path.join(folder, node)
         th_lines = [line.rstrip('\n') for line in open(th_file)]
         th_lines = th_lines[1:]
+        print("Th file is "+th_file)
+        print(th_lines)
         committed = 0
         notified_abort = 0
         duration=0
-        for line in th_lines:
-            words = line.split(",")
-            #print words[3]+words[4]
-            committed += int(words[3])
-            notified_abort += int(words[4])
-            duration=max(duration,float(words[0]))
-            #print("Duration is"+str(int(duration)))
-        stat_line = stat_lines[index]
-        stat_data = stat_line.split(',')
-        if len(stat_data) == 20 or len(stat_data) == 7:
-            read_abort = int(stat_data[0])
-            read_invalid = int(stat_data[1])
-            cert_abort = int(stat_data[2])
-            cascade_abort = int(stat_data[3])
-            if int(stat_data[4]) == 0:
-                # This is not specula!
-                real_committed = committed
-                cert_abort = notified_abort
-            else:
-                real_committed = int(stat_data[4])
-        #elif len(stat_data) == 26:
-        #    read_abort = int(stat_data[1])
-        #    read_invalid = 0 
-        #    cert_abort = int(stat_data[3])
-        #    cascade_abort = int(stat_data[5])
-        #    if int(stat_data[7]) == 0:
-        #        # This is specula!
-        #        real_committed = committed
-        #        cert_abort = aborted
-        #    else:
-        #        real_committed = int(stat_data[7])
+        if th_lines == []:
+            specula_file = os.path.join(folder, 'specula_out')
+            for line in th_lines:
+                words = line.split(",")
+                #print words[3]+words[4]
+                real_committed += int(words[3])/len(nodes)
+                notified_abort += int(words[4])/len(nodes)
+                duration=max(duration,float(words[0]))
         else:
-            print("***WTF, data dimenstion is wrong!!!***")
-            print("Stat data is "+str(stat_data))
+            for line in th_lines:
+                words = line.split(",")
+                #print words[3]+words[4]
+                committed += int(words[3])
+                notified_abort += int(words[4])
+                duration=max(duration,float(words[0]))
+            stat_line = stat_lines[index]
+            stat_data = stat_line.split(',')
+            if len(stat_data) == 20 or len(stat_data) == 7:
+                read_abort = int(stat_data[0])
+                read_invalid = int(stat_data[1])
+                cert_abort = int(stat_data[2])
+                cascade_abort = int(stat_data[3])
+                if int(stat_data[4]) == 0:
+                    # This is not specula!
+                    real_committed = committed
+                    cert_abort = notified_abort
+                else:
+                    real_committed = int(stat_data[4])
+            else:
+                print("***WTF, data dimenstion is wrong!!!***")
+                print("Stat data is "+str(stat_data))
         index += 1 
         
         #print str(committed)+' '+str(aborted) +' '+str(read_abort)+' '+str(specula_abort)+' '+str(cascade_abort) 
