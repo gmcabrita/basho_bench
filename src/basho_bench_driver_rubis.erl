@@ -99,7 +99,6 @@ new(Id) ->
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
 
-
     TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
     case Id of 1 ->
         case net_kernel:start(MyNode) of
@@ -247,7 +246,9 @@ run(home, _KeyGen, _ValueGen, State=#state{specula=Specula, tx_server=TxServer, 
     {ok, State#state{prev_state=PrevState1#prev_state{region={MyNode, Region}}}};
 
 %% VERIFIED
-run(register, _KeyGen, _ValueGen, State) ->
+run(register, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     {ok, State};
 
 %% VERIFIED
@@ -297,7 +298,9 @@ run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=My
     end;
 
 %% VERIFIED
-run(browse, _KeyGen, _ValueGen, State) ->
+run(browse, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     {ok, State};
 
 %% VERIFIED
@@ -846,7 +849,9 @@ run(store_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
             {error, Reason, State}
     end;
 
-run(sell, _KeyGen, _ValueGen, State) ->
+run(sell, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
+    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     {ok, State};
 
 run(select_category_to_sell_item, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories, tx_server=TxServer, 
@@ -865,8 +870,10 @@ run(select_category_to_sell_item, _KeyGen, _ValueGen, State=#state{nb_categories
     end,
     {ok, State};
 
-run(sell_item_form, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories}) ->
+run(sell_item_form, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories, tx_server=TxServer}) ->
     _RandCategory = random:uniform(NBCategories),
+    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
     {ok, State};
 
 %% When a user registers an item, the item should be placed in the same server as the user
