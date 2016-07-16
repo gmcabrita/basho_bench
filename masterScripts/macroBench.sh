@@ -29,7 +29,7 @@ function runRubis {
 
 ## Just to test.. 
 seq="1"
-threads="4000 5000"
+threads="2500 3500 5000"
 workloads=""
 length="8"
 warehouse="2"
