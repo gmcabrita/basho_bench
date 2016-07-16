@@ -29,7 +29,7 @@ function runRubis {
 
 ## Just to test.. 
 seq="1"
-threads="5000 2500 1000 500 100"
+threads="4000 5000"
 workloads=""
 length="8"
 warehouse="2"
@@ -98,6 +98,7 @@ do
         done
     done
 done
+exit
 
 specula_read=false
 do_specula=false
