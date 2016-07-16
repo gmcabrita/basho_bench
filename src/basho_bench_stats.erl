@@ -304,7 +304,7 @@ report_latency(Elapsed, Window, Op) ->
                                   proplists:get_value(max, Stats),
                                   Errors]);
         false ->
-            ?WARN("No data for op: ~p\n", [Op]),
+            %?WARN("No data for op: ~p\n", [Op]),
             Line = io_lib:format("~w, ~w, 0, 0, 0, 0, 0, 0, 0, 0, ~w\n",
                                  [Elapsed,
                                   Window,

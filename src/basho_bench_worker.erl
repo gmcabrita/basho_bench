@@ -318,6 +318,7 @@ worker_next_op(State) ->
     Start = os:timestamp(),
     Result = worker_next_op2(State, TranslatedOp),
     ElapsedUs = erlang:max(0, timer:now_diff(os:timestamp(), Start)),
+    %lager:warning("Going to try op ~w", [OpTag]),
     case Result of
         {prev_state, DriverState} ->
             case PreviousOps of
@@ -333,6 +334,7 @@ worker_next_op(State) ->
                     {ok, State#state {driver_state = DriverState, todo_op={T, H}}}
             end;
         {Res, DriverState} when Res == ok orelse element(1, Res) == ok ->
+            %lager:warning("Op ~w finished", [OpTag]),
             basho_bench_stats:op_complete({TranslatedOp, TranslatedOp}, Res, ElapsedUs),
             case Transition of %% Probably tpc-c
                 undef -> 
@@ -357,8 +359,10 @@ worker_next_op(State) ->
                     {ok, State#state { driver_state = DriverState, todo_op=NextToDo}}
             end;
         {Res, DriverState} when Res == silent orelse element(1, Res) == silent ->
+            %lager:warning("Result is ~w", [Res]),
             {ok, State#state { driver_state = DriverState, todo_op=false}};
         {error, Reason, DriverState} ->
+            %lager:warning("***************Error is ~w*********", [Reason]),
             %% Driver encountered a recoverable error
             basho_bench_stats:op_complete({TranslatedOp, TranslatedOp}, {error, Reason}, ElapsedUs),
             State#state.shutdown_on_error andalso

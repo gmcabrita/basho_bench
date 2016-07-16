@@ -30,7 +30,7 @@
 -include("rubis.hrl").
 
 -define(TIMEOUT, 10000).
--define(READ_TIMEOUT, 15000).
+-define(READ_TIMEOUT, 10000).
 
 -record(prev_state, {last_user_id = undef :: {integer(), integer()},
                      item_id = undef :: {integer(), integer()},
