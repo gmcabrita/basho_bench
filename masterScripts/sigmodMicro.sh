@@ -16,7 +16,7 @@ function runNTimes {
 } 
 
 do_specula=true
-seq="1"
+seq="1 2"
 threads="8"
 t=8
 contentions="1 2 3 4"
@@ -55,7 +55,7 @@ prob_access=t
 
 rm -rf ./config
 echo micro cdf false >> config
-echo micro duration 120 >> config
+echo micro duration 60 >> config
 echo ant cdf false >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
@@ -79,36 +79,3 @@ do
     done
 done
 done
-
-######100#######
-
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-
-rm -rf ./config
-echo micro cdf false >> config
-echo ant cdf false >> ./config
-echo micro duration 120 >> config
-sudo ./script/copy_to_all.sh ./config ./basho_bench/
-sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
-
-clock="old"
-specula_read=false
-do_specula=false
-len=0
-prob_access=t
-sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read 
-sudo ./script/restartAndConnect.sh
-for t in $threads
-do
-for cont in $contentions
-do
-    if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
-    elif [ $cont == 2 ]; then MR=$MSML CR=$CBIG
-    elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
-    elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
-    fi
-    runNTimes
-done
-done
-######194#######

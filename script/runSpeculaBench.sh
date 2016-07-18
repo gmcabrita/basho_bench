@@ -50,7 +50,8 @@ NumNodes=`cat ./script/allnodes | wc -l`
 #MasterToSleep=$((NumNodes*400*WPerDc+4000))
 #ToSleep=$(((18000 + 600*NumNodes) / ${1}))
 #ToSleep=$(($ToSleep>200?$ToSleep:200))
-MasterToSleep=$((NumNodes*600+25000 - ${1}))
+#MasterToSleep=$((NumNodes*600+25000 - ${1}))
+MasterToSleep=$((NumNodes*600+32000 - ${1}*10))
 MasterToSleep=$((MasterToSleep<0?0:${MasterToSleep}))
 echo tpcc master_to_sleep $MasterToSleep >> config
 #echo tpcc to_sleep $ToSleep >> config

@@ -40,14 +40,12 @@ def get_lists(root_folder, config_str):
 
 #input_folder='./stat/2016-06-18-115824/'
 #input_folder='./stat/2016-06-20-231215/'
-input_folder='./stat/2016-07-10-213002/tpcc/'
-ss1=get_matching_series([input_folder, 'tpcc', 7, 3, 80, 'true', 0])
-ns1=get_matching_series([input_folder, 'tpcc', 7, 3, 80, 'false', 0])
-print(ss1)
-print(ns1)
+input_folder='./stat/2016-07-17-151555-mod/'
+ss1=get_matching_series([input_folder, 'rubis', 3, 'true', 2])
+ns1=get_matching_series([input_folder, 'rubis', 3, 'false', 2])
 s_ss1 = sort_by_num([val for sublist in ss1 for val in sublist])
 s_ns1 = sort_by_num([val for sublist in ns1 for val in sublist])
-plot_stress(s_ss1, s_ns1, input_folder, './figures/macro_stress/', '80,10,10')
+plot_stress(s_ss1, s_ns1, input_folder, './figures/macro_stress/rubis/', 'rubis')
 
 exit()
 comm='''

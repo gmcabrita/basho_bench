@@ -28,21 +28,20 @@ function runRubis {
 }
 
 ## Just to test.. 
-seq="1"
-#threads="3000 5000"
-threads="1000 2500 3000"
-workloads=""
+seq="1 2"
+threads="5000 4000 3000 2000 1000"
+workloads="1 2 3"
 length="0"
-warehouse="2"
+warehouse="4 2"
 
 think_times="tpcc"
 
-#rep=8
-#parts=28
+rep=5
+parts=28
 #rep=5
 #parts=20
-rep=2
-parts=4
+#rep=2
+#parts=4
 
 start_ind=1
 skip_len=0
@@ -53,8 +52,8 @@ AS=0
 specula_read=true
 do_specula=true
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -65,8 +64,9 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 8 $do_specula 8 $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 8 $do_specula 0 $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
+
 for t in $threads
 do
     for think_time in $think_times
@@ -79,10 +79,9 @@ do
             fi
 	        for wl in $workloads
 	        do
-	            if [ $wl == 1 ]; then  n=9  p=1
-	            elif [ $wl == 2 ]; then  n=1 p=9
-	            elif [ $wl == 3 ]; then n=80 p=10
-	            elif [ $wl == 4 ]; then n=10 p=80
+	            if [ $wl == 1 ]; then  n=45  p=43
+	            elif [ $wl == 2 ]; then  n=5 p=83
+	            elif [ $wl == 3 ]; then n=5 p=43
 	            fi
 	            for wh in $warehouse
 	            do
@@ -99,9 +98,7 @@ do
         done
     done
 done
-exit
 
-threads="3000 4000"
 specula_read=false
 do_specula=false
 len=0
@@ -126,11 +123,10 @@ do
     do
         for wl in $workloads
         do
-	    if [ $wl == 1 ]; then  n=9  p=1
-            elif [ $wl == 2 ]; then  n=1 p=9
-            elif [ $wl == 3 ]; then n=80 p=10
-            elif [ $wl == 4 ]; then n=10 p=80
-            fi
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
             for wh in $warehouse
             do
                 think_time="tpcc"

@@ -228,5 +228,6 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
         fig.set_size_inches(w, h)
     #fig.set_size_inches(8.5, 6)
     #plt.tight_layout()
-    fig.savefig(output_folder+'/'+name+legend_type+'.pdf', format='pdf', bbox_inches='tight')
+    #fig.savefig(output_folder+'/'+name+legend_type+'.pdf', format='pdf', bbox_inches='tight')
+    fig.savefig(output_folder+'/'+name+legend_type+'.png', bbox_inches='tight')
 

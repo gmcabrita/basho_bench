@@ -7,80 +7,124 @@ import sys
 import random
 import os
 import numpy as np
+import matplotlib.gridspec as gridspec
 
+def swap(l, i1, i2):
+    tmp = l[i1]
+    l[i1] = l[i2]
+    l[i2] = tmp
+
+def get_path(input_folders, name):
+    if type(input_folders) == type([]) :
+        for fl in input_folders:
+            path = os.path.join(fl, name)
+            if os.access(path, os.R_OK):
+                return path
+    else:
+        return os.path.join(input_folders, name)
 
 # input data
-input_folder = sys.argv[1]
-output_folder = sys.argv[2]
-bench_type = sys.argv[3]
-data_list = sys.argv[4:]
-plt.figure()
-ind = 0
-width = 0.15
-xlabel = list() 
-local_abort = 0
-local_commit = 0
-remote_abort = 0
-remote_commit = 0
-specula_abort = 0
-specula_commit = 0
-max_lat=0
-ytitle, new_name = get_title(data_list, bench_type)
-for f in data_list:
-    path = os.path.join(input_folder, f+'/total_duration')
-    data = np.loadtxt(path, skiprows=1, usecols=range(1,9))
-    read_lat = data[0,0]
-    read_err = data[1,0]
-    inter_ind = ind
-    name = new_name[ind].replace('true','t').replace('false','f').replace('0000','0k')
-    xlabel.append(name)
-    cla = ['#D3E54E', '#EC5B56']
-    clc = ['#D3E54E', '#79E026']
-    cra = ['#D3E54E', ('#EC5B56', '//')]
-    crc = ['#D3E54E', ('#79E026', '//')]
-    csa = ['#D3E54E', '#33CCB3', ('#EC5B56', 'xx')]
-    csc = ['#D3E54E', '#33CCB3', ('#79E026', 'xx')]
-    # if it is not specula
-    if f.find('false') != -1:
-        # has local abort
-        (inter_ind, local_abort)= draw_bar_if_need(plt, inter_ind, width, [(read_lat, read_err), (data[0,1], data[1,1])], cla, inter_ind, local_abort)
-        # has local_commit 
-        (inter_ind, local_commit) = draw_bar_if_need(plt, inter_ind, width, [(read_lat, read_err), (data[0,3], data[1,3])], clc, inter_ind, local_abort)
-        # has remote abort
-        (inter_ind, remote_abort) = draw_bar_if_need(plt, inter_ind, width, [(read_lat, read_err), (data[0,2], data[1,2])], cra, inter_ind, remote_abort)
-        # has remote commit 
-        (inter_ind, remote_commit) = draw_bar_if_need(plt, inter_ind, width, [(read_lat, read_err), (data[0,4], data[1,4])], crc, inter_ind, remote_commit)
-        max_lat = max(max_lat, data[0,0]+data[0,3])
-        max_lat = max(max_lat, data[0,0]+data[0,4])
+def plot_latency(input_folder, output_folder, bench_type, data_multi_list, legend_index, plot_dict):
+    plt.clf()
+    ncols=7
+    fig = plt.figure()
+    hatches = ['+++', '///', '\\\\\\', '...', '---', 'xxx']
+    
+    fsize=15
+    lsize=20
+    labsize=18
+    maxv=0
+    handlers = []
+    legend_type = plot_dict['legend_type'] 
+    markers=["^", "8", "s", "h", ".", "1", "v"]
+    line_index=0
+    barwidth = max(0.15, 0.6/len(data_multi_list))
+    #colors=['#000000', '#397fb8', '#4fb04c', '#ed7e7e','#944fa1', '#e31b1b', '#e37f1b']
+    #colors=['#000000', '#9E9FDB', '#01c07c', '#8D1010','#944fa1', '#e31b1b', '#e37f1b']
+    #colors=['#000000','#ffffcc','#a1dab4','#41b6c4','#2c7fb8','#253494']
+    colors=['#000000', '#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#ffffcc']
+    num_xticks = 0
+    start_pos = 0
+    offset = len(data_multi_list)/2*barwidth
+    ## Draw baseline
+    #print(data_multi_list)
+
+    if 'not_reverse' not in plot_dict:
+        data_multi_list.reverse()
+    for data_list in data_multi_list: 
+        data_list = sort_by_num(data_list)
+            
+        percv_lats=[]
+        final_lats=[]
+        minvalue = 1000000000 
+        for f in data_list:
+            path = get_path(input_folder, f+'/real_latency')
+            data = np.loadtxt(path, skiprows=1, usecols=range(1,2))
+            percv_lat = data[0]
+            final_lat = data[1]
+            percv_lats.append(percv_lat)
+            final_lats.append(final_lat)
+
+        print(percv_lats)
+        print(final_lats)
+        for i in range(len(percv_lats)):
+            h1, = plt.bar(i+line_index*barwidth-offset, percv_lats[i], barwidth, bottom=0, color=colors[0])
+            h2, = plt.bar(i+line_index*barwidth-offset, final_lats[i]-percv_lats[i], barwidth, bottom=percv_lats[i], color=colors[1])
+            handlers.append(h1)
+            handlers.append(h2)
+            #h, = plt.bar(i+line_index*barwidth-offset, v/1000, barwidth, color=colors[line_index])
+
+        line_index += 1
+
+    ylim = maxv * 1.5
+    handler_idx = [i for i, x in enumerate(handlers) if x == None]
+    handlers = [i for j, i in enumerate(handlers) if j not in handler_idx]
+    if 'big' in plot_dict:
+        fsize=21
+        lsize=18
+        labs=0.1
     else:
-        # has local abort
-        (inter_ind, local_abort) = draw_bar_if_need(plt, inter_ind, width, [(read_lat, read_err), (data[0,1], data[1,1])], cla, inter_ind, local_abort)
-        # has local_commit 
-        (inter_ind, local_commit) = draw_bar_if_need(plt, inter_ind, width, [(read_lat, read_err), (data[0,3], data[1,3])], clc, inter_ind, local_abort)
-        # has remote abort
-        (inter_ind, remote_abort) = draw_bar_if_need(plt, inter_ind, width, [(read_lat, read_err), (data[0,2], data[1,2])], cra, inter_ind, remote_abort)
-        # has remote commit 
-        (inter_ind, remote_commit) = draw_bar_if_need(plt, inter_ind, width, [(read_lat, read_err), (data[0,4], data[1,4])], crc, inter_ind, remote_commit)
-        # has remote specula abort
-        (inter_ind, specula_abort) = draw_bar_if_need(plt, inter_ind, width, [(read_lat, read_err),(data[0,5],data[1,5]),(data[0,6], data[1,6])], csa, inter_ind, specula_abort)
-        # has remote specula commit 
-        (inter_ind, specula_commit) = draw_bar_if_need(plt, inter_ind, width, [(read_lat, read_err),(data[0,5],data[1,5]),(data[0,7], data[1,7])], csc, inter_ind, specula_commit)
-        max_lat = max(max_lat, data[0,0]+data[0,3])
-        max_lat = max(max_lat, data[0,0]+data[0,4])
-        max_lat = max(max_lat, data[0,0]+data[0,5]++data[0,7])
+        fsize=17
+        lsize=17
+        labs=True
 
-    ind += 1
+    if plot_dict['y_lim'] == False:
+        plt.ylim([0,ylim])
+    else:
+        plt.ylim([0,plot_dict['y_lim']])
 
-ymax = max_lat*1.3
-ylim = ymax
-plt.ylabel('Latency')
-#plt.title('Latency decomposition')
-plt.title('Latency decomposition:'+ytitle, fontsize=11)
-plt.ylim([1,ylim])
-plt.xlim([-0.5,len(data_list)])
-plt.xticks([x+2*width for x in np.arange(len(xlabel))], xlabel, fontsize=7)
-#plt.yticks(list(plt.yticks()[0]) + [10])
-plt.legend((local_abort, local_commit, remote_abort, remote_commit, specula_abort, specula_commit), ('local_abort', 'local_commit', 'remote_abort', 'remote_commit', 'remote_specula_abort', 'remote_specula_commit'), fontsize=10)
-#plt.legend(('local_abort', 'local_commit', 'remote_abort', 'remote_commit', 'remote_specula_abort', 'remote_specula_commit'))
-plt.grid(True)
-plt.savefig(output_folder+'/'+ytitle+'-latency.png')
+    ### For plt2
+    #plt.subplot(212)
+    #xlabels=['NOSPEC', 'SL1','SL2','SL4','SL8', 'SL16']
+    if 'x_labels' in plot_dict:
+        xlabels=plot_dict['x_labels']
+    else:
+        xlabels=['16 cls', '32 cls', '64 cls', '128 cls']
+    #plt.xlabel(xlabels, fontsize=fsize)
+
+    if plot_dict['y_labels'] != False:
+        plt.ylabel(plot_dict['y_labels'], fontsize=labsize) 
+
+    ax = plt.axes()        
+    ax.yaxis.grid()
+    #mpl.rcParams['ytick.labelsize'] = fsize
+    #plt.tick_params(xlabels, labelsize=fsize)
+    plt.xticks([i for i in range(len(xlabels))], xlabels, fontsize=labsize)
+        
+    if 'has_legend' in plot_dict and plot_dict['has_legend']:
+        plt.legend(handlers, plot_dict['commit_legend'], fontsize=lsize, loc=2, labelspacing=0.0, borderpad=0.2)
+        if 'legend_loc' in  plot_dict:
+            location = plot_dict['legend_loc']
+        else:
+            location = 2
+    
+    name=plot_dict['title'].replace(' ','').replace('%','').replace(',','').replace('_','').replace('-','').replace(':','')
+    legend_type= legend_type.replace(' ','').replace('%','').replace(',','').replace('_','').replace('-','').replace(':','')
+    if 'size' in plot_dict:
+        (w,h) = plot_dict['size']
+        fig.set_size_inches(w, h)
+    #fig.set_size_inches(8.5, 6)
+    #plt.tight_layout()
+    #fig.savefig(output_folder+'/latency'+name+legend_type+'.pdf', format='pdf', bbox_inches='tight')
+    fig.savefig(output_folder+'/latency'+name+legend_type+'.png', bbox_inches='tight')
+

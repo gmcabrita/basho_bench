@@ -16,6 +16,8 @@ def parse_line(line):
         return int(arr[-1][:-2])/1000
     elif line[0]=='a':
         return ''
+    elif line[0]=='t':
+        return ''
     else:
         return int(line[:-1])/1000
 
@@ -55,47 +57,41 @@ def add_throughput(nodes, dict, total_dict, folder):
     all_abort = 0
     index = 1
     stat_lines = [line.rstrip('\n') for line in open(os.path.join(folder, 'stat'))]
+    duration=0
     for node in nodes:
         th_file = os.path.join(folder, node)
         th_lines = [line.rstrip('\n') for line in open(th_file)]
         th_lines = th_lines[1:]
-        print("Th file is "+th_file)
-        print(th_lines)
+        #print("Th file is "+th_file)
+        #print(th_lines)
         committed = 0
         notified_abort = 0
-        duration=0
-        if th_lines == []:
-            specula_file = os.path.join(folder, 'specula_out')
-            for line in th_lines:
-                words = line.split(",")
-                #print words[3]+words[4]
-                real_committed += int(words[3])/len(nodes)
-                notified_abort += int(words[4])/len(nodes)
-                duration=max(duration,float(words[0]))
-        else:
-            for line in th_lines:
-                words = line.split(",")
-                #print words[3]+words[4]
-                committed += int(words[3])
-                notified_abort += int(words[4])
-                duration=max(duration,float(words[0]))
-            stat_line = stat_lines[index]
-            stat_data = stat_line.split(',')
-            if len(stat_data) == 20 or len(stat_data) == 7:
-                read_abort = int(stat_data[0])
-                read_invalid = int(stat_data[1])
-                cert_abort = int(stat_data[2])
-                cascade_abort = int(stat_data[3])
-                if int(stat_data[4]) == 0:
-                    # This is not specula!
-                    real_committed = committed
-                    cert_abort = notified_abort
-                else:
-                    real_committed = int(stat_data[4])
+        for line in th_lines:
+            words = line.split(",")
+            #print words[3]+words[4]
+            committed += int(words[3])
+            notified_abort += int(words[4])
+            duration=max(duration,float(words[0]))
+            print(float(words[0]))            
+            print(duration)            
+
+        stat_line = stat_lines[index]
+        stat_data = stat_line.split(',')
+        if len(stat_data) == 20 or len(stat_data) == 7:
+            read_abort = int(stat_data[0])
+            read_invalid = int(stat_data[1])
+            cert_abort = int(stat_data[2])
+            cascade_abort = int(stat_data[3])
+            if int(stat_data[4]) == 0:
+                # This is not specula!
+                real_committed = committed
+                cert_abort = notified_abort
             else:
-                print("***WTF, data dimenstion is wrong!!!***")
-                print("Stat data is "+str(stat_data))
-        index += 1 
+                real_committed = int(stat_data[4])
+        else:
+            print("***WTF, data dimenstion is wrong!!!***")
+            #print("Stat data is "+str(stat_data))
+            index += 1 
         
         #print str(committed)+' '+str(aborted) +' '+str(read_abort)+' '+str(specula_abort)+' '+str(cascade_abort) 
         if node in dict:
@@ -251,7 +247,7 @@ for f in sub_folders:
             os.mkdir(o)
             dict[config] = init_dict(nodes)
 
-        print("Folder: "+f)
+        #print("Folder: "+f)
         add_throughput(nodes, dict[config]['throughput'], dict[config]['total_throughput'], input_folder)
         add_duration(nodes, dict[config]['duration'], dict[config]['total_duration'], input_folder)
         add_latency(nodes, 'new-order', dict[config]['new-order'], input_folder)
@@ -284,6 +280,8 @@ for config in dict:
     if len(entry['-latency_final']) != 0:
         entry['-latency_percv'] = [sum(entry['-latency_percv'])/max(len(entry['-latency_percv']), 1)]
         entry['-latency_final'] = [sum(entry['-latency_final'])/len(entry['-latency_final'])]
+        print(sum(entry['-latency_percv']))
+        print(sum(entry['-latency_final']))
         write_to_file(real_latency, entry, ['-latency_percv', '-latency_final'], 'percvlat finallat') 
 
     write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted read_invalid cascade_abort all_abort notified_abort specula_abort') 
