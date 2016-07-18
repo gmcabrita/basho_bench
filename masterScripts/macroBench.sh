@@ -30,9 +30,9 @@ function runRubis {
 ## Just to test.. 
 seq="1"
 #threads="3000 5000"
-threads="3000 4000"
+threads="100 500 1000 2500 3000 4000"
 workloads="1 2"
-length="8"
+length="0"
 warehouse="2"
 
 think_times="tpcc"
@@ -53,8 +53,8 @@ AS=0
 specula_read=true
 do_specula=true
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -65,10 +65,8 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 8 $do_specula 8 $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
-if [ 1 == 2 ];
-then
+sudo ./script/configBeforeRestart.sh 8 $do_specula 8 $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
 for t in $threads
 do
     for think_time in $think_times
@@ -101,7 +99,7 @@ do
         done
     done
 done
-fi
+exit
 
 threads="3000 4000"
 specula_read=false
