@@ -29,10 +29,11 @@ function runRubis {
 
 ## Just to test.. 
 seq="1 2"
-threads="5000 4000 3000 2000 1000"
+#threads="1000 2000 3000 4000 5000"
+threads="5000 4000"
 workloads="1 2 3"
 length="0"
-warehouse="4 2"
+warehouse="2"
 
 think_times="tpcc"
 
@@ -64,7 +65,7 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 8 $do_specula 0 $rep $parts $specula_read
+sudo ./script/configBeforeRestart.sh 5000 $do_specula 0 $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
 
 for t in $threads
