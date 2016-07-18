@@ -19,7 +19,7 @@ echo load concurrent 4 >> config
 echo rubis specula $4 >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*600+20000 - ${1}))
+MasterToSleep=$((NumNodes*600+25000 - ${1}))
 MasterToSleep=$((MasterToSleep<0?0:${MasterToSleep}))
 echo rubis master_to_sleep $MasterToSleep >> config
 #echo load duration 130 >> config

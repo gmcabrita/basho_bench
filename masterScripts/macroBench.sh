@@ -30,9 +30,9 @@ function runRubis {
 ## Just to test.. 
 seq="1"
 #threads="3000 5000"
-threads="100 500 1000 2500 3000 4000"
+threads="4000"
 workloads="1 2"
-length="0"
+length="8 0"
 warehouse="2"
 
 think_times="tpcc"

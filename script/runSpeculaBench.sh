@@ -50,7 +50,7 @@ NumNodes=`cat ./script/allnodes | wc -l`
 #MasterToSleep=$((NumNodes*400*WPerDc+4000))
 #ToSleep=$(((18000 + 600*NumNodes) / ${1}))
 #ToSleep=$(($ToSleep>200?$ToSleep:200))
-MasterToSleep=$((NumNodes*600+16000 - ${1}/100))
+MasterToSleep=$((NumNodes*600+25000 - ${1}))
 MasterToSleep=$((MasterToSleep<0?0:${MasterToSleep}))
 echo tpcc master_to_sleep $MasterToSleep >> config
 #echo tpcc to_sleep $ToSleep >> config
@@ -102,9 +102,6 @@ wait
 #        timeout 60 ./script/fetchAndParseStat.sh $Folder
 #    fi
 #fi
-sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
-./script/copyFromAll.sh latency_final ./antidote/rel/antidote/ $Folder
-./script/copyFromAll.sh latency_percv ./antidote/rel/antidote/ $Folder
 
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
 #./script/copyFromAll.sh latency_bench ./basho_bench/tests/current/ $Folder
