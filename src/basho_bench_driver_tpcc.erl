@@ -259,6 +259,8 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
     Seq = lists:seq(1, NumItems),
     {WS3, _, AllLocal} = lists:foldl(fun(OlNumber, {TWS, TRS, AL}) ->
+                    case TWS of error -> {error, error, error};
+                                _ ->
                     WId = pick_warehouse(DcId, OtherMasterIds, DcRepIds, WPerNode, AccessMaster, AccessSlave),
                     {Min, Max} = lists:nth(to_dc(WId, WPerNode), ItemRanges),
                     %ItemId = case tpcc_tool:random_num(1, 100) of
@@ -275,6 +277,9 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
                     StockKey = tpcc_tool:get_key_by_param({WId, ItemId}, stock),
                     %Stock = read_from_node(TxServer, TxId, StockKey, WId, PartList, MyRepList),
                     {Stock, TRS2} = read_from_cache_or_node(TRS1, TxServer, TxId, StockKey, to_dc(WId, WPerNode), DcId, PartList, HashDict),
+                    case Stock of error ->
+                        {error, error, error};
+                                    _ ->
                     NewSQuantity = case Stock#stock.s_quantity - Quantity >= 10 of
                                         true -> Stock#stock.s_quantity - Quantity;
                                         false -> Stock#stock.s_quantity - Quantity + 91
@@ -305,8 +310,11 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
                                     _ -> 0 
                                 end,
                     {TWS4, TRS3, AL1}
+                    end end
             end, {WS2, RS, 1}, Seq),
 
+    case WS3 of error -> {error, aborted, State};
+                _ ->
     Order = tpcc_tool:create_order(WarehouseId, DistrictId, OId, NumItems, CustomerId, tpcc_tool:now_nsec(), AllLocal), 
     OrderKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, OId}, order),
     WS4 = dict:store({WarehouseId, OrderKey}, Order, WS3),
@@ -352,6 +360,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
             {error, aborted, State};
         {badrpc, Reason} ->
             {error, Reason, State}
+    end
     end;
 
 %% @doc Payment transaction of TPC-C
