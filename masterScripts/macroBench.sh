@@ -39,12 +39,12 @@ warehouse="5"
 
 think_times="tpcc"
 
-rep=5
-parts=28
+#rep=5
+#parts=28
 #rep=5
 #parts=20
-#rep=2
-#parts=4
+rep=2
+parts=4
 
 start_ind=1
 skip_len=0
@@ -55,8 +55,8 @@ AS=0
 specula_read=true
 do_specula=true
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -64,11 +64,11 @@ echo tpcc duration 120 >> config
 echo rubis cdf true >> config
 echo rubis duration 120 >> config
 echo ant cdf true >> ./config
-#sudo ./script/copy_to_all.sh ./config ./basho_bench/
-#sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+sudo ./script/copy_to_all.sh ./config ./basho_bench/
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 5000 $do_specula 0 $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 5000 $do_specula 0 $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
 
 for t in $tpcc_threads
 do
