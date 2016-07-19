@@ -321,12 +321,13 @@ worker_next_op(State) ->
     Result = worker_next_op2(State, TranslatedOp),
     ElapsedUs = erlang:max(0, timer:now_diff(os:timestamp(), Start)),
     case State#state.first_op of
-        true -> RealThink = case ThinkTime of tpcc -> TT=tpcc_tool:get_key_time(OpTag), random:uniform(1.5*TT);
-                                        rubis -> TT = rubis_tool:get_think_time(ToDo, Transition), random:uniform(1.5*TT);
+        true -> RealThink = case ThinkTime of tpcc -> TT=tpcc_tool:get_key_time(OpTag), random:uniform(round(3*TT/2));
+                                        rubis -> TT = rubis_tool:get_think_time(ToDo, Transition), random:uniform(round(3*TT/2));
                                         _ -> ThinkTime
                             end,
                 timer:sleep(RealThink);
-        false -> ok
+        false -> 
+                ok
     end,
     %lager:warning("Going to try op ~w", [OpTag]),
     case Result of
