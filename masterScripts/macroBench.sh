@@ -31,20 +31,21 @@ function runRubis {
 
 ## Just to test.. 
 seq="1 2 3"
-tpcc_threads="300 1500 1200 600 900"
+tpcc_threads="300 600 900 1200 1500"
 rubis_threads="1000 2000 3000 4000 5000"
 workloads="1 2 3"
-length="8 0"
+tpcc_length="8 0"
+rubis_length="8 0"
 warehouse="5"
 
 think_times="tpcc"
 
-#rep=5
-#parts=28
+rep=5
+parts=28
 #rep=5
 #parts=20
-rep=2
-parts=4
+#rep=2
+#parts=4
 
 start_ind=1
 skip_len=0
@@ -72,7 +73,7 @@ sudo ./script/restartAndConnect.sh
 
 for t in $tpcc_threads
 do
-        for len in $length
+        for len in $tpcc_length
         do
             if [ $skipped -eq 1 ] 
             then
@@ -93,11 +94,10 @@ do
         done
 done
 
-length="0"
 sudo ./script/configBeforeRestart.sh $t $do_specula 4 $rep $parts $specula_read
 for t in $rubis_threads
 do
-        for len in $length
+        for len in $rubis_length
         do
             think_time="rubis"
             runRubis
