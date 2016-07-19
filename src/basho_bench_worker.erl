@@ -43,6 +43,7 @@
                  shutdown_on_error,
                  ops,
                  todo_op,
+                 first_op,
                  %cdf,
                  retry,
                  transition,
@@ -143,6 +144,7 @@ init([SupChild, Id]) ->
                      retry = Retry,
                      transition = Transition,
                      todo_op = ToDoOp,
+                     first_op=true,
                      parent_pid = self(),
                      sup_id = SupChild},
 
@@ -318,6 +320,14 @@ worker_next_op(State) ->
     Start = os:timestamp(),
     Result = worker_next_op2(State, TranslatedOp),
     ElapsedUs = erlang:max(0, timer:now_diff(os:timestamp(), Start)),
+    case State#state.first_op of
+        true -> RealThink = case ThinkTime of tpcc -> TT=tpcc_tool:get_key_time(OpTag), random:uniform(1.5*TT);
+                                        rubis -> TT = rubis_tool:get_think_time(ToDo, Transition), random:uniform(1.5*TT);
+                                        _ -> ThinkTime
+                            end,
+                timer:sleep(RealThink);
+        false -> ok
+    end,
     %lager:warning("Going to try op ~w", [OpTag]),
     case Result of
         {prev_state, DriverState} ->
@@ -326,12 +336,12 @@ worker_next_op(State) ->
                     case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time({1,1}, Transition));
                                         _ -> timer:sleep(ThinkTime)
                     end, 
-                    {ok, State#state {driver_state = DriverState, todo_op={[], 1}}};
+                    {ok, State#state {driver_state = DriverState, todo_op={[], 1}, first_op=false}};
                 [H|T] ->
                     case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time({H,H}, Transition));
                                         _ -> timer:sleep(ThinkTime)
                     end,
-                    {ok, State#state {driver_state = DriverState, todo_op={T, H}}}
+                    {ok, State#state {driver_state = DriverState, todo_op={T, H}, first_op=false}}
             end;
         {Res, DriverState} when Res == ok orelse element(1, Res) == ok ->
             %lager:warning("Op ~w finished", [OpTag]),
@@ -343,7 +353,7 @@ worker_next_op(State) ->
                                         timer:sleep(tpcc_tool:get_think_time(OpTag)), timer:sleep(tpcc_tool:get_key_time(NewOpTag));
                                       _ -> timer:sleep(State#state.think_time)
                     end,
-	            {ok, State#state { driver_state = DriverState, todo_op={Info, NewOpTag}}};
+	            {ok, State#state { driver_state = DriverState, todo_op={Info, NewOpTag}, first_op=false}};
                     %case State#state.cdf of false -> {ok, State#state { driver_state = DriverState, todo_op={Info, NewOpTag}}};
                     %            {Count, Table} ->    ets:insert(Table, {Count+1, ElapsedUs}),
                     %                                 {ok, State#state{driver_state = DriverState, todo_op={Info, NewOpTag}, cdf={Count+1, Table}}}
@@ -356,19 +366,17 @@ worker_next_op(State) ->
                     case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time(NextToDo, Transition));
                                       _ -> timer:sleep(ThinkTime)
                     end,
-                    {ok, State#state { driver_state = DriverState, todo_op=NextToDo}}
+                    {ok, State#state { driver_state = DriverState, todo_op=NextToDo, first_op=false}}
             end;
         {Res, DriverState} when Res == silent orelse element(1, Res) == silent ->
-            %lager:warning("Result is ~w", [Res]),
-            {ok, State#state { driver_state = DriverState, todo_op=false}};
+            {ok, State#state { driver_state = DriverState, todo_op=false, first_op=false}};
         {error, Reason, DriverState} ->
-            %lager:warning("***************Error is ~w*********", [Reason]),
             %% Driver encountered a recoverable error
             basho_bench_stats:op_complete({TranslatedOp, TranslatedOp}, {error, Reason}, ElapsedUs),
             State#state.shutdown_on_error andalso
                 erlang:send_after(500, basho_bench,
                                   {shutdown, "Shutdown on errors requested", 1}),
-            {ok, State#state { driver_state = DriverState, todo_op=ToDo}};
+            {ok, State#state { driver_state = DriverState, todo_op=ToDo, first_op=false}};
 
         {'EXIT', Reason} ->
             %% Driver crashed, generate a crash error and terminate. This will take down
