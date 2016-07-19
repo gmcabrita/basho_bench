@@ -3,6 +3,7 @@ function runTpccNTimes {
     for i in $seq
     do
         if [ $start_ind -gt $skip_len ]; then
+	sudo ./script/preciseTime.sh
         ./script/runSpeculaBench.sh $t $AM $AS $do_specula $think_time $len specula_tests $wh $n $p $rep $start_ind
         skipped=1
         else
@@ -17,6 +18,7 @@ function runRubis {
     do
         if [ $start_ind -gt $skip_len ]; then
         AC=$((100-AM-AS))
+	sudo ./script/preciseTime.sh
         ./script/runRubisBench.sh $t $AM $AC $do_specula $think_time $len specula_tests $start_ind
         #echo $t $MN $SN $CN $MR $SR $CR $do_specula $len random $rep $comp specula_tests $start_ind
         skipped=1
@@ -28,20 +30,21 @@ function runRubis {
 }
 
 ## Just to test.. 
-seq="1 2"
-threads="5000 4000 3000 2000 1000"
+seq="1 2 3"
+tpcc_threads="300 1500 1200 600 900"
+rubis_threads="1000 2000 3000 4000 5000"
 workloads="1 2 3"
-length="0"
-warehouse="4 2"
+length="8 0"
+warehouse="5"
 
 think_times="tpcc"
 
-rep=5
-parts=28
+#rep=5
+#parts=28
 #rep=5
 #parts=20
-#rep=2
-#parts=4
+rep=2
+parts=4
 
 start_ind=1
 skip_len=0
@@ -64,13 +67,11 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 8 $do_specula 0 $rep $parts $specula_read
+sudo ./script/configBeforeRestart.sh 5000 $do_specula 0 $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
 
-for t in $threads
+for t in $tpcc_threads
 do
-    for think_time in $think_times
-    do
         for len in $length
         do
             if [ $skipped -eq 1 ] 
@@ -85,18 +86,22 @@ do
 	            fi
 	            for wh in $warehouse
 	            do
-                    if [ $skipped -eq 1 ]
-                    then
-		                sudo ./script/preciseTime.sh
-                    fi
                     think_time="tpcc"
                     runTpccNTimes
 	            done
 	        done
+        done
+done
+
+length="0"
+sudo ./script/configBeforeRestart.sh $t $do_specula 4 $rep $parts $specula_read
+for t in $rubis_threads
+do
+        for len in $length
+        do
             think_time="rubis"
             runRubis
         done
-    done
 done
 
 specula_read=false
@@ -117,10 +122,8 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 sudo ./script/configBeforeRestart.sh 64 $do_specula 0 $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
 
-for t in $threads
+for t in $tpcc_threads
 do  
-    for think_time in $think_times
-    do
         for wl in $workloads
         do
 	        if [ $wl == 1 ]; then  n=45  p=43
@@ -133,7 +136,10 @@ do
                 runTpccNTimes 
             done
         done
+done
+
+for t in $rubis_threads
+do  
         think_time="rubis"
         runRubis
-    done
 done
