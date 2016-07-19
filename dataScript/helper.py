@@ -232,7 +232,6 @@ def get_tpcc_title(param_list):
 def sort_by_num(l):
     d = []
     for s in l:
-        print(s)
         sl = s.split('_')
         ssl = []
         for x in sl:

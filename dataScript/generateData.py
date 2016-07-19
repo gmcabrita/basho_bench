@@ -189,12 +189,15 @@ def add_latency(nodes, tag, dict, folder):
 
 def add_real_latency(tag, list, folder):
     lat_files = glob.glob(folder+'/*'+tag) 
+    tmp_list = []
     for file in lat_files:
         with open(file) as f:
             for line in f:
                 lat= parse_line(line)
                 if lat != '':
-                    list.append(lat)
+                    #list.append(lat)
+                    tmp_list.append(lat)
+    list.append(sum(tmp_list)/max(1, len(tmp_list)))
 
 def write_to_file(file_name, dict, keys, title):
     file = open(file_name, 'w')
@@ -283,6 +286,8 @@ for config in dict:
         print(sum(entry['-latency_percv']))
         print(sum(entry['-latency_final']))
         write_to_file(real_latency, entry, ['-latency_percv', '-latency_final'], 'percvlat finallat') 
+        write_std(real_latency, entry['-latency_percv'])
+        write_std(real_latency, entry['-latency_final'])
 
     write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted read_invalid cascade_abort all_abort notified_abort specula_abort') 
     write_std(total_throughput, entry['total_throughput'])
