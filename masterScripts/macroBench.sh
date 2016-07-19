@@ -31,11 +31,11 @@ function runRubis {
 
 ## Just to test.. 
 seq="1 2 3"
-tpcc_threads="400 2000 1600 1200 800"
+tpcc_threads="300 1500 1200 600 900"
 rubis_threads="1000 2000 3000 4000 5000"
 workloads="1 2 3"
 length="8 0"
-warehouse="8"
+warehouse="5"
 
 think_times="tpcc"
 
@@ -55,8 +55,8 @@ AS=0
 specula_read=true
 do_specula=true
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -64,11 +64,11 @@ echo tpcc duration 120 >> config
 echo rubis cdf true >> config
 echo rubis duration 120 >> config
 echo ant cdf true >> ./config
-sudo ./script/copy_to_all.sh ./config ./basho_bench/
-sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+#sudo ./script/copy_to_all.sh ./config ./basho_bench/
+#sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 5000 $do_specula 0 $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/configBeforeRestart.sh 5000 $do_specula 0 $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 
 for t in $tpcc_threads
 do
@@ -93,6 +93,7 @@ do
         done
 done
 
+length="0"
 sudo ./script/configBeforeRestart.sh $t $do_specula 4 $rep $parts $specula_read
 for t in $rubis_threads
 do
@@ -135,10 +136,7 @@ do
                 runTpccNTimes 
             done
         done
-        think_time="rubis"
-        runRubis
 done
-
 
 for t in $rubis_threads
 do  
