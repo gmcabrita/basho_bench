@@ -76,6 +76,7 @@ do
         think_time="rubis"
         runRubis
 done
+exit
 
 ############# Specula here
 
