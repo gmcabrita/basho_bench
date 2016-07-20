@@ -95,7 +95,7 @@ get_all_lines(Device, Dict, NumRows, LineNum) when NumRows == LineNum ->
                              [First|Rest] = List,
                              {Acc+1, dict:store(Acc, [(First+list_to_float(V))|Rest], D)}
                     end end, {1, Dict}, Splitted),
-            dict:store({sleep, LineNum}, list_to_integer(SleepTime), ND)
+            dict:store({sleep, LineNum}, list_to_integer(SleepTime)/2, ND)
     end;
 get_all_lines(Device, Dict, NumRows, LineNum) ->
     case io:get_line(Device, "") of

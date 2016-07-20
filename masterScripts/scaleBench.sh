@@ -69,8 +69,66 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 sudo ./script/configBeforeRestart.sh 4000 $do_specula 0 $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
 
-rubis_threads="1000 2000 3000"
-seq="1 2"
+if [ 1 == 2 ];
+then
+tpcc_threads="800"
+workloads="2"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+fi
+
+tpcc_threads="2400"
+workloads="1"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+
+
+tpcc_threads="1200"
+workloads="3"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+
+rubis_threads="5000"
+seq="1"
 for t in $rubis_threads
 do  
         think_time="rubis"
@@ -102,7 +160,60 @@ sudo ./script/restartAndConnect.sh
 
 len=0
 
-rubis_threads="1000 2000 3000"
+tpcc_threads="2400"
+workloads="1"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+
+tpcc_threads="800"
+workloads="2"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+tpcc_threads="1200"
+workloads="3"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+
+rubis_threads="5000"
 seq="1"
 for t in $rubis_threads
 do  

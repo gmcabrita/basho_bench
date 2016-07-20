@@ -69,7 +69,7 @@ init([]) ->
             _Driver -> [?CHILD(basho_bench_measurement, worker)]
         end,
 
-    {ok, {{one_for_one, 200, 5},
+    {ok, {{one_for_one, 100, 5},
         [?CHILD(basho_bench_stats, worker)] ++
         Workers ++
         MeasurementDriver
