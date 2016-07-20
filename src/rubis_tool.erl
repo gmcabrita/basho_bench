@@ -41,7 +41,7 @@ find_next_state([H|T], Num, ProbAcc, Acc, Current) ->
 get_think_time({_, OpTag}, T) ->
     ThinkTime = dict:fetch({sleep, OpTag}, T),
     %lager:info("In op ~p, going to think for ~w", [translate_op(OpTag), ThinkTime]),
-    ThinkTime.
+    ThinkTime div 2.
 
 load_transition() ->
     FileName = basho_bench_config:get(transition_file),
@@ -95,7 +95,7 @@ get_all_lines(Device, Dict, NumRows, LineNum) when NumRows == LineNum ->
                              [First|Rest] = List,
                              {Acc+1, dict:store(Acc, [(First+list_to_float(V))|Rest], D)}
                     end end, {1, Dict}, Splitted),
-            dict:store({sleep, LineNum}, list_to_integer(SleepTime)/2, ND)
+            dict:store({sleep, LineNum}, list_to_integer(SleepTime), ND)
     end;
 get_all_lines(Device, Dict, NumRows, LineNum) ->
     case io:get_line(Device, "") of

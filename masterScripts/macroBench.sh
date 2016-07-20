@@ -34,7 +34,7 @@ function runRubis {
 seq="1 2"
 warehouse="5"
 
-rep=8
+rep=5
 parts=28
 #rep=5
 #parts=20
