@@ -39,10 +39,11 @@ find_next_state([H|T], Num, ProbAcc, Acc, Current) ->
     end.
 
 get_think_time({_, OpTag}, T) ->
-    _ThinkTime = dict:fetch({sleep, OpTag}, T),
+    ThinkTime = dict:fetch({sleep, OpTag}, T),
     %lager:info("In op ~p, going to think for ~w", [translate_op(OpTag), ThinkTime]),
     %ThinkTime div 8.
-    0.
+    ThinkTime div 4.
+    %0.
 
 load_transition() ->
     FileName = basho_bench_config:get(transition_file),

@@ -34,12 +34,12 @@ function runRubis {
 seq="1 2"
 warehouse="5"
 
-rep=5
-parts=28
+#rep=5
+#parts=28
 #rep=5
 #parts=20
-#rep=2
-#parts=4
+rep=2
+parts=4
 
 start_ind=1
 skip_len=0
@@ -54,8 +54,8 @@ warehouse="5"
 specula_read=false
 do_specula=false
 len=0
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict_optsup
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict_optsup
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -66,10 +66,10 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 4000 $do_specula 0 $rep $parts $specula_read 
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 4000 $do_specula 0 $rep $parts $specula_read 
+sudo ./script/restartAndConnect.sh
 
-rubis_threads="3000"
+rubis_threads="3000 4000"
 seq="1"
 for t in $rubis_threads
 do  
