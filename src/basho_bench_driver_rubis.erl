@@ -336,7 +336,8 @@ run(search_items_in_category, _KeyGen, _ValueGen, State=#state{nb_categories=NBC
     end,
     case CategoryNewItems of
         empty ->
-            %lager:error("Key is ~w, Category new items are ~w", [CategoryNewItemKey, CategoryNewItems]);
+            {ok, State};
+	[] ->
             {ok, State};
         _ ->
             %lager:info("Category is ~w, CategoryNewItems are ~w", [CategoryId, CategoryNewItems]),
@@ -399,6 +400,8 @@ run(search_items_in_region, _KeyGen, _ValueGen, State=#state{node_id=MyNode, nb_
     end,
     case RegionNewItems of
         empty ->
+            {ok, State};
+	[] ->
             {ok, State};
         _ ->
             %lager:info("Region is ~w, RegionNewItems are ~w", [RegionId, RegionNewItems]),

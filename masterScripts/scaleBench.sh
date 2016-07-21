@@ -34,7 +34,7 @@ function runRubis {
 seq="1 2"
 warehouse="5"
 
-rep=5
+rep=8
 parts=28
 #rep=5
 #parts=20
@@ -54,8 +54,8 @@ warehouse="5"
 specula_read=false
 do_specula=false
 len=0
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict_optsup
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict_optsup
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -66,17 +66,74 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 4000 $do_specula 0 $rep $parts $specula_read 
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 4000 $do_specula 0 $rep $parts $specula_read 
+sudo ./script/restartAndConnect.sh
 
-rubis_threads="3000"
+if [ 1 == 2 ];
+then
+tpcc_threads="800"
+workloads="2"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+fi
+
+tpcc_threads="2400"
+workloads="1"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+
+
+tpcc_threads="1200"
+workloads="3"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+
+rubis_threads="5000"
 seq="1"
 for t in $rubis_threads
 do  
         think_time="rubis"
         runRubis
 done
-exit
 
 ############# Specula here
 
@@ -103,7 +160,60 @@ sudo ./script/restartAndConnect.sh
 
 len=0
 
-rubis_threads="1000 2000 3000"
+tpcc_threads="2400"
+workloads="1"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+
+tpcc_threads="800"
+workloads="2"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+tpcc_threads="1200"
+workloads="3"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+
+rubis_threads="5000"
 seq="1"
 for t in $rubis_threads
 do  

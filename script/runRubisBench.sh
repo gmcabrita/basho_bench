@@ -19,7 +19,7 @@ echo load concurrent 4 >> config
 echo rubis specula $4 >> config
 #ToSleep=$((40000 / ${1}))
 NumNodes=`cat ./script/allnodes | wc -l`
-MasterToSleep=$((NumNodes*600+32000 - ${1}*10))
+MasterToSleep=$((NumNodes*600+39000 - ${1}*9))
 MasterToSleep=$((MasterToSleep<0?0:${MasterToSleep}))
 echo rubis master_to_sleep $MasterToSleep >> config
 #echo load duration 130 >> config
@@ -29,7 +29,7 @@ echo $1 $2 $3 $4 $5 $6 > $Folder/config
 touch $Folder/$8
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sleep 10 && ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/rubis.config" &
+sleep 30 && ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/rubis.config" &
 ./script/clean_data.sh
 ./script/load.sh `head -1 ./script/allnodes` rubis 1 
 wait

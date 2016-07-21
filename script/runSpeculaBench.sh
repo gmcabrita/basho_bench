@@ -51,7 +51,7 @@ NumNodes=`cat ./script/allnodes | wc -l`
 #ToSleep=$(((18000 + 600*NumNodes) / ${1}))
 #ToSleep=$(($ToSleep>200?$ToSleep:200))
 #MasterToSleep=$((NumNodes*600+25000 - ${1}))
-MasterToSleep=$((NumNodes*600+32000 - ${1}*10))
+MasterToSleep=$((NumNodes*600+55000 - ${1}*8))
 MasterToSleep=$((MasterToSleep<0?0:${MasterToSleep}))
 echo tpcc master_to_sleep $MasterToSleep >> config
 #echo tpcc to_sleep $ToSleep >> config
@@ -73,7 +73,7 @@ echo $1 $2 $3 $4 $5 $6 $WPerDc $9 ${10} ${11}  > $Folder/config
 touch $Folder/$seq
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config" &
+sleep 30 && ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config" &
 #./script/parallel_command.sh "`cat ./script/allnodes | head -2`" "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config" &
 ./script/clean_data.sh
 ./script/load.sh `head -1 ./script/allnodes` tpcc $WPerDc
