@@ -69,7 +69,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #sudo ./script/configBeforeRestart.sh 4000 $do_specula 0 $rep $parts $specula_read 
 #sudo ./script/restartAndConnect.sh
 
-rubis_threads="1000 2500"
+rubis_threads="3000"
 seq="1"
 for t in $rubis_threads
 do  
