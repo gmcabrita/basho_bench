@@ -69,7 +69,7 @@ sudo ./script/copy_to_all.sh ./config ./basho_bench/
 #sudo ./script/configBeforeRestart.sh 4000 $do_specula 0 $rep $parts $specula_read 
 #sudo ./script/restartAndConnect.sh
 
-rubis_threads="5500"
+rubis_threads="5000"
 seq="1"
 for t in $rubis_threads
 do  

@@ -3,12 +3,20 @@
 if [ $# -eq 0 ]; then
 	AllNodes=`cat script/allnodes`
 	Cookie="antidote"
+	./script/stopNodes.sh "$AllNodes" 
+	./script/startNodes.sh "$AllNodes"
+elif [ $# -eq 1 ]; then
+	AllNodes=`cat script/allnodes`
+	Cookie="antidote"
+	echo "Truning on CGroups is "$1
+	./script/stopNodes.sh "$AllNodes" 
+	./script/cgroupStartNodes.sh  $1
 else
     AllNodes=$1
     Cookie=$2
+    ./script/stopNodes.sh "$AllNodes" 
+    ./script/startNodes.sh "$AllNodes"
 fi
-	./script/stopNodes.sh "$AllNodes" 
-	./script/startNodes.sh "$AllNodes"
 
 	NodesList=($AllNodes)
 	Length=${#NodesList[@]}
