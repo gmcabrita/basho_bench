@@ -46,7 +46,7 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     legend_type = plot_dict['legend_type'] 
     markers=["^", "8", "s", "h", ".", "1", "v"]
     line_index=0
-    barwidth = max(0.15, 0.6/len(data_multi_list))
+    barwidth = max(0.2, 0.6/len(data_multi_list))
     #colors=['#000000', '#397fb8', '#4fb04c', '#ed7e7e','#944fa1', '#e31b1b', '#e37f1b']
     #colors=['#000000', '#9E9FDB', '#01c07c', '#8D1010','#944fa1', '#e31b1b', '#e37f1b']
     #colors=['#000000','#ffffcc','#a1dab4','#41b6c4','#2c7fb8','#253494']
@@ -183,11 +183,20 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     #plt.subplot(212)
     #xlabels=['NOSPEC', 'SL1','SL2','SL4','SL8', 'SL16']
     if 'x_labels' in plot_dict:
-        xlabels=plot_dict['x_labels']
+        if plot_dict['x_labels'] == False:
+            pass
+        elif plot_dict['x_labels'] == 'default':
+            xlabels=['NOSPEC', 'SL1', 'SL2', 'SL4', 'SL8', 'SL16']
+            ax2.set_xticks([i for i in range(num_xticks)])
+            ax2.set_xticklabels(xlabels, minor=False, fontsize=fsize)
+        else:
+            xlabels=plot_dict['x_labels']
+            ax2.set_xticks([i for i in range(num_xticks)])
+            ax2.set_xticklabels(xlabels, minor=False, fontsize=fsize)
     else:
         xlabels=['16 cls', '32 cls', '64 cls', '128 cls']
-    ax2.set_xticks([i for i in range(num_xticks)])
-    ax2.set_xticklabels(xlabels, minor=False, fontsize=fsize)
+        ax2.set_xticks([i for i in range(num_xticks)])
+        ax2.set_xticklabels(xlabels, minor=False, fontsize=fsize)
 
     ax1.set_xlim([-0.5,num_xticks-1+0.5])
     ax2.set_xlim([-0.5,num_xticks-1+0.5])
@@ -207,18 +216,55 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
         ax2.yaxis.set_major_formatter(NullFormatter())
         
     if 'has_legend' in plot_dict and plot_dict['has_legend']:
-        ax1.legend(handlers, plot_dict['commit_legend'], fontsize=lsize, loc=2, labelspacing=0.0, borderpad=0.2)
-        if 'legend_loc' in  plot_dict:
-            location = plot_dict['legend_loc']
+        if 'out_legend' in plot_dict:
+            extra = Rectangle((0, 0), 0, 0, fc="w", fill=False, edgecolor='none', linewidth=0)
+            commit_legend = ['Commits']+plot_dict['commit_legend']
+            lgd = ax1.legend([extra]+handlers, commit_legend, fontsize=lsize, loc=6, labelspacing=0.0, handletextpad=0.2, borderpad=0.2, bbox_to_anchor=(-0.47,0.7))
+            commit_fonts = lgd.get_texts()
+            t0 = commit_fonts[0]
+            t0._fontproperties = commit_fonts[1]._fontproperties.copy()
+            #t1.set_size('medium')
+            t0.set_weight('bold')
+
+            even_hlt=[]
+            odd_hlt=[]
+            for i,l in enumerate(abort_handlers[1:]):
+                if i%2 == 0:
+                    even_hlt.append(l)
+                else:
+                    odd_hlt.append(l)
+            abort_handlers = [abort_handlers[0]] + even_hlt+odd_hlt
+            abort_legend = plot_dict['abort_legend']
+            extra = Rectangle((0, 0), 0, 0, fc="w", fill=False, edgecolor='none', linewidth=0)
+            abort_legend.insert(0, 'I. Abort')
+            abort_handlers.insert(0, extra) 
+            abort_legend.insert(5, 'S. Abort')
+            abort_handlers.insert(5, extra) 
+            lgd2 = ax2.legend(abort_handlers, abort_legend, fontsize=lsize, loc=6, labelspacing=0., columnspacing=0.2, handletextpad=0.2, borderpad=0.2, bbox_to_anchor=(-0.47,0.5))
+            abort_fonts = lgd2.get_texts()
+            t0 = abort_fonts[0]
+            t5 = abort_fonts[5]
+            t0._fontproperties = abort_fonts[1]._fontproperties.copy()
+            t5._fontproperties = abort_fonts[1]._fontproperties.copy()
+            #t1.set_size('medium')
+            t0.set_weight('bold')
+            t5.set_weight('bold')
         else:
-            location = 2
-        a_legends = plot_dict['abort_legend']
-        if 'swap' in plot_dict and plot_dict['swap'] == True:
-            swap(abort_handlers, 0, 2)
-            swap(abort_handlers, 0, 1)
-            swap(a_legends, 0, 2) 
-            swap(a_legends, 0, 1) 
-        ax2.legend(abort_handlers, a_legends, fontsize=lsize, loc=location, labelspacing=0.2, columnspacing=0.2, handletextpad=0.2, borderpad=0.2, ncol=len(plot_dict['abort_legend'])//2)
+            if 'legend_loc' in  plot_dict:
+                location = plot_dict['legend_loc']
+            else:
+                location = 2
+            ax1.legend(handlers, plot_dict['commit_legend'], fontsize=lsize, loc=2, labelspacing=0.0, borderpad=0.2)
+            if 'abort_legend' in plot_dict:
+                if 'swap' in plot_dict and plot_dict['swap'] == True:
+                    swap(abort_handlers, 0, 2)
+                    swap(abort_handlers, 0, 1)
+                    abort_legend = plot_dict['abort_legend']
+                    swap(abort_legend, 0, 2) 
+                    swap(abort_legend, 0, 1) 
+                ax2.legend(abort_handlers, abort_legend, fontsize=lsize, loc=location, labelspacing=0.2, columnspacing=0.2, handletextpad=0.2, borderpad=0.2, ncol=len(plot_dict['abort_legend'])//2)
+            else:
+                pass
     
     name=plot_dict['title'].replace(' ','').replace('%','').replace(',','').replace('_','').replace('-','').replace(':','')
     legend_type= legend_type.replace(' ','').replace('%','').replace(',','').replace('_','').replace('-','').replace(':','')
@@ -229,5 +275,9 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     #fig.set_size_inches(8.5, 6)
     #plt.tight_layout()
     #fig.savefig(output_folder+'/'+name+legend_type+'.pdf', format='pdf', bbox_inches='tight')
-    fig.savefig(output_folder+'/'+name+legend_type+'.png', bbox_inches='tight')
+    if 'out_legend' in plot_dict:
+        fig.savefig(output_folder+'/'+name+legend_type+'.pdf', format='pdf', bbox_extra_artists=(lgd,), bbox_inches='tight')
+    else:
+        fig.savefig(output_folder+'/'+name+legend_type+'.pdf', format='pdf', bbox_inches='tight')
+    #fig.savefig(output_folder+'/'+name+legend_type+'.png')
 

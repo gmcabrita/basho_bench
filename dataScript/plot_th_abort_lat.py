@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from pylab import *
 from helper import *
 import sys
+import math
 import random
 import os
 import numpy as np
@@ -56,11 +57,10 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
         colors=['#000000', '#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#ffffcc']
     else:
         colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#ffffcc']
-    num_xticks = 0
     start_pos = 0
     ## Draw baseline
     #print(data_multi_list)
-    num_xticks = len(data_multi_list[0])
+    num_xticks = len(max(data_multi_list, key=len))
     offset = len(data_multi_list)/2*barwidth
 
     if 'not_reverse' not in plot_dict:
@@ -114,15 +114,18 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
 
         s = [10 for num in data1]
         h = []
-        for i, v in enumerate(data1):
-            h, = ax1.bar(i+line_index*barwidth-offset, v/1000, barwidth, color=colors[line_index], yerr=data1_e[i]/1000)
+        #for i, v in enumerate(data1):
+            #h, = ax1.bar(i+line_index*barwidth-offset, v/1000, barwidth, color=colors[line_index], yerr=data1_e[i]/1000)
+        x = [i for i in range(len(data1))]
+        data1 = [i/1000 for i in data1]
+        h = ax1.errorbar(x, data1, color=colors[line_index], marker=markers[line_index], markersize=10, linewidth=3.5)
         handlers.append(h)
 
         print(final_lat)
         print(percv_lat)
         for i, v in enumerate(final_lat):
-            h, = ax3.bar(i+line_index*barwidth-offset, percv_lat[i]/1000, barwidth, bottom=0,color=colors[line_index], yerr=percv_error[i]) 
-            h, = ax3.bar(i+line_index*barwidth-offset, (final_lat[i]-percv_lat[i])/1000, barwidth, bottom=percv_lat[i]/1000,color=colors[line_index-1], yerr = final_error[i]) 
+            h, = ax3.bar(i+line_index*barwidth-offset, percv_lat[i], barwidth, bottom=0,color=colors[line_index], log=True)#, yerr=percv_error[i]) 
+            h, = ax3.bar(i+line_index*barwidth-offset, final_lat[i]-percv_lat[i], barwidth, bottom=percv_lat[i],color=colors[line_index-1], log=True)#, yerr = final_error[i]) 
         latency_handlers.append(h)
 
         if data2 != []:
@@ -180,7 +183,12 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
         ax3.set_ylabel('Latency (ms)', fontsize=labsize) 
 
     ax2.set_ylim([0,0.99])
-    ax3.set_ylim([0, 10])
+    #if '3y_lim' in plot_dict:
+    #    ax3.set_ylim([0, plot_dict['3y_lim']])
+    #else:
+    #    ax3.set_ylim([0, 10])
+    #ax3.set_yscale('log')
+
     ax1.yaxis.grid(True)
     ax2.yaxis.grid(True)
     ax3.yaxis.grid(True)

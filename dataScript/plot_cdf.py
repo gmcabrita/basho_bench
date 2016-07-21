@@ -58,8 +58,6 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
     postfixes=['-latency_percv', '-latency_final']
     nospecula_postfix='-latency_final'
         
-    legends=['SL1: specula', 'SL1: final', 'SL2: specula', 'SL2: final', 'SL4: specula', 
-                'SL4: final', 'SL8: specula', 'SL8: final','No specula']
     lat_list=[[] for i in range(lines_to_plot)]
     maxv_list=[0 for i in range(lines_to_plot)]
 
@@ -116,7 +114,7 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
         for i, lats in enumerate(lat_list):
             stride = max( int(len(lats) / 10), 1)
             if i == lines_to_plot -1:
-                colori = math.ceil(i/2)
+                colori = int(math.ceil(i/2))
                 hld, =plt.plot(np.sort(lats), np.linspace(0, 1, len(lats), endpoint=False), color=colors[colori], marker=markers[colori], linewidth=width,  markersize=marksize, markevery=stride)
             else:
                 if i % 2 == 1:
@@ -129,6 +127,29 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
         plt.xlim([0, 1200])
         #plt.xlim([0, maxv_list[sl_index]])
         if has_legend:
+            legends=['Observed', 'SL1', 'SL2', 'SL4', 'SL8',  'Real',
+                'No spec', 'SL1', 'SL2', 'SL4', 'SL8']
+
+            even_hlt=[]
+            odd_hlt=[]
+            for i,l in enumerate(handlers[:-1]):
+                if i%2 == 0:
+                    even_hlt.append(l)
+                else:
+                    odd_hlt.append(l)
+            handlers = even_hlt +  [handlers[-1]]  +odd_hlt 
+            extra = Rectangle((0, 0), 0, 0, fc="w", fill=False, edgecolor='none', linewidth=0)
+            handlers.insert(0, extra)
+            handlers.insert(5, extra)
+            lgd = plt.legend(handlers, legends, fontsize=lsize, loc=4, labelspacing=0.0, handletextpad=0.2, borderpad=0.2)
+            commit_fonts = lgd.get_texts()
+            t0 = commit_fonts[0]
+            t5 = commit_fonts[5]
+            t0._fontproperties = commit_fonts[1]._fontproperties.copy()
+            t5._fontproperties = commit_fonts[1]._fontproperties.copy()
+            t0.set_weight('bold')
+            t5.set_weight('bold')
+        else:
             plt.legend(handlers, legends, loc=4, labelspacing=0.2, borderpad=0.2, fontsize=lsize)
         plt.grid(True)
         if y_ticks == False:
@@ -138,4 +159,7 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
             plt.ylabel('Percentage Transactions', fontsize=labsize)
         plt.xlabel('Latency (ms)', fontsize=labsize)
 
-        plt.savefig(output_folder+'/'+str(nodei)+ output_name+'.pdf', format='pdf', bbox_inches='tight')
+        if has_legend == True:
+            plt.savefig(output_folder+'/'+str(nodei)+ output_name+'.pdf', format='pdf', bbox_extra_artists=(lgd,), bbox_inches='tight')
+        else:
+            plt.savefig(output_folder+'/'+str(nodei)+ output_name+'.pdf', format='pdf', bbox_inches='tight')
