@@ -34,12 +34,12 @@ function runRubis {
 seq="1 2"
 warehouse="5"
 
-rep=8
-parts=28
+#rep=8
+#parts=28
 #rep=5
 #parts=20
-#rep=2
-#parts=4
+rep=1
+parts=12
 
 start_ind=1
 skip_len=0
