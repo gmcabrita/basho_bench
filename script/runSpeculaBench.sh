@@ -87,7 +87,7 @@ wait
 #fi
 #timeout 200 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
 ./script/gatherThroughput.sh $Folder &
-./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
+#./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
 #./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 
 #./script/copyFromAll.sh payment_latencies.csv ./basho_bench/tests/current/ $Folder & 
 #./script/copyFromAll.sh order-status_latencies.csv ./basho_bench/tests/current/ $Folder & 

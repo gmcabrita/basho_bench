@@ -33,12 +33,13 @@ sleep 30 && ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests 
 ./script/clean_data.sh
 ./script/load.sh `head -1 ./script/allnodes` rubis 1 
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/restrict.sh 1"
+sleep 15 && sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/restrict.sh 1" &
 wait
 
 
 ./script/gatherThroughput.sh $Folder
 
-./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder
+#./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder
 #./script/copyFromAll.sh register-user_latencies.csv ./basho_bench/tests/current/ $Folder &
 #./script/copyFromAll.sh register_item.csv ./basho_bench/tests/current/ $Folder &
 #./script/copyFromAll.sh store-bid_latencies.csv ./basho_bench/tests/current/ $Folder &
