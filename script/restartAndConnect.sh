@@ -5,12 +5,12 @@ if [ $# -eq 0 ]; then
 	Cookie="antidote"
 	./script/stopNodes.sh "$AllNodes" 
 	./script/startNodes.sh "$AllNodes"
-elif [ $# -eq 1 ]; then
-	AllNodes=`cat script/allnodes`
-	Cookie="antidote"
-	echo "Truning on CGroups is "$1
-	./script/stopNodes.sh "$AllNodes" 
-	./script/cgroupStartNodes.sh  $1
+#elif [ $# -eq 1 ]; then
+#	AllNodes=`cat script/allnodes`
+#	Cookie="antidote"
+#	echo "Truning on CGroups is "$1
+#	./script/stopNodes.sh "$AllNodes" 
+#	./script/cgroupStartNodes.sh  $1
 else
     AllNodes=$1
     Cookie=$2

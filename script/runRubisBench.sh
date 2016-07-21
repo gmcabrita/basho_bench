@@ -29,11 +29,9 @@ echo $1 $2 $3 $4 $5 $6 > $Folder/config
 touch $Folder/$8
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sleep 30 && ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo cgexec -g cpu:antidote ./basho_bench examples/rubis.config" &
+sleep 30 && ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/rubis.config" &
 ./script/clean_data.sh
 ./script/load.sh `head -1 ./script/allnodes` rubis 1 
-sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/restrict.sh 1"
-sleep 15 && sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/restrict.sh 1" &
 wait
 
 
