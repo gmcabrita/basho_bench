@@ -41,7 +41,8 @@ find_next_state([H|T], Num, ProbAcc, Acc, Current) ->
 get_think_time({_, OpTag}, T) ->
     ThinkTime = dict:fetch({sleep, OpTag}, T),
     %lager:info("In op ~p, going to think for ~w", [translate_op(OpTag), ThinkTime]),
-    ThinkTime div 2.
+    Portion = ThinkTime div 16,
+    Portion *3  + random:uniform(Portion*2).
 
 load_transition() ->
     FileName = basho_bench_config:get(transition_file),
