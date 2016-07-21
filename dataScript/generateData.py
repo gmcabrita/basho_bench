@@ -72,8 +72,8 @@ def add_throughput(nodes, dict, total_dict, folder):
             committed += int(words[3])
             notified_abort += int(words[4])
             duration=max(duration,float(words[0]))
-            print(float(words[0]))            
-            print(duration)            
+            #print(float(words[0]))            
+            #print(duration)            
 
         stat_line = stat_lines[index]
         stat_data = stat_line.split(',')
@@ -197,7 +197,7 @@ def add_real_latency(tag, list, folder):
                 if lat != '':
                     #list.append(lat)
                     tmp_list.append(lat)
-    list.append(sum(tmp_list)/max(1, len(tmp_list)))
+    list.append([sum(tmp_list)/max(1, len(tmp_list))])
 
 def write_to_file(file_name, dict, keys, title):
     file = open(file_name, 'w')
@@ -281,10 +281,10 @@ for config in dict:
     write_to_file(throughput, entry['throughput'], nodes, 'ip committed cert_aborted read_aborted read_invalid cascade_abort notified_abort') 
 
     if len(entry['-latency_final']) != 0:
-        entry['-latency_percv'] = [sum(entry['-latency_percv'])/max(len(entry['-latency_percv']), 1)]
-        entry['-latency_final'] = [sum(entry['-latency_final'])/len(entry['-latency_final'])]
-        print(sum(entry['-latency_percv']))
-        print(sum(entry['-latency_final']))
+        #entry['-latency_percv'] = [sum(entry['-latency_percv'])/max(len(entry['-latency_percv']), 1)]
+        #entry['-latency_final'] = [sum(entry['-latency_final'])/len(entry['-latency_final'])]
+        print(entry['-latency_percv'])
+        print(entry['-latency_final'])
         write_to_file(real_latency, entry, ['-latency_percv', '-latency_final'], 'percvlat finallat') 
         write_std(real_latency, entry['-latency_percv'])
         write_std(real_latency, entry['-latency_final'])

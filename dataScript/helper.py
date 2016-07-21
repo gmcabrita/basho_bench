@@ -27,7 +27,7 @@ def get_matching_series_delete(args, toremove, options):
     diff_fields.append(rotate_field)
 
     rotate_field_set = set()
-    sub_folders = glob.glob(input_folder+'/*')
+    sub_folders = glob.glob(input_folder+'/' +('[0-9]')+'*')
     split_names={}
     for f in sub_folders:
         bname = basename(f)
