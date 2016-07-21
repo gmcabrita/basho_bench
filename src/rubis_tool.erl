@@ -42,7 +42,7 @@ get_think_time({_, OpTag}, T) ->
     ThinkTime = dict:fetch({sleep, OpTag}, T),
     %lager:info("In op ~p, going to think for ~w", [translate_op(OpTag), ThinkTime]),
     %ThinkTime div 8.
-    ThinkTime div 4.
+    ThinkTime.
     %0.
 
 load_transition() ->

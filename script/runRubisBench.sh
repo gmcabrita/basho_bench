@@ -32,6 +32,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 sleep 30 && ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/rubis.config" &
 ./script/clean_data.sh
 ./script/load.sh `head -1 ./script/allnodes` rubis 1 
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/restrict.sh 1"
 wait
 
 

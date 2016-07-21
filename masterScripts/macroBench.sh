@@ -105,7 +105,7 @@ sudo ./script/copy_to_all.sh ./config ./basho_bench/
 
 len=0
 
-rubis_threads="2000"
+rubis_threads="2000 3000"
 seq="1"
 for t in $rubis_threads
 do  
