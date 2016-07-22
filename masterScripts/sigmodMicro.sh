@@ -32,7 +32,7 @@ MBIG=20000
 MSML=1000
 CBIG=40000
 #CSML=2000
-CSML=1000
+CSML=500
 MR=$MBIG 
 CR=$CBIG
 SR=100000
@@ -67,6 +67,7 @@ sudo ./script/restartAndConnect.sh
 specula_read=false
 for len in $length
 do
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
@@ -82,6 +83,7 @@ done
 specula_read=true
 for len in $length
 do
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
