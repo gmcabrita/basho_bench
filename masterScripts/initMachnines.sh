@@ -45,7 +45,8 @@ sudo ./script/parallel_command.sh "sudo apt-get -y install sshpass"
 sudo ./script/parallel_command.sh "sudo apt-get -y install cgroup-bin"
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.email 'mars.leezm@gmail.com'"
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.name 'marsleezm'"
-./script/makeRel.sh benchmark_precise_fast_repl 
+#./script/makeRel.sh benchmark_precise_fast_repl 
+./script/makeRel.sh benchmark_no_specula 
 ./script/parallel_command.sh "cd basho_bench && git stash && git pull && sudo make"
 #./script/parallel_command.sh "./basho_bench/masterScripts/config.sh" 
 ./script/parallel_command.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"

@@ -45,7 +45,7 @@ MN=80
 SN=20
 CN=0
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 clock="old"

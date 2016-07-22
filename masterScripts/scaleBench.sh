@@ -54,7 +54,7 @@ warehouse="5"
 specula_read=false
 do_specula=false
 len=0
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict_optsup
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict_optsup
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
