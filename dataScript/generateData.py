@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 ###!/usr/bin/env python3
+from __future__ import division
 import sys
 import os
 import glob
@@ -55,6 +56,7 @@ def add_throughput(nodes, dict, total_dict, folder):
     all_cert_abort = 0
     all_c_abort = 0
     all_abort = 0
+    specula_abort = 0
     index = 1
     stat_lines = [line.rstrip('\n') for line in open(os.path.join(folder, 'stat'))]
     duration=0
@@ -103,8 +105,16 @@ def add_throughput(nodes, dict, total_dict, folder):
         all_c_abort += cascade_abort
         all_notified_abort += notified_abort
         all_abort += cert_abort + read_abort + read_invalid + cascade_abort
-    print('All committed is'+str(real_committed))
-    total_dict.append([all_committed/duration, all_cert_abort/duration, all_r_abort/duration, all_r_invalid/duration, all_c_abort/duration, all_abort/duration, all_notified_abort/duration, (all_abort-all_notified_abort)/duration])
+
+    #print('All committed is'+str(real_committed))
+    #print("Abort rate is "+str(all_abort)+" "+str(all_committed+all_abort))
+    #print("Abort rate is "+str(all_abort/(all_committed+all_abort)))
+    #if all_abort-all_notified_abort < 0:
+    specula_abort = all_r_abort + all_r_invalid + all_c_abort
+    #else:
+    #    specula_abort = all_abort - all_notified_abort
+
+    total_dict.append([all_committed/duration, all_cert_abort/duration, all_r_abort/duration, all_r_invalid/duration, all_c_abort/duration, all_abort/duration, all_notified_abort/duration, (specula_abort)/duration, all_abort/(all_committed+all_abort), specula_abort/(all_committed+all_abort)])
     
 
 def update_counter(folder, length, key):
@@ -289,7 +299,7 @@ for config in dict:
         write_std(real_latency, entry['-latency_percv'])
         write_std(real_latency, entry['-latency_final'])
 
-    write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted read_invalid cascade_abort all_abort notified_abort specula_abort') 
+    write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed cert_aborted read_aborted read_invalid cascade_abort all_abort notified_abort specula_abort all_abort_rate specula_abort_rate') 
     write_std(total_throughput, entry['total_throughput'])
     write_to_file(duration, entry['duration'], nodes, 'ip no_read no_local_a no_remote_a no_local_c no_remote_c no_specula_c p_read p_local_a p_remote_a p_local_c p_remote_c p_specula_c nc_local nc_remote na_local na_remote pc_local pc_remote pa_local pa_remote gc_local gc_remote ga_local ga_remote')
     write_to_file(total_duration, entry, ['total_duration'], 'N/A ip no_read no_local_a no_remote_a no_local_c no_remote_c no_specula_c p_read p_local_a p_remote_a p_local_c p_remote_c p_specula_c nc_local nc_remote na_local na_remote pc_local pc_remote pa_local pa_remote gc_local gc_remote ga_local ga_remote') 

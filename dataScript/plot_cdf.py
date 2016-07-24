@@ -18,6 +18,8 @@ def parse_line(line):
         return int(arr[-1][:-2])/1000
     elif line[0]=='a':
         return ''
+    elif line[0]=='t':
+        return ''
     else:
         return int(line[:-1])/1000
 
@@ -48,17 +50,18 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
     ax = plt.axes()        
     ax.yaxis.grid()
     sl_index=0
+    nsl_index=0
     #colors=['#397fb8', '#ed7e7e', '#944fa1', '#4fb04c', '#000000', '#e31b1b', '#e37f1b']
     colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#000000']
     markers=["^", "8", "s", "h", "p", "v", "d", '1', 'd']
     legends=[]
     handlers=[]
-    lines_to_plot=1+len(specula_folders)*2
-    #postfixes=['-latency_bench', '-latency_ant']
+    lines_to_plot=len(specula_folders)*2
     postfixes=['-latency_percv', '-latency_final']
     nospecula_postfix='-latency_final'
         
-    lat_list=[[] for i in range(lines_to_plot)]
+    sp_lat_list=[[] for i in range(lines_to_plot)]
+    nsp_lat_list=[[] for i in range(len(nospecula_folders))]
     maxv_list=[0 for i in range(lines_to_plot)]
 
     for nodei in range(len(allnodes)):
@@ -68,12 +71,10 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
         for sub_folders in specula_folders:
             for folder in sub_folders:
                 maxv=0
-                print("Folder is "+folder)
                 for index in range(2):
                     sub_files = [glob.glob(folder+'/'+n+postfixes[index]) for n in nodes]
+                    print(sub_files)
                     for file_arr in sub_files:
-                        #if file_arr == []:
-                        #    continue
                         file=file_arr[0] 
                         with open(file) as f:
                             for line in f:
@@ -84,47 +85,64 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
                                     maxv_list[sl_index*2+index]=max(maxv_list[sl_index*2+index], lat)
                                     sumv+=lat
                                     numpt+=1
-                                    lat_list[sl_index*2+index].append(lat)
-                    print(maxv_list[index])
+                                    sp_lat_list[sl_index*2+index].append(lat)
             sl_index += 1
 
-        print("No specula folders are "+"".join(nospecula_folders))
-        nspnodes = nospeculanodes[nodei]
-        for folder in nospecula_folders:
-            ##Hack here!! Change back!!!!
-            sub_files = []
-            for n in nspnodes:
-                print(folder+'/'+n+ nospecula_postfix)
-                file = glob.glob(folder+'/'+n+ nospecula_postfix)
-                sub_files.append(file)
-            for file_arr in sub_files:
-                print("File arr is "+"".join(file_arr))
-                file=file_arr[0] 
-                with open(file) as f:
-                    for line in f:
-                        lat = parse_line(line)
-                        if lat == '':
-                            continue
-                        else:
-                            maxv_list[sl_index*2]=max(maxv_list[sl_index*2], lat)
-                            sumv+=lat
-                            numpt+=1
-                            lat_list[sl_index*2].append(lat)
+        for sub_folders in nospecula_folders:
+            for folder in sub_folders:
+                maxv=0
+                sub_files = [glob.glob(folder+'/'+n+nospecula_postfix) for n in nodes]
+                for file_arr in sub_files:
+                    file=file_arr[0] 
+                    with open(file) as f:
+                        for line in f:
+                            lat= parse_line(line)
+                            if lat == '':
+                                continue
+                            else:
+                                maxv_list[nsl_index]=max(maxv_list[nsl_index], lat)
+                                sumv+=lat
+                                numpt+=1
+                                nsp_lat_list[nsl_index].append(lat)
+            nsl_index += 1
 
-        for i, lats in enumerate(lat_list):
+        #print("No specula folders are "+"".join(nospecula_folders))
+        #nspnodes = nospeculanodes[nodei]
+        #for folder in nospecula_folders:
+        #    ##Hack here!! Change back!!!!
+        #    sub_files = []
+        #    for n in nspnodes:
+        #        print(folder+'/'+n+ nospecula_postfix)
+        #        file = glob.glob(folder+'/'+n+ nospecula_postfix)
+        #        sub_files.append(file)
+        #    for file_arr in sub_files:
+        #        print("File arr is "+"".join(file_arr))
+        #        file=file_arr[0] 
+        #        with open(file) as f:
+        #            for line in f:
+        #                lat = parse_line(line)
+        #                if lat == '':
+        #                    continue
+        #                else:
+        #                    maxv_list[sl_index*2]=max(maxv_list[sl_index*2], lat)
+        #                    sumv+=lat
+        #                    numpt+=1
+        #                    lat_list[sl_index*2].append(lat)
+
+        for i, lats in enumerate(sp_lat_list):
             stride = max( int(len(lats) / 10), 1)
-            if i == lines_to_plot -1:
-                colori = int(math.ceil(i/2))
-                hld, =plt.plot(np.sort(lats), np.linspace(0, 1, len(lats), endpoint=False), color=colors[colori], marker=markers[colori], linewidth=width,  markersize=marksize, markevery=stride)
+            if i % 2 == 1:
+                hld, =plt.plot(np.sort(lats), np.linspace(0, 1, len(lats), endpoint=False), color=colors[i//2], marker=markers[i//2], markersize=marksize, markevery=stride, linestyle='--', linewidth=width)
             else:
-                if i % 2 == 1:
-                    hld, =plt.plot(np.sort(lats), np.linspace(0, 1, len(lats), endpoint=False), color=colors[i//2], marker=markers[i//2], markersize=marksize, markevery=stride, linestyle='--', linewidth=width)
-                else:
-                    hld, =plt.plot(np.sort(lats), np.linspace(0, 1, len(lats), endpoint=False), color=colors[i//2], marker=markers[i//2], markersize=marksize, markevery=stride, linewidth=width)
+                hld, =plt.plot(np.sort(lats), np.linspace(0, 1, len(lats), endpoint=False), color=colors[i//2], marker=markers[i//2], markersize=marksize, markevery=stride, linewidth=width)
             handlers.append(hld)
 
+        for i, lats in enumerate(nsp_lat_list):
+            colori = i+len(sp_lat_list)/2 
+            hld, =plt.plot(np.sort(lats), np.linspace(0, 1, len(lats), endpoint=False), color=colors[colori], marker=markers[colori], linewidth=width,  markersize=marksize, markevery=stride)
+
         #plt.xlim([0, sumv/numpt*max_factor])
-        plt.xlim([0, 1200])
+        plt.xlim([0, 30000])
         #plt.xlim([0, maxv_list[sl_index]])
         if has_legend:
             legends=['Observed', 'SL1', 'SL2', 'SL4', 'SL8',  'Real',

@@ -27,7 +27,7 @@ def get_path(input_folders, name):
 # input data
 def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_index, plot_dict):
     plt.clf()
-    ncols=7
+    ncols=11
     fig = plt.figure()
     gs = gridspec.GridSpec(3, 1)
     gs.update(hspace=0.001)
@@ -40,6 +40,7 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
     ax1.set_xticklabels([])
     
     fsize=15
+    ticksize=14
     lsize=20
     labsize=18
     maxv=0
@@ -69,13 +70,12 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
     #print(data_multi_list)
     for data_list in data_multi_list: 
         data_list = sort_by_num(data_list)
-        print("Data list is ")
-        print(data_list)
             
         index = 0
         specula_abort=[]
         data1=[]
         data1_e=[]
+        s_abort_e=[]
         data2=[]
         data2_e=[]
         final_lat=[]
@@ -91,13 +91,14 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
             minvalue = min(minvalue, float(data[0,0]))
             data1.append(data[0,0])
             data1_e.append(data[1,0])
-            data2.append(data[0,5]/(data[0,0]+data[0,5]))
-            data2_e.append(0)
-            print(data2)
-            if len(data) < 8:
-                specula_abort.append((data[0,5]-data[0,1])/(data[0,0]+data[0,5]))
-            else:
-                specula_abort.append(data[0,7]/(data[0,0]+data[0,5]))
+            #data2.append(data[0,5]/(data[0,0]+data[0,5]))
+            data2.append(data[0,8])
+            data2_e.append(data[1,8])
+            #if len(data) < 8:
+            #    specula_abort.append((data[0,5]-data[0,1])/(data[0,0]+data[0,5]))
+            #else:
+            specula_abort.append(data[0,9])
+            s_abort_e.append(data[1,9])
 
             lat_path = get_path(input_folder, f+'/real_latency')
             lat_data = np.loadtxt(lat_path, skiprows=1, usecols=range(1,2))
@@ -118,27 +119,35 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
             #h, = ax1.bar(i+line_index*barwidth-offset, v/1000, barwidth, color=colors[line_index], yerr=data1_e[i]/1000)
         x = [i for i in range(len(data1))]
         data1 = [i/1000 for i in data1]
-        h = ax1.errorbar(x, data1, color=colors[line_index], marker=markers[line_index], markersize=10, linewidth=3.5)
+        h = ax1.errorbar(x, data1, color=colors[line_index], yerr=[i/1000 for i in data1_e], marker=markers[line_index], markersize=10, linewidth=3.5)
         handlers.append(h)
 
-        print(final_lat)
-        print(percv_lat)
-        for i, v in enumerate(final_lat):
-            h, = ax3.bar(i+line_index*barwidth-offset, percv_lat[i], barwidth, bottom=0,color=colors[line_index], log=True)#, yerr=percv_error[i]) 
-            h, = ax3.bar(i+line_index*barwidth-offset, final_lat[i]-percv_lat[i], barwidth, bottom=percv_lat[i],color=colors[line_index-1], log=True)#, yerr = final_error[i]) 
-        latency_handlers.append(h)
+        x = [i for i in range(len(final_lat))]
+        h1 = ax3.errorbar(x, final_lat, color=colors[line_index], yerr=final_error, marker=markers[line_index], markersize=10, linewidth=3.5)
+        h2 = ax3.errorbar(x, percv_lat, color=colors[line_index], yerr=percv_error, marker=markers[line_index], markersize=10, linewidth=3.5, ls='dashed')
+        latency_handlers.append(h1)
+        if percv_lat and percv_lat[0] != 0:
+            latency_handlers.append(h2)
 
-        if data2 != []:
-            for i, v in enumerate(data2):
+        #if data2 != []:
+        #    for i, v in enumerate(data2):
                 #h, = ax2.bar(i+line_index*0.2-0.2, v, 0.2, yerr=data2_e[i], color=colors[line_index])
-                xx = i+line_index*barwidth-offset
-                sv = specula_abort[i]
+        #        xx = i+line_index*barwidth-offset
+        #        sv = specula_abort[i]
                 #hlt1 = ax2.add_patch(Polygon([[xx,sv], [xx,v], [xx+barwidth,v], [xx+barwidth, sv]], hatch=hatches[line_index], color=colors[line_index], fill=False))
                 #hlt2 = ax2.add_patch(Polygon([[xx,0], [xx,sv], [xx+barwidth,sv], [xx+barwidth, 0]], color=colors[line_index]))
-                hlt1, = ax2.bar(xx, v-sv, barwidth, bottom=sv,color=colors[line_index]) 
-                hlt2, = ax2.bar(xx, sv, barwidth, bottom=0,color=colors[line_index-1]) 
+                #hlt1, = ax2.bar(xx, v-sv, barwidth, yerr=data2_e[i], bottom=sv,color=colors[line_index]) 
+                #hlt2, = ax2.bar(xx, sv, barwidth, yerr=s_abort_e[i], bottom=0,color=colors[line_index-1]) 
+        print(specula_abort)
+        print(s_abort_e)
+        hlt1 = ax2.errorbar(x, data2, color=colors[line_index], yerr=data2_e, marker=markers[line_index], markersize=10, linewidth=3.5)
+        hlt2 = ax2.errorbar(x, specula_abort, color=colors[line_index], yerr=s_abort_e, marker=markers[line_index], markersize=10, linewidth=3.5, ls='dashed')
+
+        #hlt1, = ax2.bar(xx, v-sv, barwidth, yerr=data2_e[i], bottom=sv,color=colors[line_index]) 
+        #hlt2, = ax2.bar(xx, sv, barwidth, yerr=s_abort_e[i], bottom=0,color=colors[line_index-1]) 
         abort_handlers.append(hlt1)
-        abort_handlers.append(hlt2)
+        if specula_abort and specula_abort[-1] != 0:
+            abort_handlers.append(hlt2)
         line_index += 1
 
     ylim = maxv * 1.5
@@ -159,19 +168,19 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
         fig.suptitle(plot_dict['title'], fontsize=fsize)
 
     if plot_dict['y_lim'] == False:
-        ax1.set_ylim([0,ylim])
+        ax1.set_ylim([0.05,ylim])
     else:
-        ax1.set_ylim([0,plot_dict['y_lim']])
+        ax1.set_ylim([0.05,plot_dict['y_lim']])
 
     ### For plt2
     #plt.subplot(212)
     #xlabels=['NOSPEC', 'SL1','SL2','SL4','SL8', 'SL16']
-    if 'x_labels' in plot_dict:
-        xlabels=plot_dict['x_labels']
+    if 'x_ticks' in plot_dict:
+        xticks=plot_dict['x_labels']
     else:
-        xlabels=['16 cls', '32 cls', '64 cls', '128 cls']
-    ax2.set_xticks([i for i in range(num_xticks)])
-    ax2.set_xticklabels(xlabels, minor=False, fontsize=fsize)
+        xticks=['16 cls', '32 cls', '64 cls', '128 cls']
+    ax3.set_xticks([i for i in range(num_xticks)])
+    ax3.set_xticklabels(xticks, minor=False, fontsize=labsize)
 
     ax1.set_xlim([-0.5,num_xticks-1+0.5])
     ax2.set_xlim([-0.5,num_xticks-1+0.5])
@@ -180,38 +189,65 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
     if plot_dict['y_labels'] != False:
         ax1.set_ylabel(plot_dict['y_labels'], fontsize=labsize) 
         ax2.set_ylabel('Abort rate', fontsize=labsize) 
-        ax3.set_ylabel('Latency (ms)', fontsize=labsize) 
+        ax3.set_ylabel('Latency (s)', fontsize=labsize) 
+    if 'x_label' and plot_dict['x_label'] != False:
+        ax3.set_xlabel(plot_dict['x_label'], fontsize=labsize) 
 
-    ax2.set_ylim([0,0.99])
-    #if '3y_lim' in plot_dict:
-    #    ax3.set_ylim([0, plot_dict['3y_lim']])
-    #else:
-    #    ax3.set_ylim([0, 10])
-    #ax3.set_yscale('log')
+    ax2.set_ylim([0.01,0.99])
+    if '3y_lim' in plot_dict:
+        ax3.set_ylim([1, plot_dict['3y_lim']])
+    else:
+        ax3.set_ylim([1, 10])
+    ax3.set_yscale('log')
 
     ax1.yaxis.grid(True)
     ax2.yaxis.grid(True)
     ax3.yaxis.grid(True)
     #mpl.rcParams['ytick.labelsize'] = fsize
-    ax1.tick_params(labelsize=fsize)
-    ax2.tick_params(labelsize=fsize)
+    ax1.tick_params(labelsize=ticksize)
+    ax2.tick_params(labelsize=ticksize)
+    ax3.tick_params(labelsize=ticksize)
     if 'y_ticks' in plot_dict and plot_dict['y_ticks'] == False:
         ax1.yaxis.set_major_formatter(NullFormatter())
         ax2.yaxis.set_major_formatter(NullFormatter())
+        ax3.yaxis.set_major_formatter(NullFormatter())
         
     if 'has_legend' in plot_dict and plot_dict['has_legend']:
-        ax1.legend(handlers, plot_dict['commit_legend'], fontsize=lsize, loc=2, labelspacing=0.0, borderpad=0.2)
+        extra = Rectangle((0, 0), 0, 0, fc="w", fill=False, edgecolor='none', linewidth=0)
+        if 'out_legend' in plot_dict:
+            lgd = ax1.legend([extra]+handlers, plot_dict['commit_legend'], fontsize=lsize, loc=6, labelspacing=0.0, borderpad=0.2, bbox_to_anchor=(-0.51, 0.78))
+            commit_fonts = lgd.get_texts()
+            t0 = commit_fonts[0]
+            t0._fontproperties = commit_fonts[1]._fontproperties.copy()
+            t0.set_weight('bold')
+        else:
+            lgd = ax1.legend(handlers, plot_dict['commit_legend'], fontsize=lsize, loc=2, labelspacing=0.0, borderpad=0.2)
+            
+
         if 'legend_loc' in  plot_dict:
             location = plot_dict['legend_loc']
         else:
             location = 2
         a_legends = plot_dict['abort_legend']
-        if 'swap' in plot_dict and plot_dict['swap'] == True:
-            swap(abort_handlers, 0, 2)
-            swap(abort_handlers, 0, 1)
-            swap(a_legends, 0, 2) 
-            swap(a_legends, 0, 1) 
-        ax2.legend(abort_handlers, a_legends, fontsize=lsize, loc=location, labelspacing=0.2, columnspacing=0.2, handletextpad=0.2, borderpad=0.2, ncol=len(plot_dict['abort_legend'])//2)
+
+        if 'out_legend' in plot_dict:
+            lgd2=ax2.legend([extra]+abort_handlers, a_legends, fontsize=lsize, loc=6, labelspacing=0.2, columnspacing=0.2, handletextpad=0.2, borderpad=0.2,  bbox_to_anchor=(-0.51,0.7))
+            abort_fonts = lgd2.get_texts()
+            t0 = abort_fonts[0]
+            t0._fontproperties = abort_fonts[1]._fontproperties.copy()
+            t0.set_weight('bold')
+        else:
+            lgd2=ax2.legend(abort_handlers, a_legends, fontsize=lsize, labelspacing=0.2, loc=3, columnspacing=0.2, handletextpad=0.2, borderpad=0.2)
+            
+
+        if 'out_legend' in plot_dict:
+            lgd3=ax3.legend([extra]+latency_handlers, plot_dict['latency_legend'], fontsize=lsize, loc=6, labelspacing=0.2, columnspacing=0.2, handletextpad=0.2, borderpad=0.2, bbox_to_anchor=(-0.51,0.7))
+            abort_fonts = lgd3.get_texts()
+            t0 = abort_fonts[0]
+            t0._fontproperties = abort_fonts[1]._fontproperties.copy()
+            t0.set_weight('bold')
+        else:
+            lgd3=ax3.legend(latency_handlers, plot_dict['latency_legend'], fontsize=lsize, loc=0, labelspacing=0.2, columnspacing=0.2, handletextpad=0.2, borderpad=0.2)
     
     name=plot_dict['title'].replace(' ','').replace('%','').replace(',','').replace('_','').replace('-','').replace(':','')
     legend_type= legend_type.replace(' ','').replace('%','').replace(',','').replace('_','').replace('-','').replace(':','')
@@ -221,6 +257,9 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
         fig.set_size_inches(w, h)
     #fig.set_size_inches(8.5, 6)
     #plt.tight_layout()
-    #fig.savefig(output_folder+'/'+name+legend_type+'.pdf', format='pdf', bbox_inches='tight')
-    fig.savefig(output_folder+'/'+name+legend_type+'.png', bbox_inches='tight')
+    if 'has_legend' in plot_dict and plot_dict['has_legend']:
+        fig.savefig(output_folder+'/'+name+legend_type+'.pdf', format='pdf', bbox_extra_artists=(lgd,), bbox_inches='tight')
+    else:
+        fig.savefig(output_folder+'/'+name+legend_type+'.pdf', format='pdf', bbox_inches='tight')
+    #fig.savefig(output_folder+'/'+name+legend_type+'.png', bbox_inches='tight')
 

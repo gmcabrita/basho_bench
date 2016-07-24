@@ -16,20 +16,20 @@ from helper import *
 import copy
 
 input_folder='./stat/2016-03-08-023721/'
-input_folder2='./stat/2016-05-19-112828/'
-output_folder='./figures/final_micro/socc/'
+input_folder2='./stat/2016-07-22-142650/'
+#input_folder='./stat/2016-03-08-023721/'
+#input_folder2='./stat/2016-05-19-112828/'
+output_folder='./figures/sigmod/micro/'
 bench_type='micro'
 
-dict1={'title':'Low local contention, low remote contention', 'big':True, 'y_labels':'Thousand txs/sec', 'no_title':True, 'x_labels':'default', 'y_lim':4, 'legend_type':'read', 'y_ticks':True,  'commit_legend':['Baseline', 'SP1', 'SP2', 'SP3'], 'abort_legend':['Baseline', 'SP1', 'SP2', 'SP3', 'SP1', 'SP2', 'SP3'], 'has_legend':True, 'out_legend':True, 'base_line':True}
+dict1={'title':'Low local contention, low remote contention', 'big':True, 'y_labels':'Thousand txs/sec', 'no_title':True, 'x_labels':'default', 'y_lim':4, 'legend_type':'read', 'y_ticks':True,  'commit_legend':['No spec', 'SP1', 'SP2', 'SP3'], 'abort_legend':['No spec', 'SP1', 'SP2', 'SP3', 'SP1', 'SP2', 'SP3'], 'has_legend':True, 'out_legend':True, 'base_line':True}
 dict1['swap']=True
-[series1]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 20000, 40000, 'true', 'specula', 'new', 9])
-[series12]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 40000, 60000, 'true', 'specula', 'old', 9])
-[series13]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 20000, 40000, 'true', 'nospecula', 'new', 9])
-[base_serie1]=get_matching_serie([input_folder, 'micro', 1, 2, 4, 6, 7, 80, 20, 20000, 40000, 'false'])
-#series1 = [[base_serie1]+s  for s in series1]
-#series12 = [[base_serie1]+s  for s in series42]
+#[series1]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 20000, 40000, 'true', 'specula', 'new', 9])
+#[series12]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 40000, 60000, 'true', 'specula', 'old', 9])
+#[series13]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 20000, 40000, 'true', 'nospecula', 'new', 9])
+#[base_serie1]=get_matching_serie([input_folder, 'micro', 1, 2, 4, 6, 7, 80, 20, 20000, 40000, 'false'])
 #series13 = [[base_serie1]+s  for s in series43]
-plot_multi_lines(input_folder, output_folder, bench_type, [base_serie1, series1, series12, series13], ['SP3', 'SP2', 'SP1'], dict1)
+#plot_multi_lines(input_folder, output_folder, bench_type, [base_serie1, series1, series12, series13], ['SP3', 'SP2', 'SP1'], dict1)
 
 dict1.pop('out_legend', None)
 dict2=dict1
@@ -37,27 +37,28 @@ dict2['title']='Low local contention, high remote contention'
 #dict2['y_labels']=True
 dict2['has_legend']=False
 dict2['y_ticks']=True
-[series2]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 20000, 2000, 'true', 'specula', 'new', 9])
-[series22]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 40000, 2000, 'true', 'specula', 'old', 9])
-[series23]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 40000, 2000, 'true', 'nospecula', 'old', 9])
+[series2]=get_matching_series([input_folder2, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 20000, 500, 'true', 'true', 'new', 9])
+[series22]=get_matching_series([input_folder2, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 20000, 500, 'true', 'true', 'old', 9])
+[series23]=get_matching_series([input_folder2, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 20000, 500, 'true', 'false', 'old', 9])
 [base_serie2]=get_matching_serie([input_folder, 'micro', 1, 2, 4, 6, 7, 80, 20, 20000, 2000, 'false'])
-plot_multi_lines(input_folder, output_folder, bench_type, [base_serie2,series2,series22,series23], ['SP3', 'SP2', 'SP1'], dict2)
+plot_multi_lines([input_folder2, input_folder], output_folder, bench_type, [base_serie2,series2,series22,series23], ['SP3', 'SP2', 'SP1'], dict2)
 
 dict3=dict2
-dict3['title']='High local contention, low remote contention'
-[series3]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 40000, 'true', 'specula', 'new', 9])
-[series32]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 60000, 'true', 'specula', 'old', 9])
-[series33]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 60000, 'true', 'nospecula', 'old', 9])
-[base_serie3]=get_matching_serie([input_folder, 'micro', 1, 2, 4, 6, 7, 80, 20, 1000, 40000, 'false'])
-plot_multi_lines(input_folder, output_folder, bench_type, [base_serie3,series3,series32,series33], ['SP3', 'SP2', 'SP1'], dict3)
+#dict3['title']='High local contention, low remote contention'
+#[series3]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 40000, 'true', 'specula', 'new', 9])
+#[series32]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 60000, 'true', 'specula', 'old', 9])
+#[series33]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 60000, 'true', 'nospecula', 'old', 9])
+#[base_serie3]=get_matching_serie([input_folder, 'micro', 1, 2, 4, 6, 7, 80, 20, 1000, 40000, 'false'])
+#plot_multi_lines(input_folder, output_folder, bench_type, [base_serie3,series3,series32,series33], ['SP3', 'SP2', 'SP1'], dict3)
 
 dict4=dict3
 dict4['title']='High local contention, high remote contention'
-[series4]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 2000, 'true', 'specula', 'new', 9])
-[series42]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 2000, 'true', 'specula', 'old', 9])
-[series43]=get_matching_series([input_folder, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 2000, 'true', 'nospecula', 'old', 9])
+[series4]=get_matching_series([input_folder2, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 500, 'true', 'true', 'new', 9])
+[series42]=get_matching_series([input_folder2, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 500, 'true', 'true', 'old', 9])
+[series43]=get_matching_series([input_folder2, 'micro', 1, 2, 4, 6, 7, 9, 13, 80, 20, 1000, 500, 'true', 'false', 'old', 9])
 [base_serie4]=get_matching_serie([input_folder, 'micro', 0, 1, 2, 4, 6, 7, 8, 80, 20, 1000, 2000, 'false'])
-plot_multi_lines(input_folder, output_folder, bench_type, [base_serie4,series4,series42,series43], ['SP3', 'SP2', 'SP1'], dict4)
+plot_multi_lines([input_folder2, input_folder], output_folder, bench_type, [base_serie4,series4,series42,series43], ['SP3', 'SP2', 'SP1'], dict4)
+exit()
 
 #dict5['abort_legend'] = ['No spec: UC', 'SP1: UC', 'SP1: AC', 'SP2: UC'],
 dict5=copy.deepcopy(dict4)

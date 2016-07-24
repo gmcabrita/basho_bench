@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import matplotlib.pyplot as plt
 from pylab import *
@@ -62,7 +62,6 @@ def plot_multi_bars(input_folders, output_folder, specula_list, nospecula_list, 
             specula = specula_list[i]
             nospecula = nospecula_list[i]
             specula_folder = glob.glob(os.path.join(input_folder, specula))[0]
-            #print(specula_folder)
             sppath = specula_folder+'/total_throughput'
             spdata = np.loadtxt(sppath, skiprows=1, usecols=range(1,7))
 
@@ -72,6 +71,8 @@ def plot_multi_bars(input_folders, output_folder, specula_list, nospecula_list, 
             nospdata = np.loadtxt(nosppath, skiprows=1, usecols=range(1,7))
             nospthroughput = nospdata[0,0]
             spthroughput = spdata[0,0]
+            print(input_folder + nospecula)
+            print(spthroughput/nospthroughput)
             if hatches[i] == '':
                 hlt, = plt.bar(pos, spthroughput/nospthroughput, bar_width, color=colors[i])
             else:
@@ -86,7 +87,7 @@ def plot_multi_bars(input_folders, output_folder, specula_list, nospecula_list, 
     plt.legend(handlers, legends, loc=2, fontsize=lsize,labelspacing=0.2, columnspacing=0.2, handletextpad=0.2, borderpad=0.2, ncol=3)
     plt.xticks([x+1 for x in range(len(types))], types, fontsize=fsize)
     plt.xlim([0.5, len(input_folders)+0.5])
-    plt.ylim([0, 20])
+    plt.ylim([0, 10])
     plt.ylabel('Speedup', fontsize=fsize)
     plt.gca().yaxis.grid(True)
     if size != []: 
