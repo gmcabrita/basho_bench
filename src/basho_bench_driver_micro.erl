@@ -38,7 +38,6 @@
                 process_time,
                 expand_part_list,
                 hash_length,
-                prob_access,
                 w_per_dc,
                 c_c_last,
                 c_c_id,
@@ -64,12 +63,6 @@
                 remote_hot_rate,
                 cache_hot_range,
                 cache_hot_rate,
-		        specula,
-                local_commit,
-                remote_commit,
-                local_abort,
-                remote_abort,
-		        read,
                 node_id,
                 tx_server,
                 target_node}).
@@ -107,7 +100,7 @@ new(Id) ->
     SlaveRange = basho_bench_config:get(slave_range),
     CacheRange = basho_bench_config:get(cache_range),
 
-    ProbAccess = basho_bench_config:get(prob_access),
+    t = basho_bench_config:get(prob_access),
 
     LocalHotRange = basho_bench_config:get(local_hot_range),
     LocalHotRate = basho_bench_config:get(local_hot_rate),
@@ -166,15 +159,8 @@ new(Id) ->
     %lager:info("Part list is ~w",[PartList]),
     MyTable = ets:new(my_table, [private, set]),
     {ok, #state{time={1,1,1}, worker_id=Id,
-               local_commit= {0,0},
-               remote_commit = {0,0},
-               local_abort= {0,0},
-               remote_abort = {0,0},
-               specula= {0,0},
                deter = Deter,
                total_key = TotalKey,
-               read = 0,
-               prob_access=ProbAccess,
                tx_server=MyTxServer,
                part_list = PartList,
 		       my_table=MyTable,
@@ -205,113 +191,71 @@ new(Id) ->
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
 run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter, total_key=TotalKey,
-        dc_rep_ids=DcRepIds, node_id=MyNodeId,  hash_dict=HashDict, no_rep_ids=NoRepIds, prob_access=ProbAccess,
+        dc_rep_ids=DcRepIds, node_id=MyNodeId,  hash_dict=HashDict, no_rep_ids=NoRepIds, 
         local_hot_rate=LocalHotRate, local_hot_range=LocalHotRange, remote_hot_rate=RemoteHotRate, remote_hot_range=RemoteHotRange,
         cache_hot_range=CacheHotRange, cache_range=CRange, cache_hot_rate=CacheHotRate,
-        master_num=MNum, slave_num=SNum, master_range=MRange, slave_range=SRange, local_commit=LocalCommit, local_abort=LocalAbort,
-        remote_commit=RemoteCommit, remote_abort=RemoteAbort, specula=Specula, read=Read})->
-    RT1 = os:timestamp(),
-    random:seed(RT1),
+        master_num=MNum, slave_num=SNum, master_range=MRange, slave_range=SRange})->
     Add = random:uniform(3)-2,
 
-    TxId = gen_server:call(TxServer, {start_tx}),
+    case gen_server:call(TxServer, {start_tx}) of
+        {final_abort, Info} ->
+            {final_abort, Info, State};
+        TxId ->
+            NumKeys = TotalKey,
+            DcRepLen = length(DcRepIds),
+            NoRepLen = length(NoRepIds),
+            {_, WriteSet} 
+                = lists:foldl(fun(_, {Ind, WS}) ->
+                    Rand = random:uniform(100),
+                    case Rand =< MNum of
+                        true -> 
+                            Key =  hot_or_not(1, LocalHotRange, MRange, LocalHotRate),
+                            V = read_from_node(TxServer, TxId, Key, MyNodeId, MyNodeId, PartList, HashDict),
+                            {Ind, dict:store({MyNodeId, Key}, V+Add, WS)};
+                        false -> 
+                            case Rand =< MNum+SNum of
+                                true ->     
+                                    Key = hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate),
+                                    case Deter of
+                                        false ->
+                                            random:seed(os:timestamp()),
+                                            Rand1 = random:uniform(DcRepLen),
+                                            DcNode = lists:nth(Rand1, DcRepIds),
+                                            V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
+                                            {Ind+1, dict:store({DcNode, Key}, V+Add, WS)};
+                                        _ ->
+                                            DcNode = lists:nth(Ind rem Deter +1, DcRepIds),
+                                            V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
+                                            {Ind+1, dict:store({DcNode, Key}, V+Add, WS)}
+                                    end;
+                                false -> OtherDcNode = lists:nth(Rand rem NoRepLen +1, NoRepIds),
+                                    Key = hot_or_not(MRange+SRange+1, CacheHotRange, CRange, CacheHotRate),
+                                    V = read_from_node(TxServer, TxId, Key, OtherDcNode, MyNodeId, PartList, HashDict),
+                                    {Ind, dict:store({OtherDcNode, Key}, V+Add, WS)} 
+                            end
+                    end
+                  end, {1, dict:new()}, lists:seq(1, NumKeys)),
 
-    WriteSet = case ProbAccess of 
-                    f ->
-                        MasterKeys = unique_keys(1, LocalHotRange, MRange,  MNum, LocalHotRate, MyNodeId),
-                        SlaveRepKeys = unique_keys(MRange+1, RemoteHotRange, SRange, SNum, RemoteHotRate, DcRepIds),
-                        WS1 = lists:foldl(fun({NodeId, Key}, WS) ->
-                                    V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
-                                    dict:store({NodeId, Key}, V+Add, WS) 
-                                end, dict:new(), MasterKeys),
-                        lists:foldl(fun({NodeId, Key}, WS) ->
-                                %lager:info("Remote Rep Dc id is ~w", [NodeId]),
-                                V = read_from_node(TxServer, TxId, Key, NodeId, MyNodeId, PartList, HashDict),
-                                dict:store({NodeId, Key}, V+Add, WS)
-                                    end, WS1, SlaveRepKeys);
-                    t ->
-                        NumKeys = TotalKey,
-                        DcRepLen = length(DcRepIds),
-                        NoRepLen = length(NoRepIds),
-                        {_, WriteS} = lists:foldl(fun(_, {Ind, WS}) ->
-                                    %%random:seed(os:timestamp()),  Rand = random:uniform(100),
-                                    Rand = random:uniform(100),
-                                    case Rand =< MNum of
-                                        true -> Key =  hot_or_not(1, LocalHotRange, MRange, LocalHotRate),
-                                                V = read_from_node(TxServer, TxId, Key, MyNodeId, MyNodeId, PartList, HashDict),
-                                                {Ind, dict:store({MyNodeId, Key}, V+Add, WS)};
-                                                false -> case Rand =< MNum+SNum of
-                                                            true ->     
-                                                                        Key = hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate),
-                                                                        case Deter of
-                                                                            false ->
-                                                                                random:seed(os:timestamp()),
-                                                                                Rand1 = random:uniform(DcRepLen),
-                                                                                DcNode = lists:nth(Rand1, DcRepIds),
-                                                                                V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
-                                                                                {Ind+1, dict:store({DcNode, Key}, V+Add, WS)};
-                                                                            _ ->
-                                                                            DcNode = lists:nth(Ind rem Deter +1, DcRepIds),
-                                                                            V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
-                                                                            {Ind+1, dict:store({DcNode, Key}, V+Add, WS)}
-                                                                        end;
-                                                            false -> OtherDcNode = lists:nth(Rand rem NoRepLen +1, NoRepIds),
-                                                                     Key = hot_or_not(MRange+SRange+1, CacheHotRange, CRange, CacheHotRate),
-                                                                     V = read_from_node(TxServer, TxId, Key, OtherDcNode, MyNodeId, PartList, HashDict),
-                                                                     {Ind, dict:store({OtherDcNode, Key}, V+Add, WS)} 
-                                                         end
-                                             end
-                                  end, {1, dict:new()}, lists:seq(1, NumKeys)),
-                        WriteS
-               end,
+            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WriteSet, PartList, MyNodeId),
 
-    RT2 = os:timestamp(),
-                    
-    {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WriteSet, PartList, MyNodeId),
-    %%%%% WARNING: Local processing is turned off!!
-    %local_process(ProcessTime),
-
-    %lager:info("LW is ~p, RW is ~p",  [LocalWriteList, RemoteWriteList]),
-    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, {count_time, RT1}}, ?TIMEOUT),%, length(DepsList)}),
-    RT3 = os:timestamp(),
-    case Response of
-        {ok, {committed, _}} ->
-            %{ok, State};
-	        case RemoteWriteList of
-                [] ->
-                    {LTime, LCount} = LocalCommit,
-                    {ok, State#state{read=Read+get_time_diff(RT1, RT2), local_commit={LTime+get_time_diff(RT2, RT3),
-                            LCount+1}}};
-                _ ->
-                    {RTime, RCount} = RemoteCommit,
-                    {ok, State#state{read=Read+get_time_diff(RT1, RT2), remote_commit={RTime+get_time_diff(RT2, RT3),
-                            RCount+1}}}
-            end;
-        {ok, {specula_commit, _}} ->
-	        {STime, SCount} = Specula,
-            {ok, State#state{read=Read+get_time_diff(RT1, RT2), specula={STime+get_time_diff(RT2, RT3),
-                    SCount+1}}};
-            %{ok, State};
-        {error,timeout} ->
-            lager:info("Timeout on client ~p",[TxServer]),
-            {error, timeout, State};
-        {aborted, local} ->
-            random:seed(os:timestamp()),
-	        {LTime, LCount} = LocalAbort,
-            {error, aborted, State#state{read=Read+get_time_diff(RT1, RT2), local_abort={LTime+get_time_diff(RT2, RT3),
-                    LCount+1}}};
-            %{error, aborted, State};
-        {aborted, remote} ->
-            random:seed(os:timestamp()),
-	        {RTime, RCount} = RemoteAbort,
-            {error, aborted, State#state{read=Read+get_time_diff(RT1, RT2), remote_abort={RTime+get_time_diff(RT2, RT3),
-                    RCount+1}}};
-            %{error, aborted, State};
-        {aborted, _} ->
-            random:seed(os:timestamp()),
-            {error, aborted, State};
-        {badrpc, Reason} ->
-            {error, Reason, State}
+            Response = gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
+            case Response of
+                {ok, {committed, _}} ->
+                    {ok, State};
+                {ok, {specula_commit, _}} ->
+                    {ok, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {final_abort, Info} ->
+                    {final_abort, Info, State}; 
+                {aborted, local} ->
+                    {error, aborted, State};
+                {aborted, remote} ->
+                    {error, aborted, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end
     end.
     
 index(Elem, L) ->
@@ -362,23 +306,8 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
     %        ok
     %end,
 
-terminate(_, _State=#state{local_commit=Local, remote_commit=Remote, local_abort=LAbort, remote_abort=RAbort, 
-           specula=Specula, read=Read}) ->
-    {T1, C1} = Local,
-    {T2, C2} = Remote,
-    {T3, C3} = LAbort,
-    {T4, C4} = RAbort,
-    {T5, C5} = Specula,
-    LCT = T1 div max(1, C1),
-    RCT = T2 div max(1, C2),
-    LA = T3 div max(1, C3),
-    RA = T4 div max(1, C4),
-    SCT = T5 div max(1, C5),
-    NOR = Read div max(1, C1+C2+C3+C4+C5),
-    File= "prep",
-    %lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead1, NORead2, NORead3, NOItem, PPrep, PRead]),
-    file:write_file(File, io_lib:fwrite("~p ~p ~p  ~p  ~p ~p ~p ~p ~p ~p\n", 
-            [NOR, LA,  RA, LCT, RCT, SCT, 0, 0,0,0]), [append]).
+terminate(_, _State) ->
+    ok.
 
 get_local_remote_writeset(WriteSet, PartList, LocalDcId) ->
     {LWSD, RWSD} = dict:fold(fun({NodeId, Key}, Value, {LWS, RWS}) ->
