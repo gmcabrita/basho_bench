@@ -190,14 +190,15 @@ new(Id) ->
 
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
-run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter, total_key=TotalKey,
+run(txn, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter, total_key=TotalKey,
         dc_rep_ids=DcRepIds, node_id=MyNodeId,  hash_dict=HashDict, no_rep_ids=NoRepIds, 
         local_hot_rate=LocalHotRate, local_hot_range=LocalHotRange, remote_hot_rate=RemoteHotRate, remote_hot_range=RemoteHotRange,
         cache_hot_range=CacheHotRange, cache_range=CRange, cache_hot_rate=CacheHotRate,
         master_num=MNum, slave_num=SNum, master_range=MRange, slave_range=SRange})->
+    %StartTime = os:timestamp(),
     Add = random:uniform(3)-2,
 
-    case gen_server:call(TxServer, {start_tx}) of
+    case gen_server:call(TxServer, {start_tx, TxnSeq}) of
         {final_abort, Info} ->
             {final_abort, Info, State};
         TxId ->
@@ -238,21 +239,19 @@ run(txn, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer
 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WriteSet, PartList, MyNodeId),
 
-            Response = gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
+            Response = gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList, MsgId}, ?TIMEOUT),%, length(DepsList)}),
             case Response of
-                {ok, {committed, _}} ->
-                    {ok, State};
-                {ok, {specula_commit, _}} ->
-                    {ok, State};
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
                 {error,timeout} ->
                     lager:info("Timeout on client ~p",[TxServer]),
                     {error, timeout, State};
-                {final_abort, Info} ->
-                    {final_abort, Info, State}; 
-                {aborted, local} ->
-                    {error, aborted, State};
-                {aborted, remote} ->
-                    {error, aborted, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
                 {badrpc, Reason} ->
                     {error, Reason, State}
             end
@@ -325,20 +324,20 @@ add_to_writeset(Key, Value, {_, PartList}, WSet) ->
     Part = lists:nth(Index, PartList),
     dict:append(Part, {Key, Value}, WSet).
 
-unique_keys(Start, HotRange, UniformRange, NumKeys, HotRate, Nodes) ->
-    unique_keys(Start, HotRange, UniformRange, NumKeys, HotRate, sets:new(), Nodes). 
+%unique_keys(Start, HotRange, UniformRange, NumKeys, HotRate, Nodes) ->
+%    unique_keys(Start, HotRange, UniformRange, NumKeys, HotRate, sets:new(), Nodes). 
 
-unique_keys(_, _, _, 0, _, Set, _) ->
-    sets:to_list(Set);
-unique_keys(Start, HotRange, UniformRange, NumKeys, HotRate, Set, Nodes) ->
-    Key = hot_or_not(Start, HotRange, UniformRange, HotRate), 
-    Node = case Nodes of [_|_] -> L = length(Nodes), Id = random:uniform(L), lists:nth(Id, Nodes);
-                     _ ->  Nodes end,
-    case sets:is_element({Node, Key}, Set) of
-        false -> unique_keys(Start, HotRange, UniformRange, NumKeys-1, HotRate, sets:add_element({Node, Key}, Set), Nodes);
-        true -> 
-                unique_keys(Start, HotRange, UniformRange, NumKeys, HotRate, Set, Nodes)
-    end.
+%unique_keys(_, _, _, 0, _, Set, _) ->
+%    sets:to_list(Set);
+%unique_keys(Start, HotRange, UniformRange, NumKeys, HotRate, Set, Nodes) ->
+%    Key = hot_or_not(Start, HotRange, UniformRange, HotRate), 
+%    Node = case Nodes of [_|_] -> L = length(Nodes), Id = random:uniform(L), lists:nth(Id, Nodes);
+%                     _ ->  Nodes end,
+%    case sets:is_element({Node, Key}, Set) of
+%        false -> unique_keys(Start, HotRange, UniformRange, NumKeys-1, HotRate, sets:add_element({Node, Key}, Set), Nodes);
+%        true -> 
+%                unique_keys(Start, HotRange, UniformRange, NumKeys, HotRate, Set, Nodes)
+%    end.
 
 hot_or_not(Start, HotRange, UniformRange, HotRate) ->
       %random:seed(os:timestamp()),
@@ -379,5 +378,5 @@ hot_or_not(Start, HotRange, UniformRange, HotRate) ->
 %            wait_until(StartTime, Duration)
 %    end.
 
-get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
-    ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.
+%get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
+%    ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.

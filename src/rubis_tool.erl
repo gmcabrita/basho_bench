@@ -185,8 +185,8 @@ droplast([_], Acc) ->
 droplast([X|H], Acc) ->
     droplast(H, [X|Acc]).
 
-translate_op(Op) ->
-    case Op of
+translate_op(OpTag) ->
+    case OpTag of
         1 ->    home;
         2 -> register;
         3 -> register_user;
@@ -214,6 +214,6 @@ translate_op(Op) ->
         25 -> register_item;
         26 -> about_me_auth;
         27 -> about_me;
-        _ -> Op
+        _ -> OpTag
     end.
 

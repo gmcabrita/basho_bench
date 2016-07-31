@@ -53,6 +53,9 @@ start() ->
           %% Make sure crypto is available
           ensure_started([sasl, crypto]),
 
+          _ = ets:new(final_cdf, [public, named_table, set, {write_concurrency, true}]),
+          _ = ets:new(percv_cdf, [public, named_table, set, {write_concurrency, true}]),
+
           %% Start up our application -- mark it as permanent so that the node
           %% will be killed if we go down
           application:start(basho_bench, permanent)
@@ -60,6 +63,7 @@ start() ->
 
 stop() ->
     ok = basho_bench_worker:cleanup(basho_bench_sup:workers()),
+    write_cdf(),
     application:stop(basho_bench).
 
 is_running() ->
@@ -99,6 +103,57 @@ stop(_State) ->
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
+write_cdf() ->
+    PercvCdf = ets:tab2list(percv_cdf),
+    FinalCdf = ets:tab2list(final_cdf),
+
+    PercvCdfSort = lists:sort(PercvCdf),
+    FinalCdfSort = lists:sort(FinalCdf),
+    %lager:info("SPercvCdf is ~p", [PercvCdfSort]),
+    %lager:info("SFinalCdf is ~p", [FinalCdfSort]),
+
+    lager:info("Before"),
+    {ok, PercvLatFile} = file:open("percv_latency"++integer_to_list(1), [raw, binary, write]),
+    lager:info("After"),
+    {_, LastPercvFile} =lists:foldl(fun({{Count, _}, LatList}, {PreviousCount, File}) ->
+                case PreviousCount == Count of
+                    false ->
+                        file:close(File),
+                        {ok, LatFile} = file:open("percv_latency"++integer_to_list(Count), [raw, binary, write]),
+                        file:write(LatFile,  io_lib:format("~w\n", [self()])),
+                        lists:foreach(fun(Latency) ->
+                            file:write(LatFile,  io_lib:format("~w\n", [Latency]))
+                        end, LatList),
+                        {Count, LatFile};
+                    true ->
+                        file:write(File,  io_lib:format("~w\n", [self()])),
+                        lists:foreach(fun(Latency) ->
+                            file:write(File,  io_lib:format("~w\n", [Latency]))
+                        end, LatList),
+                        {Count, File}
+                end end, {1, PercvLatFile}, PercvCdfSort),
+    file:close(LastPercvFile),
+
+    {ok, FinalLatFile} = file:open("final_latency"++integer_to_list(1), [raw, binary, write]),
+    {_, LastFinalFile} =lists:foldl(fun({{Count, _}, LatList}, {PreviousCount, File}) ->
+                case PreviousCount == Count of
+                    false ->
+                        file:close(File),
+                        {ok, LatFile} = file:open("final_latency"++integer_to_list(Count), [raw, binary, write]),
+                        file:write(LatFile,  io_lib:format("~w\n", [self()])),
+                        lists:foreach(fun(Latency) ->
+                            file:write(LatFile,  io_lib:format("~w\n", [Latency]))
+                        end, LatList),
+                        {Count, LatFile};
+                    true ->
+                        file:write(File,  io_lib:format("~w\n", [self()])),
+                        lists:foreach(fun(Latency) ->
+                            file:write(File,  io_lib:format("~w\n", [Latency]))
+                        end, LatList),
+                        {Count, File}
+                end end, {1, FinalLatFile}, FinalCdfSort),
+    file:close(LastFinalFile).
 
 ensure_started(Applications) when is_list(Applications) ->
   [ensure_started(Application) || Application <- Applications];
