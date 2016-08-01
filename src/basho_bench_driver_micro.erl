@@ -274,7 +274,7 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
             %Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
             Index = Key rem length(L) + 1,
             Part = lists:nth(Index, L),
-            gen_server:call(TxServer, {read, Key, TxId, Part}, ?READ_TIMEOUT);
+            gen_server:call(TxServer, {partition, read, Key, TxId, Part}, ?READ_TIMEOUT);
         _ ->
             case dict:find(DcId, HashDict) of
                 error ->
@@ -282,14 +282,13 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
                     %Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Index = Key rem length(L) + 1,
                     Part = lists:nth(Index, L),
-                    CacheServName = dict:fetch(cache, HashDict),
-                    gen_server:call(CacheServName, {read, Key, TxId, Part}, ?READ_TIMEOUT);
+                    gen_server:call(TxServer, {partition, read, Key, TxId, Part}, ?READ_TIMEOUT);
                 {ok, N} ->
                     {_, L} = lists:nth(DcId, PartList),
                     %Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Index = Key rem length(L) + 1,
                     Part = lists:nth(Index, L),
-                    gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT)
+                    gen_server:call(N, {replica, read, Key, TxId, Part}, ?READ_TIMEOUT)
             end
     end,
     case V of
