@@ -1,4 +1,3 @@
-
 %%
 %% basho_bench: Benchmarking Suite
 %%
