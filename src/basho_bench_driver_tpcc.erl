@@ -22,7 +22,6 @@
 -module(basho_bench_driver_tpcc).
 
 -export([new/1,
-        terminate/2,
 	    read/5,
          run/4]).
 
@@ -53,18 +52,6 @@
                 access_slave,
                 payment_master,
                 payment_slave,
-		        no_specula,
-                no_local,
-                no_remote,
-                no_local_abort,
-                no_remote_abort,
-		        no_read,
-                p_specula,
-                p_local,
-                p_remote,
-                p_local_abort,
-                p_remote_abort,
-		        p_read,
                 new_order_committed,
                 node_id,
                 specula,
@@ -189,18 +176,6 @@ new(Id) ->
                no_rep_ids = DcNoRepIds,
                %no_rep_list = SlaveRepList,
                to_sleep=ToSleep,
-               no_specula={0,0},
-               no_local={0,0},
-               no_remote={0,0},
-               no_local_abort={0,0},
-               no_remote_abort={0,0},
-               no_read=0,
-               p_specula={0,0},
-               p_local={0,0},
-               p_remote={0,0},
-               p_local_abort={0,0},
-               p_remote_abort={0,0},
-               p_read=0,
                item_ranges = ItemRanges,
                expand_part_list = ExpandPartList,
                hash_length = HashLength,   
@@ -214,11 +189,10 @@ new(Id) ->
 
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
-run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
+run(new_order, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, 
         other_master_ids=OtherMasterIds, dc_rep_ids=DcRepIds, hash_dict=HashDict, no_rep_ids=_SlaveRepIds, node_id=DcId, 
-        no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, worker_id=WorkerId,
-        no_read=NORead, no_remote_abort=NORAbort, no_specula=NOSpecula, w_per_dc=WPerNode, 
-        item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, access_master=AccessMaster, access_slave=AccessSlave}) ->
+        worker_id=WorkerId, w_per_dc=WPerNode, item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, 
+        access_master=AccessMaster, access_slave=AccessSlave}) ->
     RS = dict:new(),
     WS = dict:new(),
     %LocalWS = dict:new(),
@@ -233,15 +207,11 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %lager:info("DistrictId is ~w, Customer Id is ~w, NumItems is ~w", [DistrictId, CustomerId, NumItems]),
 
     %TxId = {tx_id, tpcc_tool:now_nsec(), self()}, %,gen_server:call({global, TxServer}, {start_tx}),
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     %lager:info("TxId is ~w", [TxId]),
     CustomerKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CustomerId}, customer), 
     _Customer = read_from_node(TxServer, TxId, CustomerKey, to_dc(WarehouseId, WPerNode), DcId, PartList, HashDict), 
     WarehouseKey = tpcc_tool:get_key_by_param({WarehouseId}, warehouse),
-
-    %% ************ read time *****************
-    RT1 = os:timestamp(),
-    %% ************ read time *****************
 
     _Warehouse = read_from_node(TxServer, TxId, WarehouseKey, to_dc(WarehouseId, WPerNode), DcId, PartList, HashDict),
 
@@ -313,7 +283,7 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
                     end end
             end, {WS2, RS, 1}, Seq),
 
-    case WS3 of error -> {error, aborted, State};
+    case WS3 of error -> {aborted, {[], [], []}, State};
                 _ ->
     Order = tpcc_tool:create_order(WarehouseId, DistrictId, OId, NumItems, CustomerId, tpcc_tool:now_nsec(), AllLocal), 
     OrderKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, OId}, order),
@@ -324,50 +294,29 @@ run(new_order, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %lager:info("Remote Write set is ~p", [RemoteWriteList]),
     %DepsList = ets:lookup(dep_table, TxId),
     %% ************ read time *****************
-    RT2 = os:timestamp(),
     %% ************ read time *****************
-    Response = gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
-    RT3 = os:timestamp(),
+    Response = gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId}, ?TIMEOUT),%, length(DepsList)}),
     case Response of
-        {ok, {committed, _}} ->
-            case RemoteWriteList of
-                [] ->
-                    {NOLTime, NOLCount} = NOLocal,
-                    {ok, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_local={NOLTime+get_time_diff(RT2, RT3), 
-                            NOLCount+1}}};
-                _ ->
-                    {NORTime, NORCount} = NORemote,
-                    {ok, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_remote={NORTime+get_time_diff(RT2, RT3), 
-                            NORCount+1}}}
-            end;
-        {ok, {specula_commit, _}} ->
-            {NOSTime, NOSCount} = NOSpecula,
-            {ok, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_specula={NOSTime+get_time_diff(RT2, RT3), 
-                    NOSCount+1}}};
+        {ok, {committed, _CommitTime, Info}} ->
+            {ok, Info, State};
+        {ok, {specula_commit, _SpeculaCT, Info}} ->
+            {specula_commit, Info, State};
+        {cascade_abort, Info} ->
+            {cascade_abort, Info, State};
         {error,timeout} ->
             lager:info("Timeout on client ~p",[TxServer]),
-            {error, aborted, State};
-        {aborted, local} ->
-	        random:seed(RT3),
-            {NOLTime, NOLCount} = NOLAbort,
-            {error, aborted, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_local_abort={NOLTime+get_time_diff(RT2, RT3), NOLCount+1}}};
-        {aborted, remote} ->
-	        random:seed(RT3),
-            {NORTime, NORCount} = NORAbort,
-            {error, aborted, State#state{no_read=NORead+get_time_diff(RT1, RT2), no_remote_abort={NORTime+get_time_diff(RT2, RT3), NORCount+1}}};
-        {aborted, _} ->
-	        random:seed(RT3),
-            {error, aborted, State};
+            {error, timeout, State};
+        {aborted, Info} ->
+            {aborted, Info, State};
         {badrpc, Reason} ->
             {error, Reason, State}
     end
     end;
 
 %% @doc Payment transaction of TPC-C
-run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, worker_id=WorkerId,
+run(payment, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, worker_id=WorkerId,
         hash_dict=HashDict, dc_rep_ids=DcRepIds, other_master_ids=OtherMasterIds, w_per_dc=WPerNode, 
-        node_id=DcId, payment_master=PaymentMaster, payment_slave=PaymentSlave, p_specula=PSpecula, p_local=PLocal,
-        p_remote=PRemote, p_local_abort=PLAbort, p_remote_abort=PRAbort, p_read=PRead,
+        node_id=DcId, payment_master=PaymentMaster, payment_slave=PaymentSlave, 
         c_c_id=C_C_ID, c_c_last = C_C_LAST}) ->
 
     WS = dict:new(),
@@ -393,11 +342,8 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
 
     %% Only customer can be remote, everything else(Warehouse, District) should be local
 	%TxId = {tx_id, tpcc_tool:now_nsec(), self()},	
-    %% ************ read time *****************
-    RT1 = os:timestamp(),
-    %% ************ read time *****************
 
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
 	WarehouseKey = tpcc_tool:get_key_by_param({TWarehouseId}, warehouse),
     Warehouse = read_from_node(TxServer, TxId, WarehouseKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
 	WYtdKey = WarehouseKey++":w_ytd",
@@ -447,55 +393,32 @@ run(payment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
     WS4 = dict:store({TWarehouseId, HistoryKey}, History, WS3),
     {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, DcId, WPerNode),
     %DepsList = ets:lookup(dep_table, TxId),
-    RT2 = os:timestamp(),
-    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
-    RT3 = os:timestamp(),
+    Response =  gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId}, ?TIMEOUT),%, length(DepsList)}),
     case Response of
-        {ok, {committed, _}} ->
-            case RemoteWriteList of
-                [] ->
-                    {PLTime, PLCount} = PLocal,
-                    {ok, State#state{p_read=PRead+get_time_diff(RT1, RT2), p_local={PLTime+get_time_diff(RT2, RT3),
-                            PLCount+1}}};
-                _ ->
-                    {PRTime, PRCount} = PRemote,
-                    {ok, State#state{p_read=PRead+get_time_diff(RT1, RT2), p_remote={PRTime+get_time_diff(RT2, RT3),
-                            PRCount+1}}}
-            end;
-        {ok, {specula_commit, _}} ->
-            {PSTime, PSCount} = PSpecula,
-            %lager:warning("Time diff is ~w", [get_time_diff(RT1, RT3)]),
-            {ok, State#state{p_read=PRead+get_time_diff(RT1, RT2), p_specula={PSTime+get_time_diff(RT2, RT3),
-                    PSCount+1}}};
+        {ok, {committed, _CommitTime, Info}} ->
+            {ok, Info, State};
+        {ok, {specula_commit, _SpeculaCT, Info}} ->
+            {specula_commit, Info, State};
+        {cascade_abort, Info} ->
+            {cascade_abort, Info, State};
         {error,timeout} ->
             lager:info("Timeout on client ~p",[TxServer]),
-            {error, aborted, State};
-        {aborted, local} ->
-            random:seed(RT3),
-            {PLTime, PLCount} = PLAbort,
-            {error, aborted, State#state{p_read=PRead+get_time_diff(RT1, RT2), p_local_abort={PLTime+get_time_diff(RT2, RT3),
-                    PLCount+1}}};
-        {aborted, remote} ->
-            random:seed(RT3),
-            {PRTime, PRCount} = PRAbort,
-            {error, aborted, State#state{p_read=PRead+get_time_diff(RT1, RT2), p_remote_abort={PRTime+get_time_diff(RT2, RT3),
-                    PRCount+1}}};
-        {aborted, _} ->
-            random:seed(RT3),
-            {error, aborted, State};
+            {error, timeout, State};
+        {aborted, Info} ->
+            {aborted, Info, State};
         {badrpc, Reason} ->
             {error, Reason, State}
     end;
 
 %% @doc Payment transaction of TPC-C
-run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer,
+run(order_status, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer,
         hash_dict=HashDict, node_id=DcId, w_per_dc=WPerNode, worker_id=WorkerId, 
         c_c_id=C_C_ID, c_c_last = C_C_LAST, specula=Specula}) ->
     TWarehouseId = WPerNode * (DcId-1) + WorkerId rem WPerNode +1, 
 	DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
 	
 	%TxId = {tx_id, tpcc_tool:now_nsec(), self()},
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
 	CW = case tpcc_tool:random_num(1, 100) =< 60 of
 			true ->
 				Rand = trunc(tpcc_tool:non_uniform_random(C_C_LAST, ?A_C_LAST, 0, ?MAX_C_LAST)),
@@ -540,11 +463,25 @@ run(order_status, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server
             end, Seq2),
     case Specula of 
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], [], order_status}, ?TIMEOUT);
+            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end;
         _ ->
-            ok
-    end,
-    {ok, State}.
+            {ok, State}
+    end.
 
 get_partition(Key, PartList, HashLength) ->
     Num = crypto:bytes_to_integer(erlang:md5(Key)) rem HashLength +1,
@@ -619,39 +556,6 @@ read(TxServer, TxId, Key, ExpandPartList, HashLength) ->
             %lager:info("Reading ~p, ~p", [Key, V]),
             V
     end.
-
-terminate(_, _State=#state{no_local=NOLocal, no_remote=NORemote, no_local_abort=NOLAbort, no_remote_abort=NORAbort, 
-            no_specula=NOSpecula, no_read=NORead, p_local=PLocal, p_remote=PRemote, p_local_abort=PLAbort, p_remote_abort=PRAbort,
-            p_specula=PSpecula, p_read=PRead}) ->
-    {T1, C1} = NOLocal,
-    {T2, C2} = NORemote,
-    {T3, C3} = NOLAbort,
-    {T4, C4} = NORAbort,
-    {T5, C5} = NOSpecula,
-    LCT = T1 div max(1, C1),
-    RCT = T2 div max(1, C2),
-    LA = T3 div max(1, C3),
-    RA = T4 div max(1, C4),
-    SCT = T5 div max(1, C5),
-    NOR = NORead div max(1, C1+C2+C3+C4+C5),
-
-    {PT1, PC1} = PLocal,
-    {PT2, PC2} = PRemote,
-    {PT3, PC3} = PLAbort,
-    {PT4, PC4} = PRAbort,
-    {PT5, PC5} = PSpecula,
-    PLCT = PT1 div max(1, PC1),
-    PRCT = PT2 div max(1, PC2),
-    PLA = PT3 div max(1, PC3),
-    PRA = PT4 div max(1, PC4),
-    PSCT = PT5 div max(1, PC5),
-    PR = PRead div max(1, PC1+PC2+PC3+PC4+PC5),
-    File= "prep",
-    %[{payment, PT, PP, PN}] = ets:lookup(MyTable, payment),
-    %[{new_order, NT, NP, NN}] = ets:lookup(MyTable, new_order),
-    %lager:info("File is ~p, Value is ~p, ~p, ~p, ~p, ~p, ~p, ~p", [File, NOPrep, NORead1, NORead2, NORead3, NOItem, PPrep, PRead]),
-    file:write_file(File, io_lib:fwrite("~p ~p ~p ~p ~p ~p ~p ~p ~p ~p ~p ~p\n", 
-            [NOR, LA,  RA, LCT, RCT, SCT, PR, PLA,  PRA, PLCT, PRCT, PSCT]), [append]).
 
 get_local_remote_writeset(WriteSet, PartList, LocalDcId, WPerNode) ->
     {LWSD, RWSD} = dict:fold(fun({WId, Key}, Value, {LWS, RWS}) ->
@@ -754,9 +658,6 @@ get_district_info(Stock, 10) ->
 %    N;
 %get_replica(E, [_|L]) ->
 %    get_replica(E, L).
-    
-get_time_diff({A1, B1, C1}, {A2, B2, C2}) ->
-    ((A2-A1)*1000000+ (B2-B1))*1000000+ C2-C1.
 
 to_dc(WId, WPerNode) ->
     (WId-1) div WPerNode + 1.

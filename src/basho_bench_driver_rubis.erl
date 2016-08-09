@@ -1,4 +1,4 @@
-% -------------------------------------------------------------------
+
 %%
 %% basho_bench: Benchmarking Suite
 %%
@@ -224,10 +224,10 @@ terminate(_, _State) ->
 
 
 %% VERIFIED
-run(home, _KeyGen, _ValueGen, State=#state{specula=Specula, tx_server=TxServer, prev_state=PrevState,
+run(home, TxnSeq, MsgId, State=#state{specula=Specula, tx_server=TxServer, prev_state=PrevState,
             part_list=PartList, hash_dict=HashDict, node_id=MyNode, nb_users=NBUsers}) ->
     random:seed(now()),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     PrevState1 = PrevState#prev_state{myself_id= {MyNode, random:uniform(NBUsers)}},
     MyselfId = PrevState#prev_state.myself_id,
     MyselfKey = rubis_tool:get_key(MyselfId, user),
@@ -237,21 +237,33 @@ run(home, _KeyGen, _ValueGen, State=#state{specula=Specula, tx_server=TxServer, 
     
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State#state{prev_state=PrevState1#prev_state{region={MyNode, Region}}}};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State#state{prev_state=PrevState1#prev_state{region={MyNode, Region}}}};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end;
         _ ->
-            ok
-    end,
-    {ok, State#state{prev_state=PrevState1#prev_state{region={MyNode, Region}}}};
+            {ok, State#state{prev_state=PrevState1#prev_state{region={MyNode, Region}}}}
+    end;
 
 %% VERIFIED
-run(register, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
-    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+run(register, _TxnSeq, _MsgId, State) ->
     {ok, State};
 
 %% VERIFIED
 %% Register a user that is replicated??
-run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=MyNode, tx_server=TxServer, 
+run(register_user, TxnSeq, MsgId, State=#state{nb_users=NBUsers, node_id=MyNode, tx_server=TxServer, 
             specula=Specula, part_list=PartList, hash_dict=HashDict, nb_regions=NBRegions,
             access_master=AccessMaster, access_slave=AccessSlave, dc_rep_ids=DcRepList, no_rep_ids=DcNoRepList}) ->
     UserId = random:uniform(NBUsers) + NBUsers,
@@ -266,7 +278,7 @@ run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=My
     ToRegisterNode = pick_node(MyNode, DcRepList, DcNoRepList, AccessMaster, AccessSlave), 
 
     %lager:info("Trying to register user ~w !!!!", [UserId]),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     Now = rubis_tool:now_nsec(),
 
     UserKey = rubis_tool:get_key({ToRegisterNode, UserId}, user),
@@ -276,112 +288,190 @@ run(register_user, _KeyGen, _ValueGen, State=#state{nb_users=NBUsers, node_id=My
             NewUser = rubis_tool:create_user(FirstName, LastName, NickName, Password, Email, Now, 0, 0, RegionId),
             WS1 = dict:store({ToRegisterNode, UserKey}, NewUser, dict:new()), 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS1, PartList, MyNode),
-            Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
+            Response =  gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId}, ?TIMEOUT),%, length(DepsList)}),
             case Response of
-                {ok, {committed, _}} ->
-                    {ok, State}; %{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}};
-                {ok, {specula_commit, _}} ->
-                    {ok, State}; %#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}};
-                {aborted, _} ->
-                    {error, aborted, State} %#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}}
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
             end;
         _ -> 
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+                    Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),
+                    case Response of
+                        {ok, {_, _CommitTime, Info}} ->
+                            {aborted, Info, State};
+                        {cascade_abort, Info} ->
+                            {aborted, Info, State};
+                        {aborted, Info} ->
+                            {aborted, Info, State};
+                        {error,timeout} ->
+                            lager:info("Timeout on client ~p",[TxServer]),
+                            {error, timeout, State};
+                        {badrpc, Reason} ->
+                            {error, Reason, State}
+                    end;
                 _ ->
-                    ok
-            end,
-            {error, aborted, State} %#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}}
+                    {error, aborted, State} %#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}}
+            end
     end;
 
 %% VERIFIED
-run(browse, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
-    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+run(browse, _TxnSeq, _MsgId, State) ->
     {ok, State};
 
 %% VERIFIED
-run(browse_categories, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, nb_categories=NBCategories, 
+run(browse_categories, TxnSeq, MsgId, State=#state{tx_server=TxServer, nb_categories=NBCategories, 
             hash_dict=HashDict, part_list=PartList, node_id=MyNode, specula=Specula}) ->
     Seq = lists:seq(1, NBCategories),
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     lists:foreach(fun(N) ->
                 CategoryKey = rubis_tool:get_key(N, category),
                 _ = read_from_node(TxServer, TxId, CategoryKey, MyNode, MyNode, PartList, HashDict)
                 end, Seq),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end;
         _ ->
-            ok
-    end,
-    {ok, State};
+            {ok, State}
+    end;
 
 %% VERIFIED
 %% READ_SPECULA
-run(search_items_in_category, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories, node_id=MyNode, tx_server=TxServer, 
+run(search_items_in_category, TxnSeq, MsgId, State=#state{nb_categories=NBCategories, node_id=MyNode, tx_server=TxServer, 
             hash_dict=HashDict, prev_state=PrevState, part_list=PartList, specula=Specula, dc_rep_ids=DcRepIds,
             no_rep_ids=DcNoRepIds, access_master=AccessMaster, access_slave=AccessSlave}) ->
     CategoryNode = pick_node(MyNode, DcRepIds, DcNoRepIds, AccessMaster, AccessSlave),
     CategoryId = random:uniform(NBCategories),
     CategoryNewItemKey = rubis_tool:get_key({CategoryNode, CategoryId}, categorynewitems), 
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     CategoryNewItems = read_from_node(TxServer, TxId, CategoryNewItemKey, CategoryNode, MyNode, PartList, HashDict),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            NewItem = case CategoryNewItems of
+                        empty -> PrevState#prev_state.item_id;  
+                        [] -> PrevState#prev_state.item_id; 
+                        _ -> random(CategoryNewItems)
+                      end,
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State#state{prev_state=PrevState#prev_state{item_id=NewItem}}};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State#state{prev_state=PrevState#prev_state{item_id=NewItem}}};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end;
         _ ->
-            ok
-    end,
-    case CategoryNewItems of
-        empty ->
-            {ok, State};
-	[] ->
-            {ok, State};
-        _ ->
-            %lager:info("Category is ~w, CategoryNewItems are ~w", [CategoryId, CategoryNewItems]),
-            RandomItemId = random(CategoryNewItems),
-            {ok, State#state{prev_state=PrevState#prev_state{item_id=RandomItemId}}}
+            case CategoryNewItems of
+                empty ->
+                    {ok, State};
+                [] ->
+                    {ok, State};
+                _ ->
+                    %lager:info("Category is ~w, CategoryNewItems are ~w", [CategoryId, CategoryNewItems]),
+                    RandomItemId = random(CategoryNewItems),
+                    {ok, State#state{prev_state=PrevState#prev_state{item_id=RandomItemId}}}
+            end
     end;
 
 %% VERIFIED
-run(browse_regions, _KeyGen, _ValueGen, State=#state{nb_regions=NBRegions, tx_server=TxServer, 
+run(browse_regions, TxnSeq, MsgId, State=#state{nb_regions=NBRegions, tx_server=TxServer, 
             hash_dict=HashDict, node_id=MyNode, part_list=PartList, specula=Specula}) ->
     Seq = lists:seq(1, NBRegions),
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     lists:foreach(fun(N) ->
                 RegionKey = rubis_tool:get_key(N, region),
                 _ = read_from_node(TxServer, TxId, RegionKey, MyNode, MyNode, PartList, HashDict)
                 end, Seq),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            case Response of
+                  {ok, {committed, _CommitTime, Info}} ->
+                      {ok, Info, State};
+                  {ok, {specula_commit, _SpeculaCT, Info}} ->
+                      {specula_commit, Info, State};
+                  {cascade_abort, Info} ->
+                      {cascade_abort, Info, State};
+                  {error,timeout} ->
+                      lager:info("Timeout on client ~p",[TxServer]),
+                      {error, timeout, State};
+                  {aborted, Info} ->
+                      {aborted, Info, State};
+                  {badrpc, Reason} ->
+                      {error, Reason, State}
+            end;
         _ ->
-            ok
-    end,
-    {ok, State};
+            {ok, State}
+    end;
 
 %% KINDA VERIFIED
-run(browse_categories_in_region, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories, hash_dict=HashDict, 
+run(browse_categories_in_region, TxnSeq, MsgId, State=#state{nb_categories=NBCategories, hash_dict=HashDict, 
             node_id=MyNode, part_list=PartList, tx_server=TxServer, specula=Specula}) ->
     Seq = lists:seq(1, NBCategories),
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     lists:foreach(fun(N) ->
                 CategoryKey = rubis_tool:get_key(N, category),
                 _ = read_from_node(TxServer, TxId, CategoryKey, MyNode, MyNode, PartList, HashDict)
                 end, Seq),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            case Response of
+                  {ok, {committed, _CommitTime, Info}} ->
+                      {ok, Info, State};
+                  {ok, {specula_commit, _SpeculaCT, Info}} ->
+                      {specula_commit, Info, State};
+                  {cascade_abort, Info} ->
+                      {cascade_abort, Info, State};
+                  {error,timeout} ->
+                      lager:info("Timeout on client ~p",[TxServer]),
+                      {error, timeout, State};
+                  {aborted, Info} ->
+                      {aborted, Info, State};
+                  {badrpc, Reason} ->
+                      {error, Reason, State}
+            end;
         _ ->
-            ok
-    end,
-    {ok, State};
+            {ok, State}
+    end;
 
 %% KINDA VERIFIED
 %% READ_SPECULA
-run(search_items_in_region, _KeyGen, _ValueGen, State=#state{node_id=MyNode, nb_regions=NBRegions, 
+run(search_items_in_region, TxnSeq, MsgId, State=#state{node_id=MyNode, nb_regions=NBRegions, 
             tx_server=TxServer, prev_state=PrevState, hash_dict=HashDict, part_list=PartList, specula=Specula,
             access_master=AccessMaster, access_slave=AccessSlave, dc_rep_ids=DcRepIds, no_rep_ids=DcNoRepIds}) ->
     RegionNode = pick_node(MyNode, DcRepIds, DcNoRepIds, AccessMaster, AccessSlave),
@@ -390,28 +480,39 @@ run(search_items_in_region, _KeyGen, _ValueGen, State=#state{node_id=MyNode, nb_
     %lager:info("Before reading region new items in search"),
     RegionNewItemKey = rubis_tool:get_key({RegionNode, RegionId}, regionnewitems), 
     %lager:info("After reading region new items in search"),
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     RegionNewItems = read_from_node(TxServer, TxId, RegionNewItemKey, RegionNode, MyNode, PartList, HashDict),
+    NewItem = case RegionNewItems of
+                  empty -> PrevState#prev_state.item_id;
+                  [] -> PrevState#prev_state.item_id;
+                  _ -> random(RegionNewItems)
+              end,
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
-        _ ->
-            ok
-    end,
-    case RegionNewItems of
-        empty ->
-            {ok, State};
-	[] ->
-            {ok, State};
+            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State#state{prev_state=PrevState#prev_state{item_id=NewItem}}};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State#state{prev_state=PrevState#prev_state{item_id=NewItem}}};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end;
         _ ->
             %lager:info("Region is ~w, RegionNewItems are ~w", [RegionId, RegionNewItems]),
-            RandomItemId = random(RegionNewItems),
-            {ok, State#state{prev_state=PrevState#prev_state{item_id=RandomItemId}}}
+            {ok, State#state{prev_state=PrevState#prev_state{item_id=NewItem}}}
     end;
 
 %% VERIFIED
 %% READ_SPECULA
-run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, 
+run(view_item, TxnSeq, MsgId, State=#state{tx_server=TxServer, 
             part_list=PartList, prev_state=PrevState, node_id=MyNode, hash_dict=HashDict, specula=Specula}) ->
     ItemId = PrevState#prev_state.item_id,
     case ItemId of
@@ -421,7 +522,7 @@ run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
             %lager:info("Item Id is ~w", [ItemId]),
             ItemKey = rubis_tool:get_key(ItemId, item), 
             {ItemNode, _} = ItemId,
-            TxId = gen_server:call(TxServer, {start_tx, true, false}),
+            TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
             Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
             {ItemNode, _} = Item#item.i_seller,
             SellerKey = rubis_tool:get_key(Item#item.i_seller, user),
@@ -440,16 +541,30 @@ run(view_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
                           end, BidIds),
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+                    Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                    case Response of
+                        {ok, {committed, _CommitTime, Info}} ->
+                            {ok, Info, State#state{prev_state=PrevState#prev_state{last_user_id=Item#item.i_seller}}};
+                        {ok, {specula_commit, _SpeculaCT, Info}} ->
+                            {specula_commit, Info, State#state{prev_state=PrevState#prev_state{last_user_id=Item#item.i_seller}}};
+                        {cascade_abort, Info} ->
+                            {cascade_abort, Info, State};
+                        {error,timeout} ->
+                            lager:info("Timeout on client ~p",[TxServer]),
+                            {error, timeout, State};
+                        {aborted, Info} ->
+                            {aborted, Info, State};
+                        {badrpc, Reason} ->
+                            {error, Reason, State}
+                    end;
                 _ ->
-                    ok
-            end,
-            {ok, State#state{prev_state=PrevState#prev_state{last_user_id=Item#item.i_seller}}}
+                    {ok, State#state{prev_state=PrevState#prev_state{last_user_id=Item#item.i_seller}}}
+            end
     end;
 
 %%% VERIFIED 
 %% READ_SPECULA
-run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_server=TxServer,
+run(view_user_info, TxnSeq, MsgId, State=#state{prev_state=PrevState, tx_server=TxServer,
         hash_dict=HashDict, node_id=MyNode, part_list=PartList, specula=Specula, 
         num_replicates=NumReplicates, num_nodes=NumNodes}) ->
     UserId = PrevState#prev_state.last_user_id,
@@ -460,18 +575,32 @@ run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_se
             {UserNode, _} = UserId,
             %lager:info("UerId is ~w", [UserId]),
             UserKey = rubis_tool:get_key(UserId, user), 
-            TxId = gen_server:call(TxServer, {start_tx, true, false}),
+            TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
             %lager:warning("Trying to read from user key ~p", [UserKey]),
             User = read_from_node(TxServer, TxId, UserKey, UserNode, MyNode, PartList, HashDict),
             NumComments = User#user.u_num_comments,
             case NumComments of 0 ->  
                             case Specula of
                                 true ->
-                                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+                                    Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                                    case Response of
+                                        {ok, {committed, _CommitTime, Info}} ->
+                                            {ok, Info, State};
+                                        {ok, {specula_commit, _SpeculaCT, Info}} ->
+                                            {specula_commit, Info, State};
+                                        {cascade_abort, Info} ->
+                                            {cascade_abort, Info, State};
+                                        {error,timeout} ->
+                                            lager:info("Timeout on client ~p",[TxServer]),
+                                            {error, timeout, State};
+                                        {aborted, Info} ->
+                                            {aborted, Info, State};
+                                        {badrpc, Reason} ->
+                                            {error, Reason, State}
+                                    end;
                                 _ ->
-                                    ok
-                            end,
-                            {ok, State};
+                                    {ok, State}
+                            end;
                 _ ->
                     %ToFetchCommentList = lists:seq(max(NumComments - ?COMMENT_NUM+1, 1), NumComments),
                     CommentNodeList = User#user.u_comment_nodes,
@@ -497,33 +626,61 @@ run(view_user_info, _KeyGen, _ValueGen, State=#state{prev_state=PrevState, tx_se
                                 end, {User#user.u_num_comments, 1, UserId}, CommentNodeList),
                     case Specula of
                         true ->
-                            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+                            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                            case Response of
+                                {ok, {committed, _CommitTime, Info}} ->
+                                    {ok, Info, State#state{prev_state=PrevState#prev_state{last_user_id=RandUser}}};
+                                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                                    {specula_commit, Info, State#state{prev_state=PrevState#prev_state{last_user_id=RandUser}}};
+                                {cascade_abort, Info} ->
+                                    {cascade_abort, Info, State};
+                                {error,timeout} ->
+                                    lager:info("Timeout on client ~p",[TxServer]),
+                                    {error, timeout, State};
+                                {aborted, Info} ->
+                                    {aborted, Info, State};
+                                {badrpc, Reason} ->
+                                    {error, Reason, State}
+                            end;
                         _ ->
-                            ok
-                    end,
-                    {ok, State#state{prev_state=PrevState#prev_state{last_user_id=RandUser}}}
+                            {ok, State#state{prev_state=PrevState#prev_state{last_user_id=RandUser}}}
+                    end
             end
     end;
 
 %% VERIFIED
 %% READ_SPECULA
-run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, 
+run(view_bid_history, TxnSeq, MsgId, State=#state{tx_server=TxServer, 
             part_list=PartList, prev_state=PrevState, node_id=MyNode, hash_dict=HashDict, specula=Specula}) ->
     ItemId = PrevState#prev_state.item_id,
     {ItemNode, _} = ItemId,
     ItemKey = rubis_tool:get_key(ItemId, item), 
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     ItemBids = Item#item.i_bid_ids,
     case ItemBids of
         [] ->
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+                    Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                    case Response of
+                        {ok, {committed, _CommitTime, Info}} ->
+                            {ok, Info, State};
+                        {ok, {specula_commit, _SpeculaCT, Info}} ->
+                            {specula_commit, Info, State};
+                        {cascade_abort, Info} ->
+                            {cascade_abort, Info, State};
+                        {error,timeout} ->
+                            lager:info("Timeout on client ~p",[TxServer]),
+                            {error, timeout, State};
+                        {aborted, Info} ->
+                            {aborted, Info, State};
+                        {badrpc, Reason} ->
+                            {error, Reason, State}
+                    end;
                 _ ->
-                    ok
-            end,
-            {ok, State};
+                    {ok, State}
+            end;
         _ ->
             RandBidId = random(ItemBids),
             RandUserId = lists:foldl(fun(B, A) ->
@@ -544,29 +701,40 @@ run(view_bid_history, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
                         end, undef, ItemBids),
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+                    Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                    case Response of
+                        {ok, {committed, _CommitTime, Info}} ->
+                            {ok, Info, State#state{prev_state=PrevState#prev_state{last_user_id=RandUserId}}};
+                        {ok, {specula_commit, _SpeculaCT, Info}} ->
+                            {specula_commit, Info, State#state{prev_state=PrevState#prev_state{last_user_id=RandUserId}}};
+                        {cascade_abort, Info} ->
+                            {cascade_abort, Info, State};
+                        {error,timeout} ->
+                            lager:info("Timeout on client ~p",[TxServer]),
+                            {error, timeout, State};
+                        {aborted, Info} ->
+                            {aborted, Info, State};
+                        {badrpc, Reason} ->
+                            {error, Reason, State}
+                    end;
                 _ ->
-                    ok
-            end,
-            {ok, State#state{prev_state=PrevState#prev_state{last_user_id=RandUserId}}}
+                    {ok, State#state{prev_state=PrevState#prev_state{last_user_id=RandUserId}}}
+            end
     end;
 
 %% VERIFIED
-run(buy_now_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
-    %lager:info("Mhuahau, buy now auth"),
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
-    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+run(buy_now_auth, _TxnSeq, _MsgId, State) ->
     {ok, State};
 
 %% Buy now should be placed as the user's location
 %% VERIFIED
 %% READ_SPECULA
-run(buy_now, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
+run(buy_now, TxnSeq, MsgId, State=#state{tx_server=TxServer,
               part_list=PartList, prev_state=PrevState, node_id=MyNode, hash_dict=HashDict, specula=Specula}) -> 
     ItemId = PrevState#prev_state.item_id,
     ItemKey = rubis_tool:get_key(ItemId, item),
     {ItemNode, _} = ItemId,
-    TxId = gen_server:call(TxServer, {start_tx}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     SellerKey = rubis_tool:get_key(Item#item.i_seller, user),
     %lager:warning("Trying to read from user key ~w", [SellerKey]),
@@ -578,15 +746,29 @@ run(buy_now, _KeyGen, _ValueGen, State=#state{tx_server=TxServer,
     %              end, BidIds),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State#state{prev_state=PrevState#prev_state{max_qty=Item#item.i_quantity}}};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State#state{prev_state=PrevState#prev_state{max_qty=Item#item.i_quantity}}};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end;
         _ ->
-            ok
-    end,
-    {ok, State#state{prev_state=PrevState#prev_state{max_qty=Item#item.i_quantity}}};
+            {ok, State#state{prev_state=PrevState#prev_state{max_qty=Item#item.i_quantity}}}
+    end;
 
 %% VERIFIED
 %% No need to change anything here
-run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, prev_state=PrevState, 
+run(store_buy_now, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, prev_state=PrevState, 
         hash_dict=HashDict, specula=Specula, node_id=MyNode}) ->
     MyselfId = PrevState#prev_state.myself_id,
     ItemId = PrevState#prev_state.item_id,
@@ -594,7 +776,7 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     %% Qty always <= MaxQty!!!
     %MaxQty = Request#request.max_qty,
 
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     ItemKey = rubis_tool:get_key(ItemId, item),
     Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
     OldQuantity = Item#item.i_quantity,
@@ -602,11 +784,25 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
         0 ->
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+                    Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),
+                    case Response of
+                          {ok, {committed, _CommitTime, Info}} ->
+                              {ok, Info, State};
+                          {ok, {specula_commit, _SpeculaCT, Info}} ->
+                              {specula_commit, Info, State};
+                          {cascade_abort, Info} ->
+                              {cascade_abort, Info, State};
+                          {error,timeout} ->
+                              lager:info("Timeout on client ~p",[TxServer]),
+                              {error, timeout, State};
+                          {aborted, Info} ->
+                              {aborted, Info, State};
+                          {badrpc, Reason} ->
+                              {error, Reason, State}
+                    end;
                 _ ->
-                    ok
-            end,
-            {ok, State};
+                    {ok, {[], [], []}, State}
+            end;
         _ ->
             Qty = random:uniform(Item#item.i_quantity),
             Now = rubis_tool:now_nsec(),
@@ -635,38 +831,39 @@ run(store_buy_now, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
             WS4 = dict:store({MyNode, MyselfKey}, Myself1, WS3), 
 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, MyNode),
-            Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
-            RT3 = os:timestamp(),
+            Response =  gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId}, ?TIMEOUT),%, length(DepsList)}),
             case Response of
-                {ok, {committed, _}} ->
-                    {ok, State};
-                {ok, {specula_commit, _}} ->
-                    {ok, State};
-                {aborted, _} ->
-                    random:seed(RT3),
-                    {error, aborted, State};
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
                 {badrpc, Reason} ->
                     {error, Reason, State}
             end
     end;
 
 %% VERIFIED
-run(put_bid_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
-    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+run(put_bid_auth, _TxnSeq, _MsgId, State) ->
+    {ok, State}; 
     %lager:info("Mhuahau, put bid auth"),
-    {ok, State};
 
 %% KINDA VERIFIED, MAYBE NEED TO FETCH MORE BIDS
 %% READ_SPECULA
-run(put_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, prev_state=PrevState, 
+run(put_bid, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, prev_state=PrevState, 
         hash_dict=HashDict, node_id=MyNode, specula=Specula}) ->
     %lager:warning("In put_bid, state is ~w", [PrevState]),
     ItemId = PrevState#prev_state.item_id,
     case ItemId of
         undef -> {prev_state, State};
         _ ->
-            TxId = gen_server:call(TxServer, {start_tx, true, false}),
+            TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
             {ItemNode, _} = ItemId,
             ItemKey = rubis_tool:get_key(ItemId, item),
             %MyselfKey = rubis_tool:get_key(MyselfId, user),
@@ -679,15 +876,29 @@ run(put_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxSe
             _Seller = read_from_node(TxServer, TxId, SellerKey, ItemNode, MyNode, PartList, HashDict),
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+                    Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                    case Response of
+                        {ok, {committed, _CommitTime, Info}} ->
+                            {ok, Info, State#state{prev_state=PrevState#prev_state{min_bid=Item#item.i_max_bid+1}}};
+                        {ok, {specula_commit, _SpeculaCT, Info}} ->
+                            {specula_commit, Info, State#state{prev_state=PrevState#prev_state{min_bid=Item#item.i_max_bid+1}}};
+                        {cascade_abort, Info} ->
+                            {cascade_abort, Info, State};
+                        {error,timeout} ->
+                            lager:info("Timeout on client ~p",[TxServer]),
+                            {error, timeout, State};
+                        {aborted, Info} ->
+                            {aborted, Info, State};
+                        {badrpc, Reason} ->
+                            {error, Reason, State}
+                    end;
                 _ ->
-                    ok
-            end,
-            {ok, State#state{prev_state=PrevState#prev_state{min_bid=Item#item.i_max_bid+1}}}
+                    {ok, State#state{prev_state=PrevState#prev_state{min_bid=Item#item.i_max_bid+1}}}
+            end
     end;
 
 %% VERIFIED
-run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
+run(store_bid, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, 
         hash_dict=HashDict, node_id=MyNode, prev_state=PrevState, specula=Specula}) ->
     MyselfId = PrevState#prev_state.myself_id,
     ItemId = PrevState#prev_state.item_id,
@@ -700,7 +911,7 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     %%% Qty should be smaller than maxQty, maxBid >= minBid, bid >= minBid, maxBid >= Bid 
 
     WS = dict:new(),
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
 
     ItemKey = rubis_tool:get_key(ItemId, item),
 	Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
@@ -708,11 +919,26 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
     case ItemQty of 0 ->
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+                    Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),
+                    case Response of
+                        {ok, {committed, _CommitTime, Info}} ->
+                            {ok, Info, State};
+                        {ok, {specula_commit, _SpeculaCT, Info}} ->
+                            {specula_commit, Info, State};
+                        {cascade_abort, Info} ->
+                            {cascade_abort, Info, State};
+                        {error,timeout} ->
+                            lager:info("Timeout on client ~p",[TxServer]),
+                            {error, timeout, State};
+                        {aborted, Info} ->
+                            {aborted, Info, State};
+                        {badrpc, Reason} ->
+                            {error, Reason, State}
+                    end;
                 _ ->
-                    ok
-            end,
-            {ok, State};
+                    lager:warning("#######Committing like no-op!!!!#######"),
+                    {ok, {[], [], []}, State}
+            end;
         _ ->
             Qty = random:uniform(ItemQty),
 
@@ -749,30 +975,30 @@ run(store_bid, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=Tx
 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS4, PartList, MyNode),
             %DepsList = ets:lookup(dep_table, TxId),
-            Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
+            Response =  gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId}, ?TIMEOUT),%, length(DepsList)}),
             case Response of
-                {ok, {committed, _}} ->
-                    {ok, State};
-                {ok, {specula_commit, _}} ->
-                    {ok, State};
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
                 {error,timeout} ->
-                    {error, aborted, State};
-                {aborted, _} ->
-                    {error, aborted, State};
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
                 {badrpc, Reason} ->
                     {error, Reason, State}
             end
     end;
 
-run(put_comment_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
-    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
-    %lager:info("Mhuahau, put comment auth"),
+run(put_comment_auth, _TxnSeq, _MsgId, State) ->
     {ok, State};
 
 %% VERIFIED
 %% READ_SPECULA
-run(put_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
+run(put_comment, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, 
         hash_dict=HashDict, node_id=MyNode, prev_state=PrevState, specula=Specula}) ->
     ToUserId = PrevState#prev_state.last_user_id,
     ItemId = PrevState#prev_state.item_id,
@@ -785,22 +1011,36 @@ run(put_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=
             {ToUserNode, _} = ToUserId,
             ItemKey = rubis_tool:get_key(ItemId, item),
             %lager:warning("Trying to read from user key ~w", [FromUserKey]),
-            TxId = gen_server:call(TxServer, {start_tx, true, false}),
+            TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
             %lager:warning("Trying to read from user key ~p", [ToUserKey]),
             _ToUser = read_from_node(TxServer, TxId, ToUserKey, ToUserNode, MyNode, PartList, HashDict),
             _Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
             case Specula of
                 true ->
-                    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+                    Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                    case Response of
+                        {ok, {committed, _CommitTime, Info}} ->
+                            {ok, Info, State};
+                        {ok, {specula_commit, _SpeculaCT, Info}} ->
+                            {specula_commit, Info, State};
+                        {cascade_abort, Info} ->
+                            {cascade_abort, Info, State};
+                        {error,timeout} ->
+                            lager:info("Timeout on client ~p",[TxServer]),
+                            {error, timeout, State};
+                        {aborted, Info} ->
+                            {aborted, Info, State};
+                        {badrpc, Reason} ->
+                            {error, Reason, State}
+                    end;
                 _ ->
-                    ok
-            end,
-            {ok, State}
+                    {ok, State}
+            end
     end;
 
 %% The comment should be placed in the partition of the user who receives the comment
 %% VERIFIED
-run(store_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_server=TxServer, 
+run(store_comment, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, 
         hash_dict=HashDict, node_id=MyNode, prev_state=PrevState}) ->
     ItemId = PrevState#prev_state.item_id,
     ToId = PrevState#prev_state.last_user_id, 
@@ -811,7 +1051,7 @@ run(store_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
     Rating = random:uniform(5) - 3,
     Comment = lists:nth(Rating+3, Comments),
 
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     {ToNode, _} = ToId,
     ToIdKey = rubis_tool:get_key(ToId, user), 
     %lager:warning("Trying to read from user key ~w", [ToIdKey]),
@@ -835,52 +1075,63 @@ run(store_comment, _KeyGen, _ValueGen, State=#state{part_list=PartList, tx_serve
 
     {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS3, PartList, MyNode),
     %DepsList = ets:lookup(dep_table, TxId),
-    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
+    Response =  gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId}, ?TIMEOUT),%, length(DepsList)}),
     case Response of
-        {ok, {committed, _}} ->
-            {ok, State};
-        {ok, {specula_commit, _}} ->
-            {ok, State};
-        {error,timeout} ->
-            lager:info("Timeout on client ~p",[TxServer]),
-            {error, aborted, State};
-        {aborted, _} ->
-            {error, aborted, State};
-        {badrpc, Reason} ->
-            {error, Reason, State}
+    {ok, {committed, _CommitTime, Info}} ->
+        {ok, Info, State};
+    {ok, {specula_commit, _SpeculaCT, Info}} ->
+        {specula_commit, Info, State};
+    {cascade_abort, Info} ->
+        {cascade_abort, Info, State};
+    {error,timeout} ->
+        lager:info("Timeout on client ~p",[TxServer]),
+        {error, timeout, State};
+    {aborted, Info} ->
+        {aborted, Info, State};
+    {badrpc, Reason} ->
+        {error, Reason, State}
     end;
 
-run(sell, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
-    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+run(sell, _TxnSeq, _MsgId, State) ->
     {ok, State};
 
-run(select_category_to_sell_item, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories, tx_server=TxServer, 
+run(select_category_to_sell_item, TxnSeq, MsgId, State=#state{nb_categories=NBCategories, tx_server=TxServer, 
             hash_dict=HashDict, part_list=PartList, node_id=MyNode, specula=Specula}) ->
     Seq = lists:seq(1, NBCategories),
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     lists:foreach(fun(N) ->
                 CategoryKey = rubis_tool:get_key(N, category),
                 _ = read_from_node(TxServer, TxId, CategoryKey, MyNode, MyNode, PartList, HashDict)
                 end, Seq),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end;
         _ ->
-            ok
-    end,
-    {ok, State};
+            {ok, State}
+    end;
 
-run(sell_item_form, _KeyGen, _ValueGen, State=#state{nb_categories=NBCategories, tx_server=TxServer}) ->
-    _RandCategory = random:uniform(NBCategories),
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
-    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+run(sell_item_form, _TxnSeq, _MsgId, State) ->
     {ok, State};
 
 %% When a user registers an item, the item should be placed in the same server as the user
 %% VERIFIED
 %% May register an item that is stored in other places
-run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNode, prev_state=PrevState, 
+run(register_item, TxnSeq, MsgId, State=#state{tx_server=TxServer, node_id=MyNode, prev_state=PrevState, 
             part_list=PartList, hash_dict=HashDict, max_duration=MaxDuration, nb_categories=NBCategories, max_quantity=MaxQuantity,
             percent_reserve_item=PercentReserveItem, percent_buy_now=PercentBuyNow, percent_unique_item=PercentUniqueItem}) ->
             %access_master=AccessMaster, access_slave=AccessSlave, dc_rep_ids=DcRepIds, no_rep_ids=DcNoRepIds}) ->
@@ -914,7 +1165,7 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
     CategoryNewItemsKey = rubis_tool:get_key({ItemNode, CategoryId}, categorynewitems), 
     RegionNewItemsKey = rubis_tool:get_key({ItemNode, RegionId}, regionnewitems), 
 
-    TxId = gen_server:call(TxServer, {start_tx, true, true}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     LocalItemId = read_from_node(TxServer, TxId, LocalItemIdKey, ItemNode, MyNode, PartList, HashDict),
     LocalNextItemId = LocalItemId + 1,
 
@@ -958,31 +1209,31 @@ run(register_item, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=
     WS5 = dict:store({ItemNode, RegionNewItemsKey}, RegionNewItems, WS4),
 
     {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS5, PartList, MyNode),
-    Response =  gen_server:call(TxServer, {certify, TxId, LocalWriteList, RemoteWriteList}, ?TIMEOUT),%, length(DepsList)}),
+    Response =  gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId}, ?TIMEOUT),%, length(DepsList)}),
     case Response of
-        {ok, {committed, _}} ->
-            {ok, State};
-        {ok, {specula_commit, _}} ->
-            {ok, State};
+        {ok, {committed, _CommitTime, Info}} ->
+            {ok, Info, State};
+        {ok, {specula_commit, _SpeculaCT, Info}} ->
+            {specula_commit, Info, State};
+        {cascade_abort, Info} ->
+            {cascade_abort, Info, State};
         {error,timeout} ->
             lager:info("Timeout on client ~p",[TxServer]),
-            {error, aborted, State};
-        {aborted, _} ->
-            {error, aborted, State};
+            {error, timeout, State};
+        {aborted, Info} ->
+            {aborted, Info, State};
         {badrpc, Reason} ->
             {error, Reason, State}
     end;
 
-run(about_me_auth, _KeyGen, _ValueGen, State=#state{tx_server=TxServer}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
-    _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT),
+run(about_me_auth, _TxnSeq, _MsgId, State) ->
     %lager:info("Mhuahau, abou me auth"),
     {ok, State};
 
 %% READ_SPECULA
-run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNode, prev_state=PrevState,
+run(about_me, TxnSeq, MsgId, State=#state{tx_server=TxServer, node_id=MyNode, prev_state=PrevState,
               specula=Specula, part_list=PartList, hash_dict=HashDict}) ->
-    TxId = gen_server:call(TxServer, {start_tx, true, false}),
+    TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     %% Display user info
     MyselfId = PrevState#prev_state.myself_id, 
     MyselfKey = rubis_tool:get_key(MyselfId, user),
@@ -1077,11 +1328,25 @@ run(about_me, _KeyGen, _ValueGen, State=#state{tx_server=TxServer, node_id=MyNod
         end, {CU2, RU2}, ToFetchCommentList),
     case Specula of
         true ->
-            _ =  gen_server:call(TxServer, {certify, TxId, [], []}, ?TIMEOUT);
+            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State#state{prev_state=PrevState#prev_state{last_user_id=RU3, item_id=RI3}}};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State#state{prev_state=PrevState#prev_state{last_user_id=RU3, item_id=RI3}}};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end;
         _ ->
-            ok
-    end,
-    {ok, State#state{prev_state=PrevState#prev_state{last_user_id=RU3, item_id=RI3}}}.
+            {ok, State#state{prev_state=PrevState#prev_state{last_user_id=RU3, item_id=RI3}}}
+    end.
 
 get_partition(Key, PartList, HashLength) ->
     Num = crypto:bytes_to_integer(erlang:md5(Key)) rem HashLength +1,

@@ -113,9 +113,7 @@ write_cdf() ->
     %lager:info("SPercvCdf is ~p", [PercvCdfSort]),
     %lager:info("SFinalCdf is ~p", [FinalCdfSort]),
 
-    lager:info("Before"),
     {ok, PercvLatFile} = file:open("percv_latency"++integer_to_list(1), [raw, binary, write]),
-    lager:info("After"),
     {_, LastPercvFile} =lists:foldl(fun({{Count, _}, LatList}, {PreviousCount, File}) ->
                 case PreviousCount == Count of
                     false ->
