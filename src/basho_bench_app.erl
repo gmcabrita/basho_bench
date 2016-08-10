@@ -62,8 +62,8 @@ start() ->
     end.
 
 stop() ->
-    %ok = basho_bench_fsm_worker:cleanup(basho_bench_sup:workers()),
-    ok = basho_bench_fsm_worker:suspend(basho_bench_sup:workers()),
+    ok = basho_bench_fsm_worker:cleanup(basho_bench_sup:workers()),
+    %ok = basho_bench_fsm_worker:suspend(basho_bench_sup:workers()),
     write_cdf(),
     application:stop(basho_bench).
 
@@ -87,6 +87,7 @@ halt_or_kill() ->
 
 start(_StartType, _StartArgs) ->
     {ok, Pid} = basho_bench_sup:start_link(),
+    basho_bench_sup:start_children(basho_bench_config:get(concurrent)),
     application:set_env(basho_bench_app, is_running, true),
     ok = basho_bench_stats:run(),
     ok = basho_bench_measurement:run(),

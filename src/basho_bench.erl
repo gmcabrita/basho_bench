@@ -184,7 +184,7 @@ wait_for_stop(Mref, infinity) ->
             ?CONSOLE("Test stopped: ~p\n", [Info])
     end;
 wait_for_stop(Mref, DurationSecs) ->
-    Duration = timer:seconds(DurationSecs) + timer:seconds(1),
+    Duration = timer:seconds(DurationSecs) + timer:seconds(2),
     receive
         {'DOWN', Mref, _, _, Info} ->
             lager:info("Down!!!!"),

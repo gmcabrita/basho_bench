@@ -25,7 +25,7 @@
 -define(DELTA, 100000).
 
 %% API
--export([start_link/2,
+-export([start_link/1,
          run/1,
          cleanup/1,
          suspend/1,
@@ -66,8 +66,7 @@
                  retry,
                  transition,
                  ops_len,
-                 rng_seed,
-                 sup_id}).
+                 rng_seed}).
 
 -include("basho_bench.hrl").
 
@@ -75,8 +74,8 @@
 %% API
 %% ====================================================================
 
-start_link(SupChild, Id) ->
-    gen_fsm:start_link(?MODULE, [SupChild, Id], []).
+start_link(Id) ->
+    gen_fsm:start_link(?MODULE, [Id], []).
 
 run(Pids) ->
     [ok = gen_fsm:send_event(Pid, start) || Pid <- Pids],
@@ -100,7 +99,7 @@ stop(Pids) ->
 %% gen_server callbacks
 %% ====================================================================
 
-init([SupChild, Id]) ->
+init([Id]) ->
     %% Setup RNG seed for worker sub-process to use; incorporate the ID of
     %% the worker to ensure consistency in load-gen
     %%
@@ -109,7 +108,9 @@ init([SupChild, Id]) ->
     %%
     %% The RNG_SEED is static by default for replicability of key size
     %% and value size generation between test runs.
-    process_flag(trap_exit, true),
+
+
+    %process_flag(trap_exit, true),
     {A1, A2, A3} =
         case basho_bench_config:get(rng_seed, {42, 23, 12}) of
             {Aa, Ab, Ac} -> {Aa, Ab, Ac};
@@ -163,8 +164,7 @@ init([SupChild, Id]) ->
                      specula_cdf=[],
                      final_cdf=[],
                      transition = Transition,
-                     todo_op = ToDoOp,
-                     sup_id = SupChild},
+                     todo_op = ToDoOp},
 
     {_, OpName} = ToDoOp,
 
@@ -214,6 +214,7 @@ init([SupChild, Id]) ->
     {ok, execute, State1#state{driver_state=DriverState, mode=Mode, rate_sleep=RateSleep}}.
 
 execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf}) ->
+    lager:warning("??????????????????WTF, staring already??????"),
     {Count, ignore, Period} = StoreCdf, 
     case Mode of
         max -> ok; 
@@ -251,7 +252,8 @@ execute({'EXIT', Reason}, State) ->
             %% Clean shutdown of the worker; spawn a process to terminate this
             %% process via the supervisor API and make sure it doesn't restart.
             lager:info("Stopping for normal"),
-            spawn(fun() -> stop_worker(State#state.sup_id) end),
+            %% TODO: This is removed, but not sure if it is OK
+            %spawn(fun() -> stop_worker(State#state.sup_id) end),
 	        (catch (State#state.driver):terminate({'EXIT', Reason}, State#state.driver_state)),
             {stop, normal, State};
 	    cleanup ->
@@ -272,11 +274,11 @@ execute('CLEANUP', State) ->
     {stop, normal, State};
 
 execute('SUSPEND', State) ->
-    {next_state, suspended, State, 10000}.
+    (State#state.driver):terminate(haha, State#state.driver_state),
+    {next_state, suspended, State, 50}.
 
-suspended(Msg, State) ->
-    lager:warning("Receiving ~w in suspended", [Msg]),
-    {next_state, suspended, State, 10000}.
+suspended(_Msg, State) ->
+    {next_state, suspended, State, 50}.
 
 handle_info(_Info, _StateName, StateData) ->
     {stop, badmsg, StateData}.
@@ -538,16 +540,16 @@ worker_next_op(State) ->
 %%
 %% WARNING: Must run from a process other than the worker!
 %%
-stop_worker(SupChild) ->
-    ok = basho_bench_sup:stop_child(SupChild),
-    case basho_bench_sup:workers() of
-        [] ->
-            %% No more workers -- stop the system
-	        lager:info("Worker trying to stop app"),
-            basho_bench_app:stop();
-        _ ->
-            ok
-    end.
+%stop_worker(SupChild) ->
+%    ok = basho_bench_sup:stop_child(SupChild),
+%    case basho_bench_sup:workers() of
+%        [] ->
+%            %% No more workers -- stop the system
+%	        lager:info("Worker trying to stop app"),
+%            basho_bench_app:stop();
+%        _ ->
+%            ok
+%    end.
 
 %%
 %% Expand operations list into tuple suitable for weighted, random draw
