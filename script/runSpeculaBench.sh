@@ -79,6 +79,9 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 ./script/load.sh `head -1 ./script/allnodes` tpcc $WPerDc
 wait
 
+./script/gatherThroughput.sh $Folder &
+./script/gatherLatency.sh $Folder &
+wait
 
 #sleep 5
 #if [ $ToSleep -lt 20000 ]
@@ -86,26 +89,12 @@ wait
 #sleep 15
 #fi
 #timeout 200 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/tpcc.config"
-./script/gatherThroughput.sh $Folder &
-#./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder & 
-#./script/copyFromAll.sh new-order_latencies.csv ./basho_bench/tests/current/ $Folder & 
-#./script/copyFromAll.sh payment_latencies.csv ./basho_bench/tests/current/ $Folder & 
-#./script/copyFromAll.sh order-status_latencies.csv ./basho_bench/tests/current/ $Folder & 
-#./script/copyFromAll.sh txn_latencies.csv ./basho_bench/tests/current/ $Folder & 
-wait
 #./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
-./script/fetchAndParseStat.sh $Folder
-#timeout 60 ./script/fetchAndParseStat.sh $Folder
-#if [ $? -eq 124 ]; then
-#    timeout 60 ./script/fetchAndParseStat.sh $Folder
-#    if [ $? -eq 124 ]; then
-#        timeout 60 ./script/fetchAndParseStat.sh $Folder
-#    fi
-#fi
+#./script/fetchAndParseStat.sh $Folder
 
 #sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
 #./script/copyFromAll.sh latency_final ./antidote/rel/antidote/ $Folder
 #./script/copyFromAll.sh latency_percv ./antidote/rel/antidote/ $Folder
-sudo pkill -P $$
-./script/verifySame.sh $Folder 
+#sudo pkill -P $$
+#./script/verifySame.sh $Folder 

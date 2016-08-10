@@ -27,7 +27,7 @@
 -export([start_link/0,
          exponential/1,
          run/0,
-         op_complete/3]).
+         op_complete/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -56,15 +56,15 @@ exponential(Lambda) ->
 run() ->
     gen_server:call(?MODULE, run).
 
-op_complete(Op, ok, ElapsedUs) ->
-    op_complete(Op, {ok, 1}, ElapsedUs);
-op_complete(Op, {ok, Units}, ElapsedUs) ->
+op_complete(Op, ok) ->
+    op_complete(Op, {ok, 1});
+op_complete(Op, {ok, Units}) ->
     %% Update the histogram and units counter for the op in question
-    folsom_metrics:notify({latencies, Op}, ElapsedUs),
+    %folsom_metrics:notify({latencies, Op}),
     folsom_metrics:notify({units, Op}, {inc, Units}),
     ok;
-op_complete(Op, Result, ElapsedUs) ->
-    gen_server:call(?MODULE, {op, Op, Result, ElapsedUs}).
+op_complete(Op, Result) ->
+    gen_server:call(?MODULE, {op, Op, Result}).
 
 %% ====================================================================
 %% gen_server callbacks
@@ -115,7 +115,7 @@ init([]) ->
 
     %% Setup output file w/ counters for total requests, errors, etc.
     {ok, SummaryFile} = file:open("summary.csv", [raw, binary, write]),
-    file:write(SummaryFile, <<"elapsed, window, total, successful, failed\n">>),
+    file:write(SummaryFile, <<"elapsed, window, total, successful, immediate_aborts, specula_aborts\n">>),
 
     %% Setup errors file w/counters for each error.  Embedded commas likely
     %% in the error messages so quote the columns.
@@ -135,7 +135,7 @@ handle_call(run, _From, State) ->
     Now = os:timestamp(),
     timer:send_interval(State#state.report_interval, report),
     {reply, ok, State#state { start_time = Now, last_write_time = Now}};
-handle_call({op, Op, {error, Reason}, _ElapsedUs}, _From, State) ->
+handle_call({op, Op, {error, Reason}}, _From, State) ->
     increment_error_counter(Op),
     increment_error_counter({Op, Reason}),
     {reply, ok, State#state { errors_since_last_report = true }}.
@@ -171,7 +171,7 @@ code_change(_OldVsn, State, _Extra) ->
 op_csv_file({Label, _Op}) ->
     Fname = normalize_label(Label) ++ "_latencies.csv",
     {ok, F} = file:open(Fname, [raw, binary, write]),
-    ok = file:write(F, <<"elapsed, window, n, min, mean, median, 95th, 99th, 99_9th, max, errors\n">>),
+    ok = file:write(F, <<"elapsed, window, n, min, mean, median, 95th, 99th, 99_9th, max, immediate_errors, specula_errors\n">>),
     F.
 
 measurement_csv_file({Label, _Op}) ->
@@ -247,24 +247,25 @@ process_stats(Now, State) ->
     Window  = timer:now_diff(Now, State#state.last_write_time) / 1000000,
 
     %% Time to report latency data to our CSV files
-    {Oks, Errors, OkOpsRes} =
-        lists:foldl(fun(Op, {TotalOks, TotalErrors, OpsResAcc}) ->
-                            {Oks, Errors} = report_latency(Elapsed, Window, Op),
-                            {TotalOks + Oks, TotalErrors + Errors,
-                             [{Op, Oks}|OpsResAcc]}
-                    end, {0,0,[]}, State#state.ops),
+    {Oks, ImmediateErrors, SpeculaErrors, OkOpsRes} =
+        lists:foldl(fun(Op, {TotalOks, IErrors, SErrors, OpsResAcc}) ->
+                            {Oks, IError, SError} = report_latency(Elapsed, Window, Op),
+                            {TotalOks + Oks, IErrors + IError, SErrors + SError,
+                             [{Op, Oks}|OpsResAcc]} 
+                    end, {0,0,0,[]}, State#state.ops),
 
     %% Reset units
     [folsom_metrics_counter:dec({units, Op}, OpAmount) || {Op, OpAmount} <- OkOpsRes],
 
     %% Write summary
     file:write(State#state.summary_file,
-               io_lib:format("~w, ~w, ~w, ~w, ~w\n",
+               io_lib:format("~w, ~w, ~w, ~w, ~w, ~w\n",
                              [Elapsed,
                               Window,
-                              Oks + Errors,
+                              Oks + ImmediateErrors + SpeculaErrors,
                               Oks,
-                              Errors])),
+                              ImmediateErrors,
+                              SpeculaErrors])),
 
     %% Dump current error counts to console
     case (State#state.errors_since_last_report) of
@@ -284,34 +285,36 @@ process_stats(Now, State) ->
 %% number of successful and failed ops in this window of time.
 %%
 report_latency(Elapsed, Window, Op) ->
-    Stats = folsom_metrics:get_histogram_statistics({latencies, Op}),
-    Errors = error_counter(Op),
+    %Stats = folsom_metrics:get_histogram_statistics({latencies, Op}),
+    ImmediateErrors = error_counter({Op, immediate_abort}),
+    SpeculaErrors = error_counter({Op, specula_abort}),
     Units = folsom_metrics:get_metric_value({units, Op}),
-    case proplists:get_value(n, Stats) > 0 of
-        true ->
-            %lager:info("Print histogram ~p", [Stats]),
-            P = proplists:get_value(percentile, Stats),
-            Line = io_lib:format("~w, ~w, ~w, ~w, ~.1f, ~w, ~w, ~w, ~w, ~w, ~w\n",
-                                 [Elapsed,
-                                  Window,
-                                  Units,
-                                  proplists:get_value(min, Stats),
-                                  proplists:get_value(arithmetic_mean, Stats),
-                                  proplists:get_value(median, Stats),
-                                  proplists:get_value(95, P),
-                                  proplists:get_value(99, P),
-                                  proplists:get_value(999, P),
-                                  proplists:get_value(max, Stats),
-                                  Errors]);
-        false ->
+    %case proplists:get_value(n, Stats) > 0 of
+    %    true ->
+    %        %lager:info("Print histogram ~p", [Stats]),
+    %        P = proplists:get_value(percentile, Stats),
+    %        Line = io_lib:format("~w, ~w, ~w, ~w, ~.1f, ~w, ~w, ~w, ~w, ~w, ~w\n",
+    %                             [Elapsed,
+    %                              Window,
+    %                              Units,
+    %                              proplists:get_value(min, Stats),
+    %                              proplists:get_value(arithmetic_mean, Stats),
+    %                              proplists:get_value(median, Stats),
+    %                              proplists:get_value(95, P),
+    %                              proplists:get_value(99, P),
+    %                              proplists:get_value(999, P),
+    %                              proplists:get_value(max, Stats),
+    %                              Errors]);
+    %    false ->
             %?WARN("No data for op: ~p\n", [Op]),
-            Line = io_lib:format("~w, ~w, 0, 0, 0, 0, 0, 0, 0, 0, ~w\n",
-                                 [Elapsed,
-                                  Window,
-                                  Errors])
-    end,
+    Line = io_lib:format("~w, ~w, 0, 0, 0, 0, 0, 0, 0, 0, ~w, ~w\n",
+                         [Elapsed,
+                          Window,
+                          ImmediateErrors,
+                          SpeculaErrors]),
+    %end,
     ok = file:write(erlang:get({csv_file, Op}), Line),
-    {Units, Errors}.
+    {Units, ImmediateErrors, SpeculaErrors}.
 
 report_total_errors(State) ->                          
     case ets:tab2list(basho_bench_total_errors) of

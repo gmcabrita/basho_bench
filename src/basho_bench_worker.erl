@@ -460,7 +460,7 @@ worker_next_op(State) ->
             %case CurrentOpType of  update ->%lager:warning("Op ~p specula-committed", [UpdateSeq]); read -> ok end,
             %lager:warning("Finall commit updates are ~w, FinallComm Reads are ~w", [FinalCommitUpdates, FinalCommitReads]),
             ReadTxs1 = finalize_reads(FinalCommitReads, ReadTxs, [], ok),
-            ReadTxs2 = finalize_reads(AbortedReads, ReadTxs1, [], {error, abort}),
+            ReadTxs2 = finalize_reads(AbortedReads, ReadTxs1, [], {error, specula_abort}),
             %case FinalCommitReads of [] -> ok;
             %                            _ ->%lager:warning("FinalRead is ~w, Specula Txs is ~w", [FinalCommitReads, SpeculaTxs])
             %end,

@@ -35,7 +35,9 @@ sleep 30 && ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests 
 wait
 
 
-./script/gatherThroughput.sh $Folder
+./script/gatherThroughput.sh $Folder &
+./script/gatherLatency.sh $Folder &
+wait
 
 #./script/copyFromAll.sh prep ./basho_bench/tests/current/ $Folder
 #./script/copyFromAll.sh register-user_latencies.csv ./basho_bench/tests/current/ $Folder &
@@ -51,16 +53,15 @@ wait
 #./script/copyFromAll.sh txn_latencies.csv ./basho_bench/tests/current/ $Folder & 
 #./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 
 
-timeout 60 ./script/fetchAndParseStat.sh $Folder
-if [ $? -eq 124 ]; then
-    timeout 60 ./script/fetchAndParseStat.sh $Folder
-    if [ $? -eq 124 ]; then
-        timeout 60 ./script/fetchAndParseStat.sh $Folder
-    fi
-fi
+#timeout 60 ./script/fetchAndParseStat.sh $Folder
+#if [ $? -eq 124 ]; then
+#    timeout 60 ./script/fetchAndParseStat.sh $Folder
+#    if [ $? -eq 124 ]; then
+#        timeout 60 ./script/fetchAndParseStat.sh $Folder
+#    fi
+#fi
 
-sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
-./script/copyFromAll.sh latency_final ./antidote/rel/antidote/ $Folder
-./script/copyFromAll.sh latency_percv ./antidote/rel/antidote/ $Folder
-./script/verifySame.sh $Folder 
+#sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/merge_latency.sh"
+#./script/copyFromAll.sh latency_final ./antidote/rel/antidote/ $Folder
+#./script/copyFromAll.sh latency_percv ./antidote/rel/antidote/ $Folder
 

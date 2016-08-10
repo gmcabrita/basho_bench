@@ -114,45 +114,33 @@ write_cdf() ->
     %lager:info("SPercvCdf is ~p", [PercvCdfSort]),
     %lager:info("SFinalCdf is ~p", [FinalCdfSort]),
 
-    {ok, PercvLatFile} = file:open("percv_latency"++integer_to_list(1), [raw, binary, write]),
-    {_, LastPercvFile} =lists:foldl(fun({{Count, _}, LatList}, {PreviousCount, File}) ->
+    {ok, PercvLatFile} = file:open("percv_latency", [raw, binary, write]),
+    file:write(PercvLatFile,  io_lib:format("Number ~w\n", [1])),
+    _ =lists:foldl(fun({{Count, _}, LatList}, PreviousCount) ->
                 case PreviousCount == Count of
-                    false ->
-                        file:close(File),
-                        {ok, LatFile} = file:open("percv_latency"++integer_to_list(Count), [raw, binary, write]),
-                        file:write(LatFile,  io_lib:format("~w\n", [self()])),
-                        lists:foreach(fun(Latency) ->
-                            file:write(LatFile,  io_lib:format("~w\n", [Latency]))
-                        end, LatList),
-                        {Count, LatFile};
-                    true ->
-                        file:write(File,  io_lib:format("~w\n", [self()])),
-                        lists:foreach(fun(Latency) ->
-                            file:write(File,  io_lib:format("~w\n", [Latency]))
-                        end, LatList),
-                        {Count, File}
-                end end, {1, PercvLatFile}, PercvCdfSort),
-    file:close(LastPercvFile),
+                    false -> file:write(PercvLatFile,  io_lib:format("Number ~w\n", [Count]));
+                    true -> ok
+                end,
+                %file:write(PercvLatFile,  io_lib:format("~w\n", [self()])),
+                lists:foreach(fun(Latency) ->
+                    file:write(PercvLatFile,  io_lib:format("~w\n", [Latency]))
+                end, LatList), Count
+                end, 1, PercvCdfSort),
+    file:close(PercvLatFile),
 
-    {ok, FinalLatFile} = file:open("final_latency"++integer_to_list(1), [raw, binary, write]),
-    {_, LastFinalFile} =lists:foldl(fun({{Count, _}, LatList}, {PreviousCount, File}) ->
+    {ok, FinalLatFile} = file:open("final_latency", [raw, binary, write]),
+    file:write(FinalLatFile,  io_lib:format("Number ~w\n", [1])),
+    _ =lists:foldl(fun({{Count, _}, LatList}, PreviousCount) ->
                 case PreviousCount == Count of
-                    false ->
-                        file:close(File),
-                        {ok, LatFile} = file:open("final_latency"++integer_to_list(Count), [raw, binary, write]),
-                        file:write(LatFile,  io_lib:format("~w\n", [self()])),
-                        lists:foreach(fun(Latency) ->
-                            file:write(LatFile,  io_lib:format("~w\n", [Latency]))
-                        end, LatList),
-                        {Count, LatFile};
-                    true ->
-                        file:write(File,  io_lib:format("~w\n", [self()])),
-                        lists:foreach(fun(Latency) ->
-                            file:write(File,  io_lib:format("~w\n", [Latency]))
-                        end, LatList),
-                        {Count, File}
-                end end, {1, FinalLatFile}, FinalCdfSort),
-    file:close(LastFinalFile).
+                    false -> file:write(FinalLatFile,  io_lib:format("Number ~w\n", [Count]));
+                    true -> ok
+                end,
+                %file:write(FinalLatFile,  io_lib:format("~w\n", [self()])),
+                lists:foreach(fun(Latency) ->
+                    file:write(FinalLatFile,  io_lib:format("~w\n", [Latency]))
+                end, LatList), Count
+                end, 1, FinalCdfSort),
+    file:close(FinalLatFile).
 
 ensure_started(Applications) when is_list(Applications) ->
   [ensure_started(Application) || Application <- Applications];
