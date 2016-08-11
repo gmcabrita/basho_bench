@@ -272,7 +272,6 @@ execute({'EXIT', Reason}, State) ->
     end;
 
 execute('CLEANUP', State) ->
-    lager:info("Cleaning up"),
     (catch (State#state.driver):terminate(haha, State#state.driver_state)),
     {stop, normal, State};
 

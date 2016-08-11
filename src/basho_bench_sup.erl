@@ -56,6 +56,7 @@ stop_child(Id) ->
     ok = supervisor:delete_child(?MODULE, Id).
 
 start_children(Total) ->
+    timer:sleep(basho_bench_config:get(master_to_sleep)),
     case ?NUM_WORKER_SUP > Total of
         true ->
             basho_bench_worker_sup:start_children('basho_bench_worker_sup_1', 1, Total); 
