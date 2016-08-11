@@ -150,6 +150,9 @@ len=4
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
+if [ 1 == 2 ];
+then
+
 rm -rf ./config
 echo tpcc cdf true >> config
 echo tpcc duration 120 >> config
@@ -215,6 +218,7 @@ do
             done
         done
 done
+fi
 
 rubis_threads="4000 5000"
 for t in $rubis_threads
