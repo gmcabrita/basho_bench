@@ -630,6 +630,7 @@ add_sctime_to_list([TxInfo|Rest], TxnSeq, SpecCommitTime) ->
 commit_updates(FinalCdf, SpeculaCdf, [], SpeculaTxs, PreviousSpecula) ->
     {FinalCdf, SpeculaCdf, lists:reverse(PreviousSpecula)++SpeculaTxs};
 commit_updates(FinalCdf, SpeculaCdf, [{{tx_id, _A, _B, _C, TxnSeq}, EndTime}|Rest], [{TxnSeq, OpName, StartTime, SpecTime}|SpeculaRest], PreviousSpecula)->
+    lager:warning("End time is ~w, Spec time is ~w, Start time is ~w", [EndTime, SpecTime, StartTime]),
     UsedTime = timer:now_diff(EndTime, StartTime),
     PercvTime = timer:now_diff(SpecTime, StartTime),
     basho_bench_stats:op_complete({OpName, OpName}, ok),
@@ -639,10 +640,12 @@ commit_updates(FinalCdf, SpeculaCdf, [{tx_id, _A, _B, _C, TxnSeq}|Rest], [{TxnSe
     commit_updates(FinalCdf, SpeculaCdf, Rest, SpeculaRest, PreviousSpecula);
 %% In case of non-specula
 commit_updates(FinalCdf, SpeculaCdf, [{TxnSeq, EndTime}|Rest], [{TxnSeq, OpName, StartTime, ignore}|SpeculaRest], PreviousSpecula)->
+    lager:warning("End time is ~w, Start time is ~w", [EndTime, StartTime]),
     UsedTime = timer:now_diff(EndTime, StartTime),
     basho_bench_stats:op_complete({OpName, OpName}, ok),
     commit_updates([UsedTime|FinalCdf], SpeculaCdf, Rest, SpeculaRest, PreviousSpecula); 
 commit_updates(FinalCdf, SpeculaCdf, [{TxnSeq, EndTime}|Rest], [{TxnSeq, OpName, StartTime, SpecTime}|SpeculaRest], PreviousSpecula)->
+    lager:warning("End time is ~w, Spec time is ~w, Start time is ~w", [EndTime, SpecTime, StartTime]),
     UsedTime = timer:now_diff(EndTime, StartTime),
     PercvTime = timer:now_diff(SpecTime, StartTime),
     basho_bench_stats:op_complete({OpName, OpName}, ok),
