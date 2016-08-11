@@ -66,7 +66,7 @@ start_children(Sender, Sup, Start, End) ->
 init([]) ->
     Worker = {basho_bench_fsm_worker,
               {basho_bench_fsm_worker, start_link, []},
-               permanent, 5000, worker, [basho_bench_fsm_worker]},
+               transient, 5000, worker, [basho_bench_fsm_worker]},
     {ok, {{simple_one_for_one, 100, 5}, [Worker]}}.
 
 %init([Id, NumWorkers]) ->
