@@ -35,7 +35,7 @@
 -include("basho_bench.hrl").
 
 %% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
+-define(CHILD(I, Type), {I, {I, start_link, []}, transient, 5000, Type, [I]}).
 %% Change from permanent to transient, because children will be stoped in the end of benchmark
 -define(NUM_WORKER_SUP, 4).
 
