@@ -244,7 +244,7 @@ execute({final_abort, NewMsgId, TxId, AbortedReads, FinalCommitUpdates, FinalCom
     {tx_id, _, _, _, TxSeq} = TxId,
     {TxSeq, OpName} = find_specula_tx(TxSeq, SpeculaTxs1),
     %lager:warning("previous seq is ~w, now seq is ~w", [PreviousSeq, TxSeq]),
-    true = TxSeq <= PreviousSeq,
+    true = (TxSeq =< PreviousSeq),
     {PreviousOps, _} = ToDoOp,
     {next_state, execute, State#state{final_cdf=FinalCdf1, specula_cdf=SpeculaCdf1, specula_txs=SpeculaTxs, read_txs=ReadTxs2,
             msg_id=NewMsgId, update_seq=TxSeq, todo_op={PreviousOps, OpName}, op_type=update}, 0};
@@ -591,10 +591,10 @@ op_think_time(CurrentOp, NextOp, ThinkTime, Transition) ->
     end.
 
 %% Report the stat about the cascading abort after this txid. Then report its name and index
-find_specula_tx(Seq, [{Seq, OpName, _StartTime, _SpecTime}|T]=List) ->
+find_specula_tx(Seq, [{Seq, OpName, _StartTime, _SpecTime}|_T]=List) ->
     report_cascade(List),
     {Seq, OpName};
-find_specula_tx({tx_id, _, _, _,Seq}, [{Seq, OpName, _StartTime, _SpecTime}|T]=List) ->
+find_specula_tx({tx_id, _, _, _,Seq}, [{Seq, OpName, _StartTime, _SpecTime}|_T]=List) ->
     report_cascade(List),
     {Seq, OpName};
 find_specula_tx(Seq, [{_Seq1, _OpName, _StartTime, _SpecTime}|T]) ->
