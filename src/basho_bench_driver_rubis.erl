@@ -935,7 +935,7 @@ run(store_bid, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServe
                             {error, Reason, State}
                     end;
                 _ ->
-                    lager:warning("#######Committing like no-op!!!!#######"),
+                    %lager:warning("#######Committing like no-op!!!!#######"),
                     {ok, {[], [], []}, State}
             end;
         _ ->
