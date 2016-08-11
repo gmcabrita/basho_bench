@@ -134,7 +134,7 @@ init([Id]) ->
 
     {ToDoOp, Transition} = case basho_bench_config:get(transition, false) of
                 true -> LoadTransition = rubis_tool:load_transition(), 
-                     {{[], 1}, LoadTransition}; 
+                     {{[], home}, LoadTransition}; 
                 _ -> {Info, FirstOpTag} = element(random:uniform(size(Ops)), Ops), 
                      {{Info, FirstOpTag}, undef}
             end,
@@ -314,7 +314,7 @@ worker_next_op(State) ->
     ToDo = State#state.todo_op,
     ThinkTime = State#state.think_time,
     {PreviousOps, OpTag} = ToDo,
-    TranslatedOp = rubis_tool:translate_op(OpTag),
+    %TranslatedOp = rubis_tool:translate_op(OpTag),
     %Start = os:timestamp(),
     FinalCdf0 = State#state.final_cdf,
     SpeculaCdf0 = State#state.specula_cdf,
@@ -325,7 +325,7 @@ worker_next_op(State) ->
     UpdateSeq = State#state.update_seq,
     ReadSeq = State#state.read_seq,
     {Cnt, ExprStart, Period} = State#state.store_cdf,
-    Result = worker_next_op2(State, TranslatedOp, CurrentOpType),
+    Result = worker_next_op2(State, OpTag, CurrentOpType),
     End = os:timestamp(),
     %ElapsedUs = erlang:max(0, timer:now_diff(End, Start)),
     TimerDiff = timer:now_diff(End, ExprStart),
@@ -336,7 +336,7 @@ worker_next_op(State) ->
                          {[], [], {Cnt+1, ExprStart, Period}};
                 false -> {FinalCdf0, SpeculaCdf0, {Cnt, ExprStart, Period}}
               end,
-    lager:warning("Trying to do op ~w, type is ~w, ~w, ~w, ~w", [TranslatedOp, CurrentOpType, UpdateSeq, ReadSeq, SpeculaTxs]),
+    lager:warning("Trying to do op ~w, type is ~w, ~w, ~w, ~w", [OpTag, CurrentOpType, UpdateSeq, ReadSeq, SpeculaTxs]),
 
     %lager:info("Result is ~p", [Result]),     
     case Result of
@@ -368,10 +368,10 @@ worker_next_op(State) ->
                             rubis_tool:get_next_state(PreviousStates, Transition, CurrentOpName)
                     end,
             {_, NextOpName} = NextOp,
-            TransNextOp = rubis_tool:translate_op(NextOpName),
+            %TransNextOp = rubis_tool:translate_op(NextOpName),
 
             OpThinkTime = op_think_time(ToDo, NextOp, ThinkTime, Transition),
-            case get_op_type(TransNextOp) of
+            case get_op_type(NextOpName) of
                 update ->
                     NextUpdateSeq = UpdateSeq + 1,
                     timer:sleep(OpThinkTime),
@@ -408,7 +408,7 @@ worker_next_op(State) ->
             {_, NextOpName} = NextOp,
             OpThinkTime = op_think_time(ToDo, NextOp, ThinkTime, Transition),
             timer:sleep(OpThinkTime),
-            case get_op_type(rubis_tool:translate_op(NextOpName)) of 
+            case get_op_type(NextOpName) of 
                 update ->
                     NextUpdateSeq = UpdateSeq +1,
                     SpeculaTxs4 = [{NextUpdateSeq, NextOpName, os:timestamp(), ignore}], 
@@ -449,9 +449,9 @@ worker_next_op(State) ->
                               rubis_tool:get_next_state(PreviousStates, Transition, CurrentOpName)
                     end,
                     {_, NextOpName} = NextOp,
-                    TransNextOp = rubis_tool:translate_op(NextOpName),
+                    %TransNextOp = rubis_tool:translate_op(NextOpName),
                     OpThinkTime = op_think_time(ToDo, NextOp, ThinkTime, Transition), 
-                    case get_op_type(TransNextOp) of 
+                    case get_op_type(NextOpName) of 
                         update ->  
                             NextUpdateSeq = UpdateSeq + 1,
                             SpeculaTxs3 = SpeculaTxs2 ++ [{NextUpdateSeq, NextOpName, os:timestamp(), ignore}],
@@ -473,7 +473,7 @@ worker_next_op(State) ->
         %% Retry txns from the aborted one.
         {cascade_abort, {AbortedTxId, AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
             case CurrentOpType of  update ->lager:warning("Op ~p cascade-aborted", [UpdateSeq]); read -> ok end,
-            lager:warning("Cascade abort!!! Specula txs are ~w, abortedtx id is ~w, op aborted ~w", [SpeculaTxs, AbortedTxId, TranslatedOp]),
+            lager:warning("Cascade abort!!! Specula txs are ~w, abortedtx id is ~w, op aborted ~w", [SpeculaTxs, AbortedTxId, OpTag]),
             State#state.shutdown_on_error andalso
                 erlang:send_after(500, basho_bench,
                                   {shutdown, "Shutdown on errors requested", 1}),
@@ -487,7 +487,7 @@ worker_next_op(State) ->
                     specula_txs=SpeculaTxs1, read_txs=ReadTxs2, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, store_cdf=StoreCdf}, 0};
         {aborted, {AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
             case CurrentOpType of  update ->lager:warning("Op ~p aborted", [UpdateSeq]); read -> ok end,
-            lager:warning("Current txn ~w is aborted!!! ", [TranslatedOp]),
+            lager:warning("Current txn ~w is aborted!!! ", [OpTag]),
             State#state.shutdown_on_error andalso
                 erlang:send_after(500, basho_bench,
                                   {shutdown, "Shutdown on errors requested", 1}),
@@ -498,12 +498,12 @@ worker_next_op(State) ->
             ReadTxs2 = finalize_reads(AbortedReads, ReadTxs1, [], {error, specula_abort}),
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, []),
                       %% Add abort of this txn to stat, if no cascading abort was found 
-            basho_bench_stats:op_complete({TranslatedOp, TranslatedOp}, {error, immediate_abort}),
+            basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
             {next_state, execute, State#state{driver_state=DriverState, todo_op=ToDo, update_seq=UpdateSeq, store_cdf=StoreCdf,
                     specula_txs=SpeculaTxs1, read_txs=ReadTxs2, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1}, 0};
         %% Aborted due to other reasons. Just retry the current one.
         {error, Reason, DriverState} ->
-            basho_bench_stats:op_complete({TranslatedOp, TranslatedOp}, {error, Reason}),
+            basho_bench_stats:op_complete({OpTag, OpTag}, {error, Reason}),
             State#state.shutdown_on_error andalso
                 erlang:send_after(500, basho_bench,
                                   {shutdown, "Shutdown on errors requested", 1}),

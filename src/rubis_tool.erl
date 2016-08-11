@@ -4,8 +4,7 @@
 
 -export([random_num/2, get_key/2, now_nsec/0, non_uniform_random/4, 
         create_item/10, create_bid/6, create_user/9, get_think_time/2, 
-        load_transition/0, get_next_state/3, create_comment/6, create_buy_now/4, 
-		translate_op/1]).
+        load_transition/0, get_next_state/3, create_comment/6, create_buy_now/4]).
 
 get_next_state(PreviousStates, Dict, CurrentState) ->
     {_, T} = dict:fetch(CurrentState, Dict),
@@ -66,8 +65,8 @@ load_transition() ->
 
     ND = dict:fold(fun(K, V, D) ->
             case lists:nth(NumRows-1, V) of
-                0 -> dict:store(K, {not_back, V}, D);
-                _ -> dict:store(K, {back, V}, D)
+                0 -> dict:store(translate_op(K), {not_back, V}, D);
+                _ -> dict:store(translate_op(K), {back, V}, D)
             end end, dict:new(), ND0),
     SleepDict = dict:from_list(Sleep),
     dict:merge(fun(_Key, V1, V2) -> V1 ++ V2 end, ND, SleepDict).
