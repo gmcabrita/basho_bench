@@ -31,7 +31,7 @@ function runRubis {
 
 
 ## Just to test.. 
-seq="1 2"
+seq="1"
 warehouse="5"
 
 #rep=5
@@ -54,11 +54,9 @@ warehouse="5"
 specula_read=false
 do_specula=false
 len=0
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict_optsup
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict_optsup
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
-if [ 1 == 2 ];
-then
 rm -rf ./config
 echo tpcc cdf true >> config
 echo tpcc duration 120 >> config
@@ -66,10 +64,10 @@ echo rubis cdf true >> config
 echo rubis duration 120 >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
-#sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 4000 $do_specula 0 $rep $parts $specula_read 
-#sudo ./script/restartAndConnect.sh true
+sudo ./script/configBeforeRestart.sh 4000 $do_specula 0 $rep $parts $specula_read 
+sudo ./script/restartAndConnect.sh true
 
 rubis_threads="4000 5000"
 seq="1"
@@ -78,7 +76,6 @@ do
         think_time="rubis"
         runRubis
 done
-fi
 
 ############# Specula here
 
@@ -105,17 +102,13 @@ sudo ./script/restartAndConnect.sh true
 
 len=0
 
-rubis_threads="1000 2000 3000 4000"
+rubis_threads="4000 5000"
 seq="1"
 for t in $rubis_threads
 do  
         think_time="rubis"
         runRubis
 done
-exit
-
-
-
 
 
 tpcc_threads="1200"
@@ -127,11 +120,7 @@ for t in $tpcc_threads
 do
         for len in $tpcc_length
         do
-            #if [ $skipped -eq 1 ] 
-            #then
-	        #sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
-            #fi
-	        for wl in $workloads
+	  	for wl in $workloads
 	        do
 	            if [ $wl == 1 ]; then  n=45  p=43
 	            elif [ $wl == 2 ]; then  n=5 p=83
@@ -145,17 +134,3 @@ do
 	        done
         done
 done
-exit
-
-seq="1"
-rubis_threads="5000"
-for t in $rubis_threads
-do
-	sudo ./script/configBeforeRestart.sh $t $do_specula 4 $rep $parts $specula_read
-        for len in $rubis_length
-        do
-            think_time="rubis"
-            runRubis
-        done
-done
-

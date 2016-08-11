@@ -31,195 +31,17 @@ function runRubis {
 
 
 ## Just to test.. 
-seq="1 2"
+seq="1"
 warehouse="5"
 
-rep=8
-parts=28
-#rep=3
+#rep=8
+#parts=28
+##rep=3
 #parts=20
 #rep=1
 #parts=12
-
-start_ind=1
-skip_len=0
-skipped=1
-AM=80
-AS=0
-
-tpcc_length="0"
-rubis_length="0"
-warehouse="5"
-
-specula_read=false
-do_specula=false
-len=0
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict_optsup
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-
-rm -rf ./config
-echo tpcc cdf true >> config
-echo tpcc duration 120 >> config
-echo rubis cdf true >> config
-echo rubis duration 120 >> config
-echo ant cdf true >> ./config
-sudo ./script/copy_to_all.sh ./config ./basho_bench/
-sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
-
-sudo ./script/configBeforeRestart.sh 4000 $do_specula 0 $rep $parts $specula_read 
-sudo ./script/restartAndConnect.sh
-
-tpcc_threads="800"
-workloads="2"
-for t in $tpcc_threads
-do  
-        for wl in $workloads
-        do
-	        if [ $wl == 1 ]; then  n=45  p=43
-	        elif [ $wl == 2 ]; then  n=5 p=83
-	        elif [ $wl == 3 ]; then n=5 p=43
-	        fi
-            for wh in $warehouse
-            do
-                think_time="tpcc"
-                runTpccNTimes 
-            done
-        done
-done
-
-tpcc_threads="2400"
-workloads="1"
-for t in $tpcc_threads
-do  
-        for wl in $workloads
-        do
-	        if [ $wl == 1 ]; then  n=45  p=43
-	        elif [ $wl == 2 ]; then  n=5 p=83
-	        elif [ $wl == 3 ]; then n=5 p=43
-	        fi
-            for wh in $warehouse
-            do
-                think_time="tpcc"
-                runTpccNTimes 
-            done
-        done
-done
-
-
-tpcc_threads="1200"
-workloads="3"
-for t in $tpcc_threads
-do  
-        for wl in $workloads
-        do
-	        if [ $wl == 1 ]; then  n=45  p=43
-	        elif [ $wl == 2 ]; then  n=5 p=83
-	        elif [ $wl == 3 ]; then n=5 p=43
-	        fi
-            for wh in $warehouse
-            do
-                think_time="tpcc"
-                runTpccNTimes 
-            done
-        done
-done
-
-rubis_threads="5000"
-for t in $rubis_threads
-do  
-        think_time="rubis"
-        runRubis
-done
-
-############# Specula here
-
-specula_read=true
-do_specula=true
-
-tpcc_length="0"
-rubis_length="0"
-
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-
-rm -rf ./config
-echo tpcc cdf true >> config
-echo tpcc duration 120 >> config
-echo rubis cdf true >> config
-echo rubis duration 120 >> config
-echo ant cdf true >> ./config
-sudo ./script/copy_to_all.sh ./config ./basho_bench/
-sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
-
-sudo ./script/configBeforeRestart.sh 5000 $do_specula 0 $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
-
-len=0
-
-tpcc_threads="2400"
-workloads="1"
-for t in $tpcc_threads
-do  
-        for wl in $workloads
-        do
-	        if [ $wl == 1 ]; then  n=45  p=43
-	        elif [ $wl == 2 ]; then  n=5 p=83
-	        elif [ $wl == 3 ]; then n=5 p=43
-	        fi
-            for wh in $warehouse
-            do
-                think_time="tpcc"
-                runTpccNTimes 
-            done
-        done
-done
-
-tpcc_threads="800"
-workloads="2"
-for t in $tpcc_threads
-do  
-        for wl in $workloads
-        do
-	        if [ $wl == 1 ]; then  n=45  p=43
-	        elif [ $wl == 2 ]; then  n=5 p=83
-	        elif [ $wl == 3 ]; then n=5 p=43
-	        fi
-            for wh in $warehouse
-            do
-                think_time="tpcc"
-                runTpccNTimes 
-            done
-        done
-done
-tpcc_threads="1200"
-workloads="3"
-for t in $tpcc_threads
-do  
-        for wl in $workloads
-        do
-	        if [ $wl == 1 ]; then  n=45  p=43
-	        elif [ $wl == 2 ]; then  n=5 p=83
-	        elif [ $wl == 3 ]; then n=5 p=43
-	        fi
-            for wh in $warehouse
-            do
-                think_time="tpcc"
-                runTpccNTimes 
-            done
-        done
-done
-
-rubis_threads="5000"
-for t in $rubis_threads
-do  
-        think_time="rubis"
-        runRubis
-done
-
-
-
 rep=2
-parts=28
+parts=4
 
 start_ind=1
 skip_len=0
@@ -249,7 +71,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 sudo ./script/configBeforeRestart.sh 4000 $do_specula 0 $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
 
-tpcc_threads="800"
+tpcc_threads="600 800"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -267,7 +89,7 @@ do
         done
 done
 
-tpcc_threads="2400"
+tpcc_threads="1800 2400"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -286,7 +108,7 @@ do
 done
 
 
-tpcc_threads="1200"
+tpcc_threads="900 1200"
 workloads="3"
 for t in $tpcc_threads
 do  
@@ -304,7 +126,7 @@ do
         done
 done
 
-rubis_threads="5000"
+rubis_threads="4000 5000"
 for t in $rubis_threads
 do  
         think_time="rubis"
@@ -336,7 +158,7 @@ sudo ./script/restartAndConnect.sh
 
 len=0
 
-tpcc_threads="2400"
+tpcc_threads="1600 2400"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -354,7 +176,7 @@ do
         done
 done
 
-tpcc_threads="800"
+tpcc_threads="600 800"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -371,7 +193,7 @@ do
             done
         done
 done
-tpcc_threads="1200"
+tpcc_threads="900 1200"
 workloads="3"
 for t in $tpcc_threads
 do  
@@ -395,7 +217,3 @@ do
         think_time="rubis"
         runRubis
 done
-
-
-
-
