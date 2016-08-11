@@ -235,7 +235,7 @@ execute(timeout, State=#state{mode=Mode, rate_sleep=RateSleep}) ->
 execute({final_abort, NewMsgId, TxId, AbortedReads, FinalCommitUpdates, FinalCommitReads}, 
         State=#state{msg_id=MsgId, final_cdf=FinalCdf, specula_cdf=SpeculaCdf, specula_txs=SpeculaTxs,
             read_txs=ReadTxs, update_seq=PreviousSeq, todo_op=ToDoOp}) ->
-    lager:warning("Got final abort msg, haha!"),
+    lager:warning("Got final abort msg, NewMsgId is ~w, OldMsgId is ~w", [NewMsgId, MsgId]),
     NewMsgId = MsgId + 1,
     {FinalCdf1, SpeculaCdf1, SpeculaTxs1} =
         commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, []),
