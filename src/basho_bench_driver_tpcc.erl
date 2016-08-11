@@ -319,6 +319,7 @@ run(payment, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer,
         node_id=DcId, payment_master=PaymentMaster, payment_slave=PaymentSlave, 
         c_c_id=C_C_ID, c_c_last = C_C_LAST}) ->
 
+
     WS = dict:new(),
     %LocalWS = dict:new(),
     %RemoteWS = dict:new(),

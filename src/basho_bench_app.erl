@@ -91,6 +91,7 @@ start(_StartType, _StartArgs) ->
     application:set_env(basho_bench_app, is_running, true),
     ok = basho_bench_stats:run(),
     ok = basho_bench_measurement:run(),
+    Children = basho_bench_sup:workers(),
     ok = basho_bench_fsm_worker:run(basho_bench_sup:workers()),
     {ok, Pid}.
 

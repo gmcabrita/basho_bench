@@ -218,7 +218,6 @@ init([Id]) ->
     {ok, execute, State1#state{driver_state=DriverState, mode=Mode, rate_sleep=RateSleep}}.
 
 execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf}) ->
-    lager:warning("??????????????????WTF, staring already??????"),
     {Count, ignore, Period} = StoreCdf, 
     case Mode of
         max -> ok; 

@@ -48,8 +48,8 @@ start_link() ->
 
 workers() ->
     Sups = generate_sup_specs(?NUM_WORKER_SUP),
-    AllChildren = lists:foldl(fun(Sup, Acc) -> [supervisor:which_children(Sup)|Acc] end, [], Sups),
-    [Pid || {_Id, Pid, worker, [basho_bench_fsm_worker]} <- AllChildren].
+    AllChildren = lists:foldl(fun(Sup, Acc) -> Acc ++ supervisor:which_children(Sup) end, [], Sups),
+    [Pid || {_, Pid, worker, [basho_bench_fsm_worker]} <- AllChildren].
 
 stop_child(Id) ->
     ok = supervisor:terminate_child(?MODULE, Id),
