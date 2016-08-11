@@ -56,7 +56,8 @@ warehouse="5"
 specula_read=false
 do_specula=false
 len=0
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict_optsup
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict_optsup
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat 
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
@@ -141,7 +142,8 @@ do_specula=true
 tpcc_length="0"
 rubis_length="0"
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
