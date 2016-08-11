@@ -2,13 +2,14 @@
 
 FAIL=0
 Nodes=$1
-File=$2
-Folder=$3
+OrgFolder=$2
+File=$3
+Folder=$4
 echo "Fetching "$File" from" $Nodes 
 for Node in $Nodes
 do
    NewDir=$Folder
-   scp -i key -r ubuntu@$Node:$File $NewDir/$Node &
+   scp -i key -r ubuntu@$Node:$OrgFolder/$File $NewDir/$File-$Node &
 done
 echo $command done
 
