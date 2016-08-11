@@ -85,7 +85,7 @@ new(Id) ->
             ok
     end,
 
-    random:seed(now()),
+    random:seed(os:timestamp()),
     %_PbPorts = basho_bench_config:get(antidote_pb_port),
     MyNode = basho_bench_config:get(antidote_mynode),
     Cookie = basho_bench_config:get(antidote_cookie),
@@ -144,7 +144,7 @@ new(Id) ->
     NodeId = index(TargetNode, AllNodes),
     NumNodes = length(AllNodes),
     MyTxServer = case length(IPs) of 1 ->
-    		     case Id of 1 -> timer:sleep(MasterToSleep),
+    		     case Id of 1 -> 
 	             		NameLists = lists:foldl(fun(WorkerId, Acc) -> [WorkerId|Acc]
 					    		end, [], lists:seq(1, Concurrent)),
     		     		Pids = locality_fun:get_pids(TargetNode, lists:reverse(NameLists)), 
