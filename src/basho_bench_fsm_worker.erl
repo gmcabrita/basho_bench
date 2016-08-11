@@ -206,9 +206,13 @@ init([Id]) ->
             ok
     end,
     random:seed(State#state.rng_seed),
-    {Mode, RateSleep} = case basho_bench_config:get(mode) of max -> ?INFO("Starting MAX worker: ~p\n", [self()]), {max, 0};
-                                                        {rate, max} -> ?INFO("Starting MAX worker: ~p\n", [self()]), {max, 0};
-                                                        {rate, Rate} ->  ?INFO("Starting ~w ms/req fixed rate worker: ~p\n", [1000/Rate, self()]), {rate, Rate/1000}
+    %{Mode, RateSleep} = case basho_bench_config:get(mode) of max -> ?INFO("Starting MAX worker: ~p\n", [self()]), {max, 0};
+    %                                                    {rate, max} -> ?INFO("Starting MAX worker: ~p\n", [self()]), {max, 0};
+    %                                                    {rate, Rate} ->  ?INFO("Starting ~w ms/req fixed rate worker: ~p\n", [1000/Rate, self()]), {rate, Rate/1000}
+    %                end, 
+    {Mode, RateSleep} = case basho_bench_config:get(mode) of max ->  {max, 0};
+                                                        {rate, max} ->  {max, 0};
+                                                        {rate, Rate} ->  {rate, Rate/1000}
                     end, 
 
     {ok, execute, State1#state{driver_state=DriverState, mode=Mode, rate_sleep=RateSleep}}.
