@@ -220,7 +220,7 @@ do
 done
 fi
 
-rubis_threads="4000 5000"
+rubis_threads="400 500"
 for t in $rubis_threads
 do  
         think_time="rubis"
