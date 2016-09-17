@@ -59,7 +59,7 @@ start_children(Total) ->
     timer:sleep(basho_bench_config:get(master_to_sleep)),
     case ?NUM_WORKER_SUP > Total of
         true ->
-            basho_bench_worker_sup:start_children('basho_bench_worker_sup_1', 1, Total); 
+            basho_bench_worker_sup:start_children(self(), 'basho_bench_worker_sup_1', 1, Total); 
         false ->
             Avg = Total div ?NUM_WORKER_SUP,
             lists:foldl(fun(Sup, Id) ->
@@ -94,7 +94,8 @@ init([]) ->
             _Driver -> [?CHILD(basho_bench_measurement, worker)]
         end,
 
-    {ok, {{one_for_one, 100, 5},
+    %{ok, {{one_for_one, 100, 5},
+    {ok, {{one_for_one, 1, 5},
         [?CHILD(basho_bench_stats, worker)] ++
         WorkerSups ++
         MeasurementDriver

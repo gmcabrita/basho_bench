@@ -15,11 +15,11 @@ get_next_state(PreviousStates, Dict, CurrentState) ->
     Previous = End,
     case S of
         Previous -> %% Go back to previous state
-            case PreviousStates of [] ->  {[], 1};
+            case PreviousStates of [] ->  {[], home};
                                   [P1|P2] -> {P2, P1}
             end;
         End -> %% Terminate session
-            {[], 1}; 
+            {[], home}; 
         CurrentState ->
             {PreviousStates, CurrentState};
         _ ->
@@ -33,7 +33,7 @@ find_next_state([], _Num, _ProbAcc, _Acc, Current) ->
     Current;
 find_next_state([H|T], Num, ProbAcc, Acc, Current) ->
     case ProbAcc > Num of
-        true -> Acc;
+        true -> translate_op(Acc);
         false -> find_next_state(T, Num, ProbAcc+H, Acc+1, Current)
     end.
 
@@ -65,11 +65,15 @@ load_transition() ->
 
     ND = dict:fold(fun(K, V, D) ->
             case lists:nth(NumRows-1, V) of
-                0 -> dict:store(translate_op(K), {not_back, V}, D);
-                _ -> dict:store(translate_op(K), {back, V}, D)
+                0 -> dict:store(K, {not_back, V}, D);
+                _ -> dict:store(K, {back, V}, D)
             end end, dict:new(), ND0),
     SleepDict = dict:from_list(Sleep),
-    dict:merge(fun(_Key, V1, V2) -> V1 ++ V2 end, ND, SleepDict).
+    MergedDict = dict:merge(fun(_Key, V1, V2) -> V1 ++ V2 end, ND, SleepDict),
+    dict:fold(fun(K, V, NewDict) ->
+                case K of {sleep, Key} -> dict:store({sleep, translate_op(Key)}, V, NewDict);
+                           Key -> dict:store(translate_op(Key), V, NewDict)
+                end end, dict:new(), MergedDict).
     %lager:info("Merge Dict is ~w", [dict:to_list(MergeD)]),
     %MergeD.
 

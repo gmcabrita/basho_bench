@@ -88,14 +88,13 @@ new(Id) ->
     PaymentSlave = 100 - PaymentMaster, %basho_bench_config:get(payment_slave),
     WPerNode = basho_bench_config:get(w_per_dc),
 
-    TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
+    TargetNode = lists:nth(((Id-1) rem length(IPs)+1), IPs),
     case Id of 1 ->
     	case net_kernel:start(MyNode) of
         	{ok, _} -> true = erlang:set_cookie(node(), Cookie),  %?INFO("Net kernel started as ~p\n", [node()]);
     			   _Result = net_adm:ping(TargetNode),
     			   HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []), 
-    			   ets:new(meta_info, [set, named_table]),
-			   ets:insert(meta_info, {hash_fun, HashFun});
+			        ets:insert(meta_info, {hash_fun, HashFun});
         	{error, {already_started, _}} ->
             		?INFO("Net kernel already started as ~p\n", [node()]),  ok;
         	{error, Reason} ->
@@ -345,16 +344,19 @@ run(payment, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer,
 	%TxId = {tx_id, tpcc_tool:now_nsec(), self()},	
 
     TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
+    %lager:warning("TxId is ~w", [TxId]),
 	WarehouseKey = tpcc_tool:get_key_by_param({TWarehouseId}, warehouse),
     Warehouse = read_from_node(TxServer, TxId, WarehouseKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
 	WYtdKey = WarehouseKey++":w_ytd",
 	WYtd = read_from_node(TxServer, TxId, WYtdKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
+    case is_number(WYtd) of true -> ok;  false -> lager:warning("TxId is ~w, WTyd is ~w", [TxId, WYtd]), WYtd=haah end,
 	WYtd1 = WYtd+ PaymentAmount,
 	WS1 = dict:store({TWarehouseId, WYtdKey}, WYtd1, WS),
 	DistrictKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId}, district),
     District = read_from_node(TxServer, TxId, DistrictKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
 	DYtdKey = DistrictKey++":d_ytd",
 	DYtd = read_from_node(TxServer, TxId, DYtdKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
+    case is_number(DYtd) of true -> ok;  false -> lager:warning("TxId is ~w, DTyd is ~w", [TxId, DYtd]), DYtd=haah end,
 	DYtd1 = DYtd+ PaymentAmount,
 	WS2 = dict:store({TWarehouseId, DYtdKey}, DYtd1, WS1),
 	

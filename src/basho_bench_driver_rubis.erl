@@ -98,13 +98,12 @@ new(Id) ->
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
 
-    TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
+    TargetNode = lists:nth(((Id-1) rem length(IPs)+1), IPs),
     case Id of 1 ->
                 case net_kernel:start(MyNode) of
                         {ok, _} -> true = erlang:set_cookie(node(), Cookie),  %?INFO("Net kernel started as ~p\n", [node()]);
                                    _Result = net_adm:ping(TargetNode),
                                    HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []),
-                                   ets:new(meta_info, [set, named_table]),
                                    ets:insert(meta_info, {hash_fun, HashFun});
                         {error, {already_started, _}} ->
                                 ?INFO("Net kernel already started as ~p\n", [node()]),  ok;

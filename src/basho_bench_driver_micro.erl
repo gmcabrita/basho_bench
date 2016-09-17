@@ -27,8 +27,8 @@
 
 -include("basho_bench.hrl").
 
--define(TIMEOUT, 20000).
--define(READ_TIMEOUT, 20000).
+-define(TIMEOUT, 10000).
+-define(READ_TIMEOUT, 10000).
 
 -record(state, {worker_id,
                 time,
@@ -110,13 +110,12 @@ new(Id) ->
     CacheHotRate = basho_bench_config:get(cache_hot_rate, LocalHotRate),
     Deter = basho_bench_config:get(deter),
 
-    TargetNode = lists:nth((Id rem length(IPs)+1), IPs),
+    TargetNode = lists:nth(((Id-1) rem length(IPs)+1), IPs),
     case Id of 1 ->
         case net_kernel:start(MyNode) of
                 {ok, _} -> true = erlang:set_cookie(node(), Cookie),  %?INFO("Net kernel started as ~p\n", [node()]);
                            _Result = net_adm:ping(TargetNode),
                            HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []),
-                           ets:new(meta_info, [set, named_table]),
                            ets:insert(meta_info, {hash_fun, HashFun});
                 {error, {already_started, _}} ->
                         ?INFO("Net kernel already started as ~p\n", [node()]),  ok;
@@ -202,6 +201,7 @@ run(txn, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, det
         {final_abort, Info} ->
             {final_abort, Info, State};
         TxId ->
+            lager:warning("Start ~w", [TxId]),
             NumKeys = TotalKey,
             DcRepLen = length(DcRepIds),
             NoRepLen = length(NoRepIds),
@@ -210,25 +210,20 @@ run(txn, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, det
                     Rand = random:uniform(100),
                     case Rand =< MNum of
                         true -> 
-                            Key =  hot_or_not(1, LocalHotRange, MRange, LocalHotRate),
+                            Key = hot_or_not(1, LocalHotRange, MRange, LocalHotRate),
                             V = read_from_node(TxServer, TxId, Key, MyNodeId, MyNodeId, PartList, HashDict),
+                            case is_number(V) of false -> lager:warning("WTF, V is not number!", [V]), V=1; true -> ok end,
                             {Ind, dict:store({MyNodeId, Key}, V+Add, WS)};
                         false -> 
                             case Rand =< MNum+SNum of
                                 true ->     
                                     Key = hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate),
-                                    case Deter of
-                                        false ->
-                                            random:seed(os:timestamp()),
-                                            Rand1 = random:uniform(DcRepLen),
-                                            DcNode = lists:nth(Rand1, DcRepIds),
-                                            V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
-                                            {Ind+1, dict:store({DcNode, Key}, V+Add, WS)};
-                                        _ ->
-                                            DcNode = lists:nth(Ind rem Deter +1, DcRepIds),
-                                            V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
-                                            {Ind+1, dict:store({DcNode, Key}, V+Add, WS)}
-                                    end;
+                                    Deter = false,
+                                    random:seed(os:timestamp()),
+                                    Rand1 = random:uniform(DcRepLen),
+                                    DcNode = lists:nth(Rand1, DcRepIds),
+                                    V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
+                                    {Ind+1, dict:store({DcNode, Key}, V+Add, WS)};
                                 false -> OtherDcNode = lists:nth(Rand rem NoRepLen +1, NoRepIds),
                                     Key = hot_or_not(MRange+SRange+1, CacheHotRange, CRange, CacheHotRate),
                                     V = read_from_node(TxServer, TxId, Key, OtherDcNode, MyNodeId, PartList, HashDict),
@@ -239,7 +234,9 @@ run(txn, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, det
 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WriteSet, PartList, MyNodeId),
 
+            %lager:warning("Before calling certify"),
             Response = gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId}, ?TIMEOUT),%, length(DepsList)}),
+            %lager:warning("After calling certify"),
             case Response of
                 {ok, {committed, _CommitTime, Info}} ->
                     {ok, Info, State};
