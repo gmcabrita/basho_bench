@@ -235,15 +235,15 @@ execute(timeout, State=#state{mode=Mode, rate_sleep=RateSleep}) ->
 execute({final_abort, NewMsgId, TxId, AbortedReads, FinalCommitUpdates, FinalCommitReads}, 
         State=#state{msg_id=MsgId, final_cdf=FinalCdf, specula_cdf=SpeculaCdf, specula_txs=SpeculaTxs,
             read_txs=ReadTxs, update_seq=PreviousSeq, todo_op=ToDoOp}) ->
-    lager:warning("Got final abort msg, NewMsgId is ~w, OldMsgId is ~w", [NewMsgId, MsgId]),
+    %lager:warning("Got final abort msg, NewMsgId is ~w, OldMsgId is ~w", [NewMsgId, MsgId]),
     NewMsgId = MsgId + 1,
     {FinalCdf1, SpeculaCdf1, SpeculaTxs1} =
         commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, []),
     ReadTxs1 = finalize_reads(FinalCommitReads, ReadTxs, [], ok),
     ReadTxs2 = finalize_reads(AbortedReads, ReadTxs1, [], {error, specula_abort}),
-    {tx_id, _, _, _, TxSeq} = TxId,
+    {tx_id, _, _, _, TxSeq, _} = TxId,
     {TxSeq, OpName} = find_specula_tx(TxSeq, SpeculaTxs1),
-    lager:warning("previous seq is ~w, now seq is ~w", [PreviousSeq, TxSeq]),
+    %lager:warning("previous seq is ~w, now seq is ~w", [PreviousSeq, TxSeq]),
     case (TxSeq =< PreviousSeq) of false ->lager:warning("Prev seq is ~w, seq is ~w, TxId is ~w, speculaTxs are ~w, specula txs1 are ~w", [PreviousSeq, TxSeq, TxId, SpeculaTxs, SpeculaTxs1]), TxSeq=error; true -> ok end,
     {PreviousOps, _} = ToDoOp,
     {next_state, execute, State#state{final_cdf=FinalCdf1, specula_cdf=SpeculaCdf1, specula_txs=SpeculaTxs1, read_txs=ReadTxs2,
@@ -601,7 +601,7 @@ op_think_time(CurrentOp, NextOp, ThinkTime, Transition) ->
 find_specula_tx(Seq, [{Seq, OpName, _StartTime, _SpecTime}|_T]=List) ->
     report_cascade(List),
     {Seq, OpName};
-find_specula_tx({tx_id, _, _, _,Seq}, [{Seq, OpName, _StartTime, _SpecTime}|_T]=List) ->
+find_specula_tx({tx_id, _, _, _,Seq,_}, [{Seq, OpName, _StartTime, _SpecTime}|_T]=List) ->
     report_cascade(List),
     {Seq, OpName};
 find_specula_tx(Seq, [{_Seq1, _OpName, _StartTime, _SpecTime}|T]) ->
@@ -636,13 +636,13 @@ add_sctime_to_list([TxInfo|Rest], TxnSeq, SpecCommitTime) ->
 
 commit_updates(FinalCdf, SpeculaCdf, [], SpeculaTxs, PreviousSpecula) ->
     {FinalCdf, SpeculaCdf, lists:reverse(PreviousSpecula)++SpeculaTxs};
-commit_updates(FinalCdf, SpeculaCdf, [{{tx_id, _A, _B, _C, TxnSeq}, EndTime}|Rest], [{TxnSeq, OpName, StartTime, SpecTime}|SpeculaRest], PreviousSpecula)->
+commit_updates(FinalCdf, SpeculaCdf, [{{tx_id, _A, _B, _C, TxnSeq, _}, EndTime}|Rest], [{TxnSeq, OpName, StartTime, SpecTime}|SpeculaRest], PreviousSpecula)->
     %lager:warning("End time is ~w, Spec time is ~w, Start time is ~w", [EndTime, SpecTime, StartTime]),
     UsedTime = timer:now_diff(EndTime, StartTime),
     PercvTime = timer:now_diff(SpecTime, StartTime),
     basho_bench_stats:op_complete({OpName, OpName}, ok),
     commit_updates([UsedTime|FinalCdf], [PercvTime|SpeculaCdf], Rest, SpeculaRest, PreviousSpecula);
-commit_updates(FinalCdf, SpeculaCdf, [{tx_id, _A, _B, _C, TxnSeq}|Rest], [{TxnSeq, OpName, _StartTime, _SpecTime}|SpeculaRest], PreviousSpecula)->
+commit_updates(FinalCdf, SpeculaCdf, [{tx_id, _A, _B, _C, TxnSeq, _}|Rest], [{TxnSeq, OpName, _StartTime, _SpecTime}|SpeculaRest], PreviousSpecula)->
     basho_bench_stats:op_complete({OpName, OpName}, ok),
     commit_updates(FinalCdf, SpeculaCdf, Rest, SpeculaRest, PreviousSpecula);
 %% In case of non-specula
@@ -662,7 +662,7 @@ commit_updates(FinalCdf, SpeculaCdf, List, [Entry|SpeculaRest], PreviousSpecula)
 
 finalize_reads([], ReadTxs, Previous, _Result) ->
     lists:reverse(Previous)++ReadTxs;
-finalize_reads([{tx_id, _,_,_,TxnSeq}|T], [{TxnSeq, OpName}|Rest],Previous, Result) ->
+finalize_reads([{tx_id, _,_,_,TxnSeq, _}|T], [{TxnSeq, OpName}|Rest],Previous, Result) ->
     basho_bench_stats:op_complete({OpName, OpName}, Result),
     finalize_reads(T, Rest, Previous, Result);
 finalize_reads([TxnSeq|T], [{TxnSeq, OpName}|Rest], Previous, Result) ->

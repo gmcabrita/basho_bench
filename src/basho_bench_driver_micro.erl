@@ -47,6 +47,8 @@
                 hash_dict,
                 deter,
                 no_rep_list,
+                dc_master_ids,
+                dc_master_set,
                 other_master_ids,
                 dc_rep_ids,
                 no_rep_ids,
@@ -153,7 +155,8 @@ new(Id) ->
     HashLength = length(ExpandPartList),
     {OtherMasterIds, DcRepIds, DcNoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
-    lager:info("MyTxServer is  ~w, DcRepIds ~w, NoRepIds ~w, D ~w", [MyTxServer, DcRepIds, DcNoRepIds, dict:to_list(HashDict1)]),
+    lager:info("MyTxServer is  ~w, AllDcMaster is ~w, DcRepIds ~w, NoRepIds ~w, D ~w", [MyTxServer, 
+            [NodeId|OtherMasterIds], DcRepIds, DcNoRepIds, dict:to_list(HashDict1)]),
 
     %lager:info("Part list is ~w",[PartList]),
     MyTable = ets:new(my_table, [private, set]),
@@ -165,6 +168,8 @@ new(Id) ->
 		       my_table=MyTable,
                process_time=ProcessTime,
                other_master_ids=OtherMasterIds,
+               dc_master_ids=[NodeId|OtherMasterIds],
+               dc_master_set=sets:from_list([NodeId|OtherMasterIds]),
                dc_rep_ids = DcRepIds,
                no_rep_ids = DcNoRepIds,
                hash_dict = HashDict1,
@@ -190,7 +195,7 @@ new(Id) ->
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
 run(txn, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter, total_key=TotalKey,
-        dc_rep_ids=DcRepIds, node_id=MyNodeId,  hash_dict=HashDict, no_rep_ids=NoRepIds, 
+        dc_master_ids=DcMasterIds, dc_master_set=DcMasterSet, dc_rep_ids=DcRepIds, node_id=MyNodeId, hash_dict=HashDict, no_rep_ids=NoRepIds, 
         local_hot_rate=LocalHotRate, local_hot_range=LocalHotRange, remote_hot_rate=RemoteHotRate, remote_hot_range=RemoteHotRange,
         cache_hot_range=CacheHotRange, cache_range=CRange, cache_hot_rate=CacheHotRate,
         master_num=MNum, slave_num=SNum, master_range=MRange, slave_range=SRange})->
@@ -201,19 +206,22 @@ run(txn, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, det
         {final_abort, Info} ->
             {final_abort, Info, State};
         TxId ->
-            lager:warning("Start ~w", [TxId]),
+            %lager:warning("Start ~w", [TxId]),
             NumKeys = TotalKey,
             DcRepLen = length(DcRepIds),
+            DcMasterLen = length(DcMasterIds),
             NoRepLen = length(NoRepIds),
-            {_, WriteSet} 
-                = lists:foldl(fun(_, {Ind, WS}) ->
+            {_, ReadDeps, WriteSet} 
+                = lists:foldl(fun(_, {Ind, RD, WS}) ->
                     Rand = random:uniform(100),
                     case Rand =< MNum of
                         true -> 
                             Key = hot_or_not(1, LocalHotRange, MRange, LocalHotRate),
-                            V = read_from_node(TxServer, TxId, Key, MyNodeId, MyNodeId, PartList, HashDict),
+                            Rand1 = random:uniform(DcMasterLen),
+                            MasterNode = lists:nth(Rand1, DcMasterIds),
+                            {MoreRD, V} = read_from_node(TxServer, TxId, Key, MasterNode, master, PartList, HashDict),
                             case is_number(V) of false -> lager:warning("WTF, V is not number!", [V]), V=1; true -> ok end,
-                            {Ind, dict:store({MyNodeId, Key}, V+Add, WS)};
+                            {Ind, RD+MoreRD, dict:store({MyNodeId, Key}, V+Add, WS)};
                         false -> 
                             case Rand =< MNum+SNum of
                                 true ->     
@@ -222,20 +230,20 @@ run(txn, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, det
                                     random:seed(os:timestamp()),
                                     Rand1 = random:uniform(DcRepLen),
                                     DcNode = lists:nth(Rand1, DcRepIds),
-                                    V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
-                                    {Ind+1, dict:store({DcNode, Key}, V+Add, WS)};
+                                    {MoreRD, V} = read_from_node(TxServer, TxId, Key, DcNode, slave, PartList, HashDict),
+                                    {Ind+1, RD+MoreRD, dict:store({DcNode, Key}, V+Add, WS)};
                                 false -> OtherDcNode = lists:nth(Rand rem NoRepLen +1, NoRepIds),
                                     Key = hot_or_not(MRange+SRange+1, CacheHotRange, CRange, CacheHotRate),
-                                    V = read_from_node(TxServer, TxId, Key, OtherDcNode, MyNodeId, PartList, HashDict),
-                                    {Ind, dict:store({OtherDcNode, Key}, V+Add, WS)} 
+                                    {MoreRD, V} = read_from_node(TxServer, TxId, Key, OtherDcNode, cache, PartList, HashDict),
+                                    {Ind, RD+MoreRD, dict:store({OtherDcNode, Key}, V+Add, WS)} 
                             end
                     end
-                  end, {1, dict:new()}, lists:seq(1, NumKeys)),
+                  end, {1, 0, dict:new()}, lists:seq(1, NumKeys)),
 
-            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WriteSet, PartList, MyNodeId),
+            {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WriteSet, PartList, DcMasterSet),
 
             %lager:warning("Before calling certify"),
-            Response = gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId}, ?TIMEOUT),%, length(DepsList)}),
+            Response = gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, ReadDeps, MsgId}, ?TIMEOUT),%, length(DepsList)}),
             %lager:warning("After calling certify"),
             case Response of
                 {ok, {committed, _CommitTime, Info}} ->
@@ -264,37 +272,31 @@ index(E, [E|_], N) ->
 index(E, [_|L], N) ->
     index(E, L, N+1).
 
-read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
-    {ok, V} = case DcId of
-        MyDcId ->
-            {_, L} = lists:nth(DcId, PartList),
+read_from_node(TxServer, TxId, Key, NodeId, ReadType, PartList, HashDict) ->
+    {IfSpecula, V} = case ReadType of
+        master ->
+            {_, L} = lists:nth(NodeId, PartList),
             %Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
             Index = Key rem length(L) + 1,
             Part = lists:nth(Index, L),
             gen_server:call(TxServer, {read, Key, TxId, Part}, ?READ_TIMEOUT);
-        _ ->
-            case dict:find(DcId, HashDict) of
-                error ->
-                    {_, L} = lists:nth(DcId, PartList),
-                    %Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
-                    Index = Key rem length(L) + 1,
-                    Part = lists:nth(Index, L),
-                    CacheServName = dict:fetch(cache, HashDict),
-                    gen_server:call(CacheServName, {read, Key, TxId, Part}, ?READ_TIMEOUT);
-                {ok, N} ->
-                    {_, L} = lists:nth(DcId, PartList),
-                    %Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
-                    Index = Key rem length(L) + 1,
-                    Part = lists:nth(Index, L),
-                    gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT)
-            end
+        slave ->
+            N = dict:fetch(NodeId, HashDict),
+            {_, L} = lists:nth(NodeId, PartList),
+            %Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
+            Index = Key rem length(L) + 1,
+            Part = lists:nth(Index, L),
+            gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT);
+        cache ->
+            {_, L} = lists:nth(NodeId, PartList),
+            %Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
+            Index = Key rem length(L) + 1,
+            Part = lists:nth(Index, L),
+            CacheServName = dict:fetch(cache, HashDict),
+            gen_server:call(CacheServName, {read, Key, TxId, Part}, ?READ_TIMEOUT)
     end,
-    case V of
-        [] ->
-	    0;
-        _ ->
-            V
-    end.
+    {case IfSpecula of specula -> 1; ok -> 0 end,
+        case V of [] -> 0; _ -> V end}.
     %case Res of
     %    {specula, DepTx} ->
     %        ets:insert(dep_table, {TxId, DepTx});
@@ -305,10 +307,11 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
 terminate(_, _State) ->
     ok.
 
-get_local_remote_writeset(WriteSet, PartList, LocalDcId) ->
+get_local_remote_writeset(WriteSet, PartList, DcMasterSet) ->
     {LWSD, RWSD} = dict:fold(fun({NodeId, Key}, Value, {LWS, RWS}) ->
-                    case NodeId of LocalDcId -> {add_to_writeset(Key, Value, lists:nth(LocalDcId, PartList), LWS), RWS};
-                               _ -> {LWS, add_to_writeset(Key, Value, lists:nth(NodeId, PartList), RWS)}
+                    case sets:is_element(NodeId, DcMasterSet) of 
+                        true -> {add_to_writeset(Key, Value, lists:nth(NodeId, PartList), LWS), RWS};
+                        _ -> {LWS, add_to_writeset(Key, Value, lists:nth(NodeId, PartList), RWS)}
                     end end, {dict:new(), dict:new()}, WriteSet),
     %L = dict:fetch_keys(RWSD),
     %NodeSet = lists:foldl(fun({_, N}, S) -> sets:add_element(N, S) end, sets:new(), L),
