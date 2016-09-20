@@ -22,7 +22,7 @@ fi
 elif [ $Clean == 2 ]
 then
 echo "Only cleaning basho_bench"
-./script/parallel_command.sh "cd basho_bench && git stash && git checkout real_redo_node_specula && git pull && sudo make"
+./script/parallel_command.sh "cd basho_bench && git stash && git fetch && git checkout real_redo_node_specula && git pull && sudo make"
 #./script/parallel_command.sh "./basho_bench/masterScripts/config.sh" 
 ./script/parallel_command.sh "cd ./basho_bench/ && mkdir -p specula_tests && sudo chown -R ubuntu specula_tests"
 elif [ $Clean == 3 ]
@@ -47,7 +47,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.em
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.name 'marsleezm'"
 #./script/makeRel.sh benchmark_precise_fast_repl 
 ./script/makeRel.sh benchmark_precise_remove_stat 
-./script/parallel_command.sh "cd basho_bench && git stash && git checkout real_redo_node_specula && git pull && sudo make"
+./script/parallel_command.sh "cd basho_bench && git stash && git fetch && git checkout real_redo_node_specula && git pull && sudo make"
 #./script/parallel_command.sh "./basho_bench/masterScripts/config.sh" 
 ./script/parallel_command.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"
 fi
