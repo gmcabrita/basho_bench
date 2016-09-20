@@ -150,9 +150,6 @@ len=4
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
-if [ 1 == 2 ];
-then
-
 rm -rf ./config
 echo tpcc cdf true >> config
 echo tpcc duration 120 >> config
@@ -163,7 +160,7 @@ sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/restartAndConnect.sh
 
 
 tpcc_threads="1600 2400"
@@ -218,7 +215,6 @@ do
             done
         done
 done
-fi
 
 rubis_threads="400 500"
 for t in $rubis_threads
