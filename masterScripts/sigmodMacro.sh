@@ -163,7 +163,8 @@ sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_
 sudo ./script/restartAndConnect.sh
 
 
-tpcc_threads="1600 2400"
+tpcc_threads="50 100 400 1600"
+#tpcc_threads="100 400 1600 2400"
 workloads="1"
 for t in $tpcc_threads
 do  
