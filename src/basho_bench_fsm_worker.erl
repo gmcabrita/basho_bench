@@ -235,7 +235,7 @@ execute(timeout, State=#state{mode=Mode, rate_sleep=RateSleep}) ->
 execute({final_abort, NewMsgId, TxId, AbortedReads, FinalCommitUpdates, FinalCommitReads}, 
         State=#state{msg_id=MsgId, final_cdf=FinalCdf, specula_cdf=SpeculaCdf, specula_txs=SpeculaTxs,
             read_txs=ReadTxs, update_seq=PreviousSeq, todo_op=ToDoOp}) ->
-    lager:warning("Got final abort msg, NewMsgId is ~w, OldMsgId is ~w", [NewMsgId, MsgId]),
+    %lager:warning("Got final abort msg, NewMsgId is ~w, OldMsgId is ~w", [NewMsgId, MsgId]),
     NewMsgId = MsgId + 1,
     {FinalCdf1, SpeculaCdf1, SpeculaTxs1} =
         commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, []),
@@ -243,7 +243,7 @@ execute({final_abort, NewMsgId, TxId, AbortedReads, FinalCommitUpdates, FinalCom
     ReadTxs2 = finalize_reads(AbortedReads, ReadTxs1, [], {error, specula_abort}),
     {tx_id, _, _, _, TxSeq} = TxId,
     {TxSeq, OpName} = find_specula_tx(TxSeq, SpeculaTxs1),
-    lager:warning("previous seq is ~w, now seq is ~w", [PreviousSeq, TxSeq]),
+    %lager:warning("previous seq is ~w, now seq is ~w", [PreviousSeq, TxSeq]),
     case (TxSeq =< PreviousSeq) of false ->lager:warning("Prev seq is ~w, seq is ~w, TxId is ~w, speculaTxs are ~w, specula txs1 are ~w", [PreviousSeq, TxSeq, TxId, SpeculaTxs, SpeculaTxs1]), TxSeq=error; true -> ok end,
     {PreviousOps, _} = ToDoOp,
     {next_state, execute, State#state{final_cdf=FinalCdf1, specula_cdf=SpeculaCdf1, specula_txs=SpeculaTxs1, read_txs=ReadTxs2,
