@@ -51,13 +51,15 @@ AS=0
 
 tpcc_length="0"
 rubis_length="0"
-warehouse="5"
+warehouse="2"
 
+if [ 1 == 2 ];
+then
 specula_read=false
 do_specula=false
 len=0
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_nodict_optsup
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat 
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
@@ -69,10 +71,10 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 1000 $do_specula 0 $rep $parts $specula_read 
-sudo ./script/restartAndConnect.sh
+#sudo ./script/configBeforeRestart.sh 10 $do_specula 0 $rep $parts $specula_read 
+#sudo ./script/restartAndConnect.sh
 
-tpcc_threads="100 200 400 600 800"
+tpcc_threads="4 8"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -84,11 +86,12 @@ do
 	        fi
             for wh in $warehouse
             do
-                think_time="tpcc"
+                think_time="0"
                 runTpccNTimes 
             done
         done
 done
+exit
 
 rubis_threads="500 1000 2000"
 for t in $rubis_threads
@@ -136,6 +139,7 @@ do
             done
         done
 done
+fi
 
 
 ############# Specula here
@@ -148,7 +152,7 @@ rubis_length="0"
 len=4
 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
@@ -164,13 +168,28 @@ sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_
 sudo ./script/restartAndConnect.sh
 
 
-tpcc_threads="100 200 600 800"
+tpcc_threads="4 8"
 #tpcc_threads="100 400 1600 2400"
+len=1
+workloads="2"
+
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="0"
+                runTpccNTimes 
+            done
+        done
+done
+
 len=0
-if [ 1 == 2 ]
-then
-sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
-workloads="1"
 for t in $tpcc_threads
 do  
         for wl in $workloads
@@ -187,13 +206,24 @@ do
         done
 done
 
-rubis_threads="500 1000 2000"
-for t in $rubis_threads
+len=4
+for t in $tpcc_threads
 do  
-        think_time="rubis"
-        runRubis
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
 done
-fi
+
+exit
 
 len=4
 sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read

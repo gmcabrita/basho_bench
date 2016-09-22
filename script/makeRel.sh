@@ -17,7 +17,7 @@ else
     #Command3="sudo sed -i 's/127.0.0.1/localhost/g' $File1"
     #Command4="sudo sed -i 's/172.31.30.71/localhost/g' $File1"
     #Command5="sudo sed -i 's/127.0.0.1/localhost/g' $File2"
-    #Command6="cd ./antidote/ && sudo make rel"
+    Command6="cd ./antidote/ && sudo make rel"
     ./script/parallel_command.sh "$AllNodes" "$Command1"	
     #./script/parallel_command.sh "$AllNodes" "$Command01"	
     ./script/parallel_command.sh "$AllNodes" "$Command2"	
@@ -25,7 +25,7 @@ else
     #./script/parallel_command.sh "$AllNodes" "$Command3"	
     #./script/parallel_command.sh "$AllNodes" "$Command4"	
     #./script/parallel_command.sh "$AllNodes" "$Command5"	
-    #./script/parallel_command.sh "$AllNodes" "$Command6"	
+    ./script/parallel_command.sh "$AllNodes" "$Command6"	
 fi
 
 
