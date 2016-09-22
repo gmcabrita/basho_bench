@@ -51,6 +51,7 @@
                  rate_sleep,
                  %%
                  last_update_cnt,
+                 specula_length,
                  update_seq,
                  read_seq,
                  op_type,
@@ -144,6 +145,7 @@ init([Id]) ->
     %% initialization to enable (optional) key/value space partitioning
     KeyGen = basho_bench_keygen:new(basho_bench_config:get(key_generator), Id),
     ValGen = basho_bench_valgen:new(basho_bench_config:get(value_generator), Id),
+    SpeculaLength = basho_bench_config:get(specula_length),
 
     State = #state { id = Id, keygen = KeyGen, valgen = ValGen,
                      driver = Driver, %cdf=CDF,
@@ -151,6 +153,7 @@ init([Id]) ->
                      ops = Ops, ops_len = size(Ops),
                      rng_seed = RngSeed,
                      think_time = ThinkTime,
+                     specula_length = SpeculaLength,
                      do_specula = basho_bench_config:get(do_specula, false),
                      op_type = get_op_type(ToDoOp),
                      retry = Retry,
@@ -217,11 +220,15 @@ init([Id]) ->
 
     {ok, execute, State1#state{driver_state=DriverState, mode=Mode, rate_sleep=RateSleep}}.
 
-execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf}) ->
+execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf, id=Id}) ->
     {Count, ignore, Period} = StoreCdf, 
     case Mode of
         max -> ok; 
         rate -> timer:sleep(trunc(basho_bench_stats:exponential(RateSleep)))
+    end,
+    case Id of
+        1 -> ets:insert(final_cdf, {start_time, os:timestamp()});
+        _ -> ok
     end,
     worker_next_op(State#state{store_cdf={Count, os:timestamp(), Period}});
 
@@ -238,7 +245,7 @@ execute({final_abort, NewMsgId, TxId, AbortedReads, FinalCommitUpdates, FinalCom
     %lager:warning("Got final abort msg, NewMsgId is ~w, OldMsgId is ~w", [NewMsgId, MsgId]),
     NewMsgId = MsgId + 1,
     {FinalCdf1, SpeculaCdf1, SpeculaTxs1} =
-        commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, []),
+        commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], os:timestamp()),
     ReadTxs1 = finalize_reads(FinalCommitReads, ReadTxs, [], ok),
     ReadTxs2 = finalize_reads(AbortedReads, ReadTxs1, [], {error, specula_abort}),
     {tx_id, _, _, _, TxSeq} = TxId,
@@ -272,7 +279,10 @@ execute({'EXIT', Reason}, State) ->
             {stop, normal, State}
     end;
 
-execute('CLEANUP', State) ->
+execute('CLEANUP', State=#state{store_cdf=StoreCdf, final_cdf=FinalCdf, specula_cdf=SpeculaCdf}) ->
+    {Cnt, _Start, _Period} = StoreCdf,
+    ets:insert(final_cdf, {{Cnt, State#state.id}, FinalCdf}), 
+    ets:insert(percv_cdf, {{Cnt, State#state.id}, SpeculaCdf}),
     (catch (State#state.driver):terminate(haha, State#state.driver_state)),
     {stop, normal, State};
 
@@ -395,9 +405,9 @@ worker_next_op(State) ->
             case FinalCommitReads of [] -> ok;
                                      _ ->lager:warning("FinalCommReads are ~w, Specula Txs is ~w, ReadTxs are ~w", [FinalCommitReads, SpeculaTxs, ReadTxs])
             end,
-            {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, []),
+            {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], End),
             CurrentOpType = update,
-            {FinalCdf2, SpeculaCdf2, []} = commit_updates(FinalCdf1, SpeculaCdf1, [{UpdateSeq, End}], SpeculaTxs1, []),
+            {FinalCdf2, SpeculaCdf2, []} = commit_updates(FinalCdf1, SpeculaCdf1, [{UpdateSeq, End}], SpeculaTxs1, [], End),
 
             NextOp = case Transition of
                         undef ->
@@ -434,7 +444,7 @@ worker_next_op(State) ->
             ReadTxs1 = finalize_reads(FinalCommitReads, ReadTxs, [], ok),
             ReadTxs2 = finalize_reads(AbortedReads, ReadTxs1, [], {error, specula_abort}),
             %case FinalCommitUpdates of [] -> ok; _ ->%lager:warning("FinalComm is ~w", [FinalCommitUpdates]) end,
-            {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, []),
+            {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], End),
             %% If I am update: add my specula-commit time to the list
             %% If I am read: add my txid to the list
             SpeculaTxs2 = case CurrentOpType of read -> SpeculaTxs1; 
@@ -484,7 +494,7 @@ worker_next_op(State) ->
             ReadTxs1 = finalize_reads(FinalCommitReads, ReadTxs, [], ok),
             ReadTxs2 = finalize_reads(AbortedReads, ReadTxs1, [], {error, specula_abort}),
             %lager:warning("FinalReads are ~w, Specula Txs is ~w", [FinalCommitReads, SpeculaTxs]),
-            {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, []),
+            {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], End),
             %lager:warning("Aborted TxId ~w, Op Type is ~w, ReadSeq is ~w, SpeculaTxs are ~w, Previous SpeculaTxs are ~w, FinalCommitUpdates ~w, FinalCommitReads ~w", [AbortedTxId, OpTag, ReadSeq, SpeculaTxs1, SpeculaTxs, FinalCommitUpdates, FinalCommitReads]),
             {RetryOpSeq, NextOpName} = find_specula_tx(AbortedTxId, SpeculaTxs1),
            %lager:warning("Cascading abort: previous seq is ~w, update seq is ~w", [UpdateSeq, RetryOpSeq]),
@@ -501,7 +511,7 @@ worker_next_op(State) ->
             end,
             ReadTxs1 = finalize_reads(FinalCommitReads, ReadTxs, [], ok),
             ReadTxs2 = finalize_reads(AbortedReads, ReadTxs1, [], {error, specula_abort}),
-            {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, []),
+            {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], End),
                       %% Add abort of this txn to stat, if no cascading abort was found 
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
             %lager:warning("Update seq is ~w", [UpdateSeq]),
@@ -634,31 +644,31 @@ add_sctime_to_list([{TxnSeq, _OpName, StartTime, _}|Rest], TxnSeq, SpecCommitTim
 add_sctime_to_list([TxInfo|Rest], TxnSeq, SpecCommitTime) ->
     [TxInfo|add_sctime_to_list(Rest, TxnSeq, SpecCommitTime)].
 
-commit_updates(FinalCdf, SpeculaCdf, [], SpeculaTxs, PreviousSpecula) ->
+commit_updates(FinalCdf, SpeculaCdf, [], SpeculaTxs, PreviousSpecula, _) ->
     {FinalCdf, SpeculaCdf, lists:reverse(PreviousSpecula)++SpeculaTxs};
-commit_updates(FinalCdf, SpeculaCdf, [{{tx_id, _A, _B, _C, TxnSeq}, EndTime}|Rest], [{TxnSeq, OpName, StartTime, SpecTime}|SpeculaRest], PreviousSpecula)->
+commit_updates(FinalCdf, SpeculaCdf, [{{tx_id, _A, _B, _C, TxnSeq}, EndTime}|Rest], [{TxnSeq, OpName, StartTime, SpecTime}|SpeculaRest], PreviousSpecula, Now)->
     %lager:warning("End time is ~w, Spec time is ~w, Start time is ~w", [EndTime, SpecTime, StartTime]),
     UsedTime = timer:now_diff(EndTime, StartTime),
     PercvTime = timer:now_diff(SpecTime, StartTime),
     basho_bench_stats:op_complete({OpName, OpName}, ok),
-    commit_updates([UsedTime|FinalCdf], [PercvTime|SpeculaCdf], Rest, SpeculaRest, PreviousSpecula);
-commit_updates(FinalCdf, SpeculaCdf, [{tx_id, _A, _B, _C, TxnSeq}|Rest], [{TxnSeq, OpName, _StartTime, _SpecTime}|SpeculaRest], PreviousSpecula)->
+    commit_updates([{Now, UsedTime}|FinalCdf], [{Now, PercvTime}|SpeculaCdf], Rest, SpeculaRest, PreviousSpecula, Now);
+commit_updates(FinalCdf, SpeculaCdf, [{tx_id, _A, _B, _C, TxnSeq}|Rest], [{TxnSeq, OpName, _StartTime, _SpecTime}|SpeculaRest], PreviousSpecula, Now)->
     basho_bench_stats:op_complete({OpName, OpName}, ok),
-    commit_updates(FinalCdf, SpeculaCdf, Rest, SpeculaRest, PreviousSpecula);
+    commit_updates(FinalCdf, SpeculaCdf, Rest, SpeculaRest, PreviousSpecula, Now);
 %% In case of non-specula
-commit_updates(FinalCdf, SpeculaCdf, [{TxnSeq, EndTime}|Rest], [{TxnSeq, OpName, StartTime, ignore}|SpeculaRest], PreviousSpecula)->
+commit_updates(FinalCdf, SpeculaCdf, [{TxnSeq, EndTime}|Rest], [{TxnSeq, OpName, StartTime, ignore}|SpeculaRest], PreviousSpecula, Now)->
     %lager:warning("End time is ~w, Start time is ~w", [EndTime, StartTime]),
     UsedTime = timer:now_diff(EndTime, StartTime),
     basho_bench_stats:op_complete({OpName, OpName}, ok),
-    commit_updates([UsedTime|FinalCdf], SpeculaCdf, Rest, SpeculaRest, PreviousSpecula); 
-commit_updates(FinalCdf, SpeculaCdf, [{TxnSeq, EndTime}|Rest], [{TxnSeq, OpName, StartTime, SpecTime}|SpeculaRest], PreviousSpecula)->
+    commit_updates([{Now, UsedTime}|FinalCdf], SpeculaCdf, Rest, SpeculaRest, PreviousSpecula, Now); 
+commit_updates(FinalCdf, SpeculaCdf, [{TxnSeq, EndTime}|Rest], [{TxnSeq, OpName, StartTime, SpecTime}|SpeculaRest], PreviousSpecula, Now)->
     %lager:warning("End time is ~w, Spec time is ~w, Start time is ~w", [EndTime, SpecTime, StartTime]),
     UsedTime = timer:now_diff(EndTime, StartTime),
     PercvTime = timer:now_diff(SpecTime, StartTime),
     basho_bench_stats:op_complete({OpName, OpName}, ok),
-    commit_updates([UsedTime|FinalCdf], [PercvTime|SpeculaCdf], Rest, SpeculaRest, PreviousSpecula); 
-commit_updates(FinalCdf, SpeculaCdf, List, [Entry|SpeculaRest], PreviousSpecula) ->
-    commit_updates(FinalCdf, SpeculaCdf, List, SpeculaRest, [Entry|PreviousSpecula]).
+    commit_updates([{Now, UsedTime}|FinalCdf], [{Now, PercvTime}|SpeculaCdf], Rest, SpeculaRest, PreviousSpecula, Now); 
+commit_updates(FinalCdf, SpeculaCdf, List, [Entry|SpeculaRest], PreviousSpecula, Now) ->
+    commit_updates(FinalCdf, SpeculaCdf, List, SpeculaRest, [Entry|PreviousSpecula], Now).
 
 finalize_reads([], ReadTxs, Previous, _Result) ->
     lists:reverse(Previous)++ReadTxs;

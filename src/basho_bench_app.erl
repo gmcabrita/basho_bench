@@ -109,41 +109,43 @@ stop(_State) ->
 %% ===================================================================
 
 write_cdf() ->
+    [{start_time, StartTime}] = ets:lookup(final_cdf, start_time),
+    StartTimeInt = to_integer(StartTime) + 1000000*20, 
+    EndTimeInt = to_integer(StartTime) + basho_bench_config:get(duration)*1000000 - 1000000*20, 
+    true = ets:delete(final_cdf, start_time),
+
     PercvCdf = ets:tab2list(percv_cdf),
     FinalCdf = ets:tab2list(final_cdf),
-
     PercvCdfSort = lists:sort(PercvCdf),
     FinalCdfSort = lists:sort(FinalCdf),
-    %lager:info("SPercvCdf is ~p", [PercvCdfSort]),
-    %lager:info("SFinalCdf is ~p", [FinalCdfSort]),
 
     {ok, PercvLatFile} = file:open("percv_latency", [raw, binary, write]),
-    file:write(PercvLatFile,  io_lib:format("Number ~w\n", [1])),
-    _ =lists:foldl(fun({{Count, _}, LatList}, PreviousCount) ->
-                case PreviousCount == Count of
-                    false -> file:write(PercvLatFile,  io_lib:format("Number ~w\n", [Count]));
-                    true -> ok
-                end,
-                %file:write(PercvLatFile,  io_lib:format("~w\n", [self()])),
-                lists:foreach(fun(Latency) ->
-                    file:write(PercvLatFile,  io_lib:format("~w\n", [Latency]))
-                end, LatList), Count
-                end, 1, PercvCdfSort),
+    %file:write(PercvLatFile,  io_lib:format("StartTime is ~w \n", [to_integer(StartTime)/1000000])),
+    lists:foreach(fun({{_Count, _}, LatList}) ->
+                output_when(StartTimeInt, EndTimeInt, LatList, PercvLatFile)
+                end, PercvCdfSort),
+    %file:write(PercvLatFile,  io_lib:format("EndTimeInt is ~w, EndTime is ~w \n", [EndTimeInt/1000000+15, to_integer(now())/1000000])),
     file:close(PercvLatFile),
 
     {ok, FinalLatFile} = file:open("final_latency", [raw, binary, write]),
-    file:write(FinalLatFile,  io_lib:format("Number ~w\n", [1])),
-    _ =lists:foldl(fun({{Count, _}, LatList}, PreviousCount) ->
-                case PreviousCount == Count of
-                    false -> file:write(FinalLatFile,  io_lib:format("Number ~w\n", [Count]));
-                    true -> ok
-                end,
-                %file:write(FinalLatFile,  io_lib:format("~w\n", [self()])),
-                lists:foreach(fun(Latency) ->
-                    file:write(FinalLatFile,  io_lib:format("~w\n", [Latency]))
-                end, LatList), Count
-                end, 1, FinalCdfSort),
+    %file:write(FinalLatFile,  io_lib:format("StartTime is ~w \n", [to_integer(StartTime)/1000000])),
+    lists:foreach(fun({{_Count, _}, LatList}) ->
+                output_when(StartTimeInt, EndTimeInt, LatList, FinalLatFile)
+                end, FinalCdfSort),
+    %file:write(FinalLatFile,  io_lib:format("EndTimeInt is ~w, EndTime is ~w \n", [EndTimeInt/1000000+15, to_integer(now())/1000000])),
     file:close(FinalLatFile).
+
+output_when(_Start, _End, [], _File) ->
+    ok;
+output_when(Start, End, [{Time, Latency}|Rest], File) ->
+    IntTime = to_integer(Time),
+    case IntTime > Start of
+        true -> case IntTime < End of
+                    true -> file:write(File,  io_lib:format("~w\n", [Latency])); 
+                    false -> output_when(Start, End, Rest, File) 
+                end;
+        false -> ok
+    end.
 
 ensure_started(Applications) when is_list(Applications) ->
   [ensure_started(Application) || Application <- Applications];
@@ -157,3 +159,6 @@ ensure_started(Application) ->
     Error ->
       throw(Error)
   end.
+
+to_integer({A, B, C}) ->
+    (A * 1000000 + B) * 1000000 + C.
