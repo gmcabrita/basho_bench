@@ -51,7 +51,6 @@
                  rate_sleep,
                  %%
                  last_update_cnt,
-                 specula_length,
                  update_seq,
                  read_seq,
                  op_type,
@@ -145,7 +144,6 @@ init([Id]) ->
     %% initialization to enable (optional) key/value space partitioning
     KeyGen = basho_bench_keygen:new(basho_bench_config:get(key_generator), Id),
     ValGen = basho_bench_valgen:new(basho_bench_config:get(value_generator), Id),
-    SpeculaLength = basho_bench_config:get(specula_length),
 
     State = #state { id = Id, keygen = KeyGen, valgen = ValGen,
                      driver = Driver, %cdf=CDF,
@@ -153,7 +151,6 @@ init([Id]) ->
                      ops = Ops, ops_len = size(Ops),
                      rng_seed = RngSeed,
                      think_time = ThinkTime,
-                     specula_length = SpeculaLength,
                      do_specula = basho_bench_config:get(do_specula, false),
                      op_type = get_op_type(ToDoOp),
                      retry = Retry,
