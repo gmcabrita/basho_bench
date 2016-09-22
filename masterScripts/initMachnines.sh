@@ -9,22 +9,19 @@ fi
 if [ $Clean == 1 ]
 then
 echo "Only cleaning antidote"
-#./script/makeRel.sh local_specula_read 
-#./script/makeRel.sh benchmark_ver 
-if [ $# -eq 1 ]
-then
-    branch=benchmark_precise_fast_repl
-#benchmark_no_specula
-else
-    branch=$2
-fi
-./script/makeRel.sh $branch
+    if [ $# -eq 1 ]
+    then
+        branch=benchmark_precise_fast_repl
+    else
+        branch=$2
+    fi
+    ./script/makeRel.sh $branch
 elif [ $Clean == 2 ]
 then
 echo "Only cleaning basho_bench"
 ./script/parallel_command.sh "cd basho_bench && git stash && git fetch && git checkout real_redo_node_specula && git pull && sudo make"
-#./script/parallel_command.sh "./basho_bench/masterScripts/config.sh" 
 ./script/parallel_command.sh "cd ./basho_bench/ && mkdir -p specula_tests && sudo chown -R ubuntu specula_tests"
+sudo ./script/parallel_command.sh "./basho_bench/masterScripts/config.sh" 
 elif [ $Clean == 3 ]
 then
 echo "Only initing"
@@ -45,12 +42,10 @@ sudo ./script/parallel_command.sh "sudo apt-get -y install sshpass"
 sudo ./script/parallel_command.sh "sudo apt-get -y install cgroup-bin"
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.email 'mars.leezm@gmail.com'"
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.name 'marsleezm'"
-#./script/makeRel.sh benchmark_precise_fast_repl 
 ./script/makeRel.sh benchmark_precise_remove_stat 
 ./script/parallel_command.sh "cd basho_bench && git stash && git fetch && git checkout real_redo_node_specula && git pull && sudo make"
-#./script/parallel_command.sh "./basho_bench/masterScripts/config.sh" 
 ./script/parallel_command.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"
+sudo ./script/parallel_command.sh "./basho_bench/masterScripts/config.sh" 
 fi
 
-sudo ./script/copy_to_all.sh ./script/allnodes ./basho_bench/script 
-sudo ./script/parallel_command.sh "./basho_bench/masterScripts/config.sh" 
+#sudo ./script/copy_to_all.sh ./script/allnodes ./basho_bench/script 
