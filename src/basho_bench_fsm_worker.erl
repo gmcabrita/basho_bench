@@ -484,18 +484,16 @@ worker_next_op(State) ->
         %% Retry txns from the aborted one.
         {cascade_abort, {AbortedTxId, AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
             %case CurrentOpType of  update ->lager:warning("Op ~p cascade-aborted", [UpdateSeq]); read -> ok end,
-            %lager:warning("Cascade abort!!! Specula txs are ~w, abortedtx id is ~w, op aborted ~w", [SpeculaTxs, AbortedTxId, OpTag]),
+           %lager:warning("Cascade abort!!! Specula txs are ~w, abortedtx id is ~w, op aborted ~w, AbortedReads are ~w, FinalCommUpates ~w, FinalCommReads ~w", [SpeculaTxs, AbortedTxId, OpTag, AbortedReads, FinalCommitUpdates, FinalCommitReads]),
             State#state.shutdown_on_error andalso
                 erlang:send_after(500, basho_bench,
                                   {shutdown, "Shutdown on errors requested", 1}),
             ReadTxs1 = finalize_reads(FinalCommitReads, ReadTxs, [], ok),
             ReadTxs2 = finalize_reads(AbortedReads, ReadTxs1, [], {error, specula_abort}),
-            %lager:warning("FinalReads are ~w, Specula Txs is ~w", [FinalCommitReads, SpeculaTxs]),
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], End),
-            %lager:warning("Aborted TxId ~w, Op Type is ~w, ReadSeq is ~w, SpeculaTxs are ~w, Previous SpeculaTxs are ~w, FinalCommitUpdates ~w, FinalCommitReads ~w", [AbortedTxId, OpTag, ReadSeq, SpeculaTxs1, SpeculaTxs, FinalCommitUpdates, FinalCommitReads]),
             {RetryOpSeq, NextOpName} = find_specula_tx(AbortedTxId, SpeculaTxs1),
-           %lager:warning("Cascading abort: previous seq is ~w, update seq is ~w", [UpdateSeq, RetryOpSeq]),
-            {next_state, execute, State#state{driver_state=DriverState, todo_op={PreviousOps, NextOpName}, update_seq=RetryOpSeq, 
+           %lager:warning("Cascading abort: previous seq is ~w, retry op seq is ~w, op name is ~w", [UpdateSeq, RetryOpSeq, NextOpName]),
+            {next_state, execute, State#state{driver_state=DriverState, todo_op={RetryOpSeq, NextOpName}, update_seq=RetryOpSeq, op_type=update, 
                     specula_txs=SpeculaTxs1, read_txs=ReadTxs2, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, store_cdf=StoreCdf}, 0};
         {aborted, {AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
             %case CurrentOpType of  update ->lager:warning("Op ~p aborted", [UpdateSeq]); read -> ok end,
