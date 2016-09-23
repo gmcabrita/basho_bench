@@ -157,9 +157,9 @@ sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
 echo tpcc cdf true >> config
-echo tpcc duration 120 >> config
+echo tpcc duration 180 >> config
 echo rubis cdf true >> config
-echo rubis duration 120 >> config
+echo rubis duration 180 >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
@@ -168,7 +168,7 @@ sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_
 sudo ./script/restartAndConnect.sh
 
 
-tpcc_threads="4 8"
+tpcc_threads="8"
 #tpcc_threads="100 400 1600 2400"
 workloads="2"
 
@@ -188,6 +188,41 @@ do
             done
         done
 done
+
+len=4
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="0"
+                runTpccNTimes 
+            done
+        done
+done
+
+len=8
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="0"
+                runTpccNTimes 
+            done
+        done
+done
+exit
 
 len=4
 for t in $tpcc_threads
