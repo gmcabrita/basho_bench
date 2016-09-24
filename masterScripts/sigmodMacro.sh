@@ -152,7 +152,7 @@ rubis_length="0"
 len=4
 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
@@ -168,7 +168,7 @@ sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_
 sudo ./script/restartAndConnect.sh
 
 
-tpcc_threads="8"
+tpcc_threads="16"
 #tpcc_threads="100 400 1600 2400"
 workloads="2"
 
@@ -188,6 +188,7 @@ do
             done
         done
 done
+exit
 
 len=4
 for t in $tpcc_threads
