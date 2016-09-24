@@ -69,7 +69,7 @@ start_children(Total) ->
                                    end,
                     Self = self(),
                     spawn(fun() -> basho_bench_worker_sup:start_children(Self, Sup, Start, End) end),
-                    case Id of 1 -> timer:sleep(2000); _ -> ok end,
+                    case Id of 1 -> timer:sleep(4000); _ -> ok end,
                     Id+1
                 end, 1, generate_sup_specs(?NUM_WORKER_SUP)), 
             lists:foreach(fun(_) ->  receive  done ->  ok  end end, lists:seq(1, ?NUM_WORKER_SUP))
