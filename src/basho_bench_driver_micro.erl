@@ -153,7 +153,7 @@ new(Id) ->
     HashLength = length(ExpandPartList),
     {OtherMasterIds, DcRepIds, DcNoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
-    lager:info("MyTxServer is  ~w, DcRepIds ~w, NoRepIds ~w, D ~w", [MyTxServer, DcRepIds, DcNoRepIds, dict:to_list(HashDict1)]),
+    %lager:info("MyTxServer is  ~w, DcRepIds ~w, NoRepIds ~w, D ~w", [MyTxServer, DcRepIds, DcNoRepIds, dict:to_list(HashDict1)]),
 
     %lager:info("Part list is ~w",[PartList]),
     MyTable = ets:new(my_table, [private, set]),
@@ -201,7 +201,7 @@ run(txn, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, det
         {final_abort, Info} ->
             {final_abort, Info, State};
         TxId ->
-            lager:warning("Start ~w", [TxId]),
+            %lager:warning("Start ~w", [TxId]),
             NumKeys = TotalKey,
             DcRepLen = length(DcRepIds),
             NoRepLen = length(NoRepIds),
