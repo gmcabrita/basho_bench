@@ -116,7 +116,8 @@ new(Id) ->
                 {ok, _} -> true = erlang:set_cookie(node(), Cookie),  %?INFO("Net kernel started as ~p\n", [node()]);
                            _Result = net_adm:ping(TargetNode),
                            HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []),
-                           ets:insert(meta_info, {hash_fun, HashFun});
+                           ets:insert(meta_info, {hash_fun, HashFun}),
+                            timer:sleep(1000);
                 {error, {already_started, _}} ->
                         ?INFO("Net kernel already started as ~p\n", [node()]),  ok;
                 {error, Reason} ->

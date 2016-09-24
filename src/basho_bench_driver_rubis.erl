@@ -104,7 +104,8 @@ new(Id) ->
                         {ok, _} -> true = erlang:set_cookie(node(), Cookie),  %?INFO("Net kernel started as ~p\n", [node()]);
                                    _Result = net_adm:ping(TargetNode),
                                    HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []),
-                                   ets:insert(meta_info, {hash_fun, HashFun});
+                                   ets:insert(meta_info, {hash_fun, HashFun}),
+                                   timer:sleep(1000);
                         {error, {already_started, _}} ->
                                 ?INFO("Net kernel already started as ~p\n", [node()]),  ok;
                         {error, Reason} ->
@@ -147,9 +148,9 @@ new(Id) ->
 	             		NameLists = lists:foldl(fun(WorkerId, Acc) -> [WorkerId|Acc]
 					    		end, [], lists:seq(1, Concurrent)),
     		     		Pids = locality_fun:get_pids(TargetNode, lists:reverse(NameLists)), 
-		     		lists:foldl(fun(P, Acc) -> ets:insert(meta_info, {Acc, P}), Acc+1 end, 1, Pids),
-		     		hd(Pids);
-    	       	            _ ->  [{Id, Pid}] = ets:lookup(meta_info, Id),
+		     		    lists:foldl(fun(P, Acc) -> ets:insert(meta_info, {Acc, P}), Acc+1 end, 1, Pids),
+		     		    hd(Pids);
+    	       	        _ ->  [{Id, Pid}] = ets:lookup(meta_info, Id),
 		                  Pid
 		    end;
 		_ ->
