@@ -19,8 +19,8 @@ do_specula=true
 specula_read=true
 seq="1"
 clock=new
-threads="256 128"
-contentions="1 4"
+threads="128 64"
+contentions="1"
 length="8"
 start_ind=1
 skipped=1
@@ -58,7 +58,7 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 200 $do_specula $len $rep $parts $specula_read
+sudo ./script/configBeforeRestart.sh 300 $do_specula $len $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
 
 for t in $threads
