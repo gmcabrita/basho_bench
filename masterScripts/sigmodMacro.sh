@@ -68,13 +68,13 @@ echo tpcc duration 120 >> config
 echo rubis cdf true >> config
 echo rubis duration 120 >> config
 echo ant cdf true >> ./config
-sudo ./script/copy_to_all.sh ./config ./basho_bench/
-sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+#sudo ./script/copy_to_all.sh ./config ./basho_bench/
+#sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 10 $do_specula 0 $rep $parts $specula_read 
+#sudo ./script/configBeforeRestart.sh 10 $do_specula 0 $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
 
-tpcc_threads="4 8"
+tpcc_threads="600 1000"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -86,7 +86,7 @@ do
 	        fi
             for wh in $warehouse
             do
-                think_time="0"
+                think_time="tpcc"
                 runTpccNTimes 
             done
         done
@@ -152,14 +152,14 @@ rubis_length="0"
 len=4
 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
-echo tpcc duration 180 >> config
+echo tpcc duration 120 >> config
 echo rubis cdf true >> config
-echo rubis duration 180 >> config
+echo rubis duration 120 >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
@@ -168,9 +168,25 @@ sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_
 sudo ./script/restartAndConnect.sh
 
 
-tpcc_threads="16"
-#tpcc_threads="100 400 1600 2400"
+tpcc_threads="600 1000"
 workloads="2"
+
+len=0
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	        if [ $wl == 1 ]; then  n=45  p=43
+	        elif [ $wl == 2 ]; then  n=5 p=83
+	        elif [ $wl == 3 ]; then n=5 p=43
+	        fi
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
 
 len=1
 for t in $tpcc_threads
@@ -183,25 +199,7 @@ do
 	        fi
             for wh in $warehouse
             do
-                think_time="0"
-                runTpccNTimes 
-            done
-        done
-done
-exit
-
-len=4
-for t in $tpcc_threads
-do  
-        for wl in $workloads
-        do
-	        if [ $wl == 1 ]; then  n=45  p=43
-	        elif [ $wl == 2 ]; then  n=5 p=83
-	        elif [ $wl == 3 ]; then n=5 p=43
-	        fi
-            for wh in $warehouse
-            do
-                think_time="0"
+                think_time="tpcc"
                 runTpccNTimes 
             done
         done
@@ -218,7 +216,7 @@ do
 	        fi
             for wh in $warehouse
             do
-                think_time="0"
+                think_time="tpcc"
                 runTpccNTimes 
             done
         done
