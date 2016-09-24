@@ -147,9 +147,9 @@ new(Id) ->
 	             		NameLists = lists:foldl(fun(WorkerId, Acc) -> [WorkerId|Acc]
 					    		end, [], lists:seq(1, Concurrent)),
     		     		Pids = locality_fun:get_pids(TargetNode, lists:reverse(NameLists)), 
-		     		lists:foldl(fun(P, Acc) -> ets:insert(meta_info, {Acc, P}), Acc+1 end, 1, Pids),
-		     		hd(Pids);
-    	       	            _ ->  [{Id, Pid}] = ets:lookup(meta_info, Id),
+		     		    lists:foldl(fun(P, Acc) -> ets:insert(meta_info, {Acc, P}), Acc+1 end, 1, Pids),
+		     		    hd(Pids);
+    	       	        _ ->  [{Id, Pid}] = ets:lookup(meta_info, Id),
 		                  Pid
 		    end;
 		_ ->
