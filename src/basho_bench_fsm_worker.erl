@@ -513,8 +513,11 @@ worker_next_op(State) ->
                       %% Add abort of this txn to stat, if no cascading abort was found 
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
             %lager:warning("Update seq is ~w", [UpdateSeq]),
-            {next_state, execute, State#state{driver_state=DriverState, todo_op=ToDo, update_seq=UpdateSeq, store_cdf=StoreCdf,
+            {next_state, execute, State#state{driver_state=DriverState, update_seq=UpdateSeq, store_cdf=StoreCdf,
                     specula_txs=SpeculaTxs1, read_txs=ReadTxs2, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1}, 0};
+        {wrong_msg, DriverState} ->
+            basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
+            {next_state, execute, State#state{driver_state=DriverState}, 100};
         %% Aborted due to other reasons. Just retry the current one.
         {error, Reason, DriverState} ->
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, Reason}),

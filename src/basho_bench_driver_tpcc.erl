@@ -304,6 +304,8 @@ run(new_order, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServe
             {error, timeout, State};
         {aborted, Info} ->
             {aborted, Info, State};
+        wrong_msg ->
+            {wrong_msg, State};
         {badrpc, Reason} ->
             {error, Reason, State}
     end
@@ -406,6 +408,8 @@ run(payment, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer,
             {error, timeout, State};
         {aborted, Info} ->
             {aborted, Info, State};
+        wrong_msg ->
+            {wrong_msg, State};
         {badrpc, Reason} ->
             {error, Reason, State}
     end;
@@ -476,6 +480,8 @@ run(order_status, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxSe
                     {error, timeout, State};
                 {aborted, Info} ->
                     {aborted, Info, State};
+                wrong_msg ->
+                    {wrong_msg, State};
                 {badrpc, Reason} ->
                     {error, Reason, State}
             end;
