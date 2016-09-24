@@ -248,11 +248,14 @@ execute({final_abort, NewMsgId, TxId, AbortedReads, FinalCommitUpdates, FinalCom
     {tx_id, _, _, _, TxSeq} = TxId,
     {TxSeq, OpName} = find_specula_tx(TxSeq, SpeculaTxs1),
     %lager:warning("previous seq is ~w, now seq is ~w", [PreviousSeq, TxSeq]),
-    case (TxSeq =< PreviousSeq) of false ->lager:warning("Prev seq is ~w, seq is ~w, TxId is ~w, speculaTxs are ~w, specula txs1 are ~w", [PreviousSeq, TxSeq, TxId, SpeculaTxs, SpeculaTxs1]), TxSeq=error; true -> ok end,
-    {PreviousOps, _} = ToDoOp,
-    {next_state, execute, State#state{final_cdf=FinalCdf1, specula_cdf=SpeculaCdf1, specula_txs=SpeculaTxs1, read_txs=ReadTxs2,
-            msg_id=NewMsgId, update_seq=TxSeq, todo_op={PreviousOps, OpName}, op_type=update}, 0};
-
+    case (TxSeq =< PreviousSeq) of
+	true -> 
+	    {PreviousOps, _} = ToDoOp,
+	    {next_state, execute, State#state{final_cdf=FinalCdf1, specula_cdf=SpeculaCdf1, specula_txs=SpeculaTxs1, read_txs=ReadTxs2,
+		    msg_id=NewMsgId, update_seq=TxSeq, todo_op={PreviousOps, OpName}, op_type=update}, 0};
+	false ->
+	    {next_state, execute, State, 0}
+    end;
 
 execute({'EXIT', Reason}, State) ->
     case Reason of
