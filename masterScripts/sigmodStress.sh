@@ -47,7 +47,7 @@ MN=80
 SN=20
 CN=0
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
 echo tpcc cdf true >> config

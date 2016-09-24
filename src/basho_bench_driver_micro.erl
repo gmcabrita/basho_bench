@@ -249,6 +249,8 @@ run(txn, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, det
                     {error, timeout, State};
                 {aborted, Info} ->
                     {aborted, Info, State};
+		wrong_msg ->
+                    {wrong_msg, State};
                 {badrpc, Reason} ->
                     {error, Reason, State}
             end
