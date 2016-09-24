@@ -152,14 +152,14 @@ rubis_length="0"
 len=4
 
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_nodict_optsup
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
-echo tpcc duration 180 >> config
+echo tpcc duration 120 >> config
 echo rubis cdf true >> config
-echo rubis duration 180 >> config
+echo rubis duration 120 >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
@@ -168,7 +168,7 @@ sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_
 sudo ./script/restartAndConnect.sh
 
 
-tpcc_threads="16 32"
+tpcc_threads="4 8"
 workloads="2"
 
 len=0
@@ -187,7 +187,6 @@ do
             done
         done
 done
-exit
 
 len=1
 for t in $tpcc_threads
