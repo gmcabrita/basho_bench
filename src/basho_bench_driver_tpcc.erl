@@ -23,7 +23,7 @@
 
 -export([new/1,
 	    read/5,
-         run/4]).
+         run/5]).
 
 -include("basho_bench.hrl").
 -include("tpcc.hrl").
@@ -185,10 +185,11 @@ new(Id) ->
 
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
-run(new_order, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, 
+run(new_order, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServer, 
         other_master_ids=OtherMasterIds, dc_rep_ids=DcRepIds, hash_dict=HashDict, no_rep_ids=_SlaveRepIds, node_id=DcId, 
         worker_id=WorkerId, w_per_dc=WPerNode, item_ranges=ItemRanges, c_c_id=C_C_ID, c_ol_i_id=C_OL_I_ID, 
         access_master=AccessMaster, access_slave=AccessSlave}) ->
+    random:seed(Seed),
     RS = dict:new(),
     WS = dict:new(),
     %LocalWS = dict:new(),
@@ -312,12 +313,12 @@ run(new_order, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServe
     end;
 
 %% @doc Payment transaction of TPC-C
-run(payment, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, worker_id=WorkerId,
+run(payment, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServer, worker_id=WorkerId,
         hash_dict=HashDict, dc_rep_ids=DcRepIds, other_master_ids=OtherMasterIds, w_per_dc=WPerNode, 
         node_id=DcId, payment_master=PaymentMaster, payment_slave=PaymentSlave, 
         c_c_id=C_C_ID, c_c_last = C_C_LAST}) ->
 
-
+    random:seed(Seed),
     WS = dict:new(),
     %LocalWS = dict:new(),
     %RemoteWS = dict:new(),
@@ -415,9 +416,11 @@ run(payment, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer,
     end;
 
 %% @doc Payment transaction of TPC-C
-run(order_status, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer,
+run(order_status, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServer,
         hash_dict=HashDict, node_id=DcId, w_per_dc=WPerNode, worker_id=WorkerId, 
         c_c_id=C_C_ID, c_c_last = C_C_LAST, specula=Specula}) ->
+
+    random:seed(Seed),
     TWarehouseId = WPerNode * (DcId-1) + WorkerId rem WPerNode +1, 
 	DistrictId = tpcc_tool:random_num(1, ?NB_MAX_DISTRICT),
 	
