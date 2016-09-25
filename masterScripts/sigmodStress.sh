@@ -17,7 +17,7 @@ function runNTimes {
 
 seq="1"
 threads="32 64 96 128 160 192"
-contentions="1 4"
+contentions="1"
 start_ind=1
 skipped=1
 skip_len=0
@@ -26,10 +26,10 @@ prob_access=t
 rep=2
 parts=4
 
-MBIG=20000
+MBIG=40000
 MSML=1000
 
-CBIG=40000
+CBIG=80000
 CSML=500
 
 MR=$MBIG 
@@ -43,8 +43,6 @@ MN=80
 SN=20
 CN=0
 
-if [ 1 == 2 ];
-then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
 
 clock="old"
@@ -78,14 +76,13 @@ do
     done
 done
 done
-fi
 
 do_specula=true
 specula_read=true
 clock=new
-length="4"
-len=4
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
+length="8 4 1"
+len=8
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
 echo micro duration 60 >> config
