@@ -23,7 +23,7 @@
 
 -export([new/1,
         terminate/2,
-        run/4]).
+        run/5]).
 
 -include("basho_bench.hrl").
 
@@ -189,11 +189,12 @@ new(Id) ->
 
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
-run(txn, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter, total_key=TotalKey,
+run(txn, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter, total_key=TotalKey,
         dc_rep_ids=DcRepIds, node_id=MyNodeId,  hash_dict=HashDict, no_rep_ids=NoRepIds, 
         local_hot_rate=LocalHotRate, local_hot_range=LocalHotRange, remote_hot_rate=RemoteHotRate, remote_hot_range=RemoteHotRange,
         cache_hot_range=CacheHotRange, cache_range=CRange, cache_hot_rate=CacheHotRate,
         master_num=MNum, slave_num=SNum, master_range=MRange, slave_range=SRange})->
+    random:seed(Seed),
     %StartTime = os:timestamp(),
     Add = random:uniform(3)-2,
 
@@ -219,7 +220,6 @@ run(txn, TxnSeq, MsgId, State=#state{part_list=PartList, tx_server=TxServer, det
                                 true ->     
                                     Key = hot_or_not(MRange+1, RemoteHotRange, SRange, RemoteHotRate),
                                     Deter = false,
-                                    random:seed(os:timestamp()),
                                     Rand1 = random:uniform(DcRepLen),
                                     DcNode = lists:nth(Rand1, DcRepIds),
                                     V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
