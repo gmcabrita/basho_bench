@@ -16,7 +16,11 @@ function runNTimes {
 } 
 
 seq="1"
-threads="32 64 96 128 160 192"
+#threads="32 64 96 128 160 192"
+#threads="32 64 96 128 160 192 224 256"
+threads="64 128 192 256 320 384 448 512"
+#threads="1 2 4 8 16"
+#threads="1 2 4 8 16"
 contentions="1"
 start_ind=1
 skipped=1
@@ -27,10 +31,10 @@ rep=2
 parts=4
 
 MBIG=40000
-MSML=1000
+MSML=2000
 
 CBIG=80000
-CSML=500
+CSML=1000
 
 MR=$MBIG 
 CR=$CBIG
@@ -76,6 +80,7 @@ do
     done
 done
 done
+exit
 
 do_specula=true
 specula_read=true
