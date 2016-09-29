@@ -21,10 +21,11 @@ seq="1 2"
 #threads="64 128 192 256 320 384 448 512"
 #threads="64 128"
 #threads="1 2 4 8 16 32 64 128"
-threads="1 2 4 8 16 32 64 128"
+threads="16"
 #threads="1 2 4 8 16"
 #threads="1 2 4 8 16"
-contentions="1 3 4"
+contentions="4"
+length="1 4 8"
 start_ind=1
 skipped=1
 skip_len=0
@@ -90,8 +91,7 @@ fi
 do_specula=true
 specula_read=true
 clock=new
-length="0"
-len=0
+len=8
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
