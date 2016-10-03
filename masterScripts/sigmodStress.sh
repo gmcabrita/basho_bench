@@ -15,9 +15,18 @@ function runNTimes {
     done
 } 
 
-seq="1"
-threads="32 64 96 128 160 192"
-contentions="1"
+seq="1 2"
+#threads="32 64 96 128 160 192"
+#threads="32 64 96 128 160 192 224 256"
+#threads="64 128 192 256 320 384 448 512"
+#threads="64 128"
+#threads="1 2 4 8 16 32 64 128"
+threads="128"
+#threads="16"
+#threads="1 2 4 8 16"
+#threads="1 2 4 8 16"
+contentions="3"
+length="4 8"
 start_ind=1
 skipped=1
 skip_len=0
@@ -27,10 +36,10 @@ rep=2
 parts=4
 
 MBIG=40000
-MSML=1000
+MSML=2000
 
 CBIG=80000
-CSML=500
+CSML=1000
 
 MR=$MBIG 
 CR=$CBIG
@@ -43,6 +52,8 @@ MN=80
 SN=20
 CN=0
 
+if [ 1 == 2 ];
+then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
 
 clock="old"
@@ -76,21 +87,21 @@ do
     done
 done
 done
+fi
 
 do_specula=true
 specula_read=true
 clock=new
-length="8 4 1"
 len=8
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
-echo micro duration 60 >> config
+echo micro duration 120 >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
