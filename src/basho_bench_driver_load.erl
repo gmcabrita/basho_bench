@@ -102,7 +102,7 @@ new(Id) ->
     NumDcs = length(AllDcs),
     DcId = index(TargetNode, AllDcs),
     lager:info("TargetNode is ~p, DcId is ~w, My Replica Ids are ~w",[TargetNode, DcId, MyReps]),
-    case Id of 1 -> ets:new(meta_info, [named_table, public, set]);
+    case Id of 1 -> ets:new(load_info, [named_table, public, set]);
          _ -> ok
     end,
     NewId =  (Id-1) div length(IPs)+1,
@@ -152,7 +152,7 @@ run(load, _KeyGen, _ValueGen, State=#state{part_list=PartList, my_tx_server=TxSe
 		    Part1 = get_partition("COMMIT_TIME", FullPartList, HashLength),
 		    {server, T} = TxServer,
 		    {ok, COMMIT_TIME} = rpc:call(TargetNode, tx_cert_sup, single_read, [T, "COMMIT_TIME", Part1]),
-                    ets:insert(meta_info, {"COMMIT_TIME", COMMIT_TIME}),
+                    ets:insert(load_info, {"COMMIT_TIME", COMMIT_TIME}),
                     lager:info("CommitTime is ~w", [COMMIT_TIME]);
                 _ ->
                     ok
@@ -283,7 +283,7 @@ populate_customer_orders(TxServer, WarehouseId, DistrictId, PartList, WPerDc) ->
     OrderSeq = lists:seq(1, ?NB_MAX_ORDER),
     RandOrders = [X||{_,X} <- lists:sort([ {random:uniform(), N} || N <- OrderSeq])],
     {FRandOrders, SRandOrders} = lists:split(NumUniqueNames, RandOrders),
-    [{"COMMIT_TIME", CommitTime}] = ets:lookup(meta_info, "COMMIT_TIME"),
+    [{"COMMIT_TIME", CommitTime}] = ets:lookup(load_info, "COMMIT_TIME"),
     %% Magic number, assume that the order is created 1 sec ago.
     DcId = to_dc(WarehouseId, WPerDc),
     WS = add_customer_order(1, FNameRandSeq, FRandOrders, TxServer, WPerDc, DcId, PartList, WarehouseId, DistrictId, CommitTime, dict:new(), defer),
@@ -398,7 +398,7 @@ put_to_node(TxServer, DcId, PartList, Key, Value) ->
     {_, L} = lists:nth(DcId, PartList),
     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
     Part = lists:nth(Index, L),    
-    [{"COMMIT_TIME", CommitTime}] = ets:lookup(meta_info, "COMMIT_TIME"),
+    [{"COMMIT_TIME", CommitTime}] = ets:lookup(load_info, "COMMIT_TIME"),
     put(TxServer, Part, [{Key, Value}], CommitTime).
 
 defer_put(DcId, PartList, Key, Value, WriteSet) ->
@@ -409,7 +409,7 @@ defer_put(DcId, PartList, Key, Value, WriteSet) ->
 multi_put(TxServer, DcId, PartList, WriteSet) ->
     {_, L} = lists:nth(DcId, PartList),
     DictList = dict:to_list(WriteSet),
-    [{"COMMIT_TIME", CommitTime}] = ets:lookup(meta_info, "COMMIT_TIME"),
+    [{"COMMIT_TIME", CommitTime}] = ets:lookup(load_info, "COMMIT_TIME"),
     lists:foreach(fun({Index, KeyValues}) ->
             Part = lists:nth(Index, L),    
             put(TxServer, Part, KeyValues, CommitTime)

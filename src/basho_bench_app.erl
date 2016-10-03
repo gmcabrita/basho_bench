@@ -87,7 +87,7 @@ halt_or_kill() ->
 
 start(_StartType, _StartArgs) ->
     {ok, Pid} = basho_bench_sup:start_link(),
-    ets:new(meta_info, [set, public, named_table]),
+    ets:new(load_info, [set, public, named_table]),
     basho_bench_sup:start_children(basho_bench_config:get(concurrent)),
     application:set_env(basho_bench_app, is_running, true),
     ok = basho_bench_stats:run(),

@@ -4,29 +4,29 @@
 
 -export([random_num/2, get_key/1, c_last_rand/1, now_nsec/0, non_uniform_random/4, last_name/1,
         create_item/1, create_warehouse/1, create_stock/2, create_district/2, name_by_num/1,
-        create_customer/6, create_customer_lookup/3, create_history/4, create_history/8, 
-		create_order/6, create_order/7, create_orderline/6, create_orderline/9, 
-		create_neworder/3, get_key_by_param/2, random_data/0, get_key_time/1, get_think_time/1]).
+        create_customer/6, create_customer_lookup/3, create_history/4, create_history/8,
+        create_order/6, create_order/7, create_orderline/6, create_orderline/9, random_float/3,
+        create_neworder/3, get_key_by_param/2, random_data/0, get_key_time/1, get_think_time/1]).
 
-get_key_time(new_order) -> 
+get_key_time(new_order) ->
     %lager:info("New order, going to key for 18000"),
     18000;
-get_key_time(payment) -> 
+get_key_time(payment) ->
     %lager:info("Payment, going to key for 3000"),
     3000;
-get_key_time(order_status) -> 
+get_key_time(order_status) ->
     %lager:info("Order status, going to key for 2000"),
     2000.
 
-get_think_time(new_order) -> 
+get_think_time(new_order) ->
     T = trunc(min(-math:log(random:uniform()), 10000)*12000),
     %lager:info("New order, going to think for ~w", [T]),
     T;
-get_think_time(payment) -> 
+get_think_time(payment) ->
     T = trunc(min(-math:log(random:uniform()), 10000)*12000),
     %lager:info("Payment, going to think for ~w", [T]),
     T;
-get_think_time(order_status) -> 
+get_think_time(order_status) ->
     T = trunc(min(-math:log(random:uniform()), 10000)*10000),
     %lager:info("Order status, going to think for ~w", [T]),
     T.
@@ -37,20 +37,20 @@ last_name(Num) ->
 	lists:nth(Num rem ?NUM_NAMES +1, ?NAMES).
 
 get_ol_i_id(DcId) ->
-    case ets:lookup(meta_info, {DcId, pop_ol_i_id}) of
+    case ets:lookup(load_info, {DcId, pop_ol_i_id}) of
         [] ->
             Rand = random_num(0, ?A_OL_I_ID), 
-            ets:insert(meta_info, {{DcId, pop_ol_i_id}, Rand}),
+            ets:insert(load_info, {{DcId, pop_ol_i_id}, Rand}),
             Rand;
         [{{DcId, pop_ol_i_id}, V}] ->
             V
     end.
 
 get_c_last(DcId) ->
-    case ets:lookup(meta_info, {DcId, pop_c_last}) of
+    case ets:lookup(load_info, {DcId, pop_c_last}) of
         [] ->
             Rand = random_num(?MIN_C_LAST, ?A_C_LAST), 
-            ets:insert(meta_info, {{DcId, pop_c_last}, Rand}),
+            ets:insert(load_info, {{DcId, pop_c_last}, Rand}),
             Rand;
         [{{DcId, pop_c_last}, V}] ->
             V
@@ -71,7 +71,6 @@ non_uniform_random(Type, X, Min, Max) ->
     A = random_num(0, X),
     B = random_num(Min, Max),
     Bor = A bor B,
-    %lager:info("Type is ~w, A is ~w, B is ~w, Bor is ~w, Max ~w, Min ~w", [Type, A, B, Bor, Max, Min]),
     (( Bor + Type) rem (Max - Min + 1)) + Min.
 
 random_num(Start, End) ->
@@ -108,6 +107,8 @@ random_data() ->
 create_item(ItemId) ->
     #item{i_id=ItemId, i_im_id=random_num(1, 10000), i_name=[], %random_len_string(14,24), 
             i_price=random_float(1, 100, 2), i_data=[]}.%random_data()}.
+    %#item{i_id=ItemId, i_im_id=random_num(1, 10000), i_name=random_len_string(14,24), 
+    %        i_price=random_float(1, 100, 2), i_data=random_data()}.
 
 create_warehouse(WarehouseId) ->
     #warehouse{w_id=WarehouseId, w_name=[], w_street1=[],
@@ -141,39 +142,42 @@ create_customer(WarehouseId, DistrictId, CustomerId, CLast, Since, CLastOrder) -
     c_d_id=DistrictId,
     c_w_id=WarehouseId,
     c_id=CustomerId,
-    %c_first=random_len_string(8, 16),
-    c_first=[],
     c_middle="OE", 
     c_last=CLast, 
     c_last_order=CLastOrder,
+    c_first=[],
     c_street1=[], 
     c_street2=[], 
+    c_city=[], 
+    c_state=[],
+    c_zip=[],
+    c_phone=[],
+    c_data=[],
+    %c_first=random_len_string(8, 16),
     %c_street1=random_len_string(10, 20), 
     %c_street2=random_len_string(10, 20), 
     %c_city=random_len_string(10, 20), 
     %c_state=random_string(2),
     %c_zip=random_string(4)++"11111",
     %c_phone=random_string(16),
-    c_city=[], 
-    c_state=[],
-    c_zip=[],
-    c_phone=[],
+    %c_data=random_len_string(300,500),
+
     c_since=Since,
     c_credit=set_credit(),
     c_credit_lim =500000.0,
     c_discount=random_float(0.0, 0.5, 4),
     c_ytd_payment=10.0,
     c_payment_cnt=1,
-    c_delivery_cnt=0,
-    c_data=[]}.
-    %c_data=random_len_string(300,500)}.
+    c_delivery_cnt=0}.
 
 create_customer_lookup(WarehouseId, DistrictId, CLast) ->
     #customer_lookup{c_w_id=WarehouseId, c_d_id=DistrictId, c_last=CLast, ids=[]}.
 
 create_history(WarehouseId, DistrictId, CustomerId, Time) ->
     #history{h_c_id=CustomerId, h_c_d_id=DistrictId, h_c_w_id=WarehouseId, h_d_id=DistrictId, h_w_id=WarehouseId, h_date=Time,
-        h_amount=10, h_data=[]}.%random_len_string(12, 24)}.
+        h_amount=10, 
+        h_data=[]}.
+        %h_data=random_len_string(12, 24)}.
 
 create_history(TWId, TDId, CWId, CDId, CId, Date, Payment, HData) ->
     #history{h_c_id=CId, h_c_d_id=CDId, h_c_w_id=CWId, h_d_id=TDId, h_w_id=TWId, h_date=Date,
@@ -190,7 +194,9 @@ create_order(WarehouseId, DistrictId, OrderId, OOlCnt, CustomerId, Time, AllLoca
 create_orderline(WarehouseId, DistrictId, OrderId, OrderlineId, DDate, Amount) ->
     #orderline{ol_o_id=OrderId, ol_w_id=WarehouseId, ol_d_id=DistrictId, 
             ol_number=OrderlineId, ol_i_id=non_uniform_random(get_ol_i_id(WarehouseId), ?A_OL_I_ID, 1, ?NB_MAX_ITEM),
-            ol_supply_w_id=WarehouseId, ol_delivery_d=DDate, ol_quantity=5, ol_amount=Amount,ol_dist_info=[]%random_len_string(12,24)
+            ol_supply_w_id=WarehouseId, ol_delivery_d=DDate, ol_quantity=5, ol_amount=Amount,
+            ol_dist_info=[]
+            %ol_dist_info=random_len_string(12,24)
             }.
 
 create_orderline(WarehouseId, DistrictId, SupplyWId, OrderId, OlIId, OlNumber, OlQuantity, Amount, OlDistInfo) ->

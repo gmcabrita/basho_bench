@@ -47,6 +47,8 @@
                 to_sleep,
                 hash_dict,
                 other_master_ids,
+                comment_final_length,
+                description_length,
                 dc_rep_ids,
                 no_rep_ids,
                 prev_state,
@@ -104,7 +106,7 @@ new(Id) ->
                         {ok, _} -> true = erlang:set_cookie(node(), Cookie),  %?INFO("Net kernel started as ~p\n", [node()]);
                                    _Result = net_adm:ping(TargetNode),
                                    HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []),
-                                   ets:insert(meta_info, {hash_fun, HashFun});
+                                   ets:insert(load_info, {hash_fun, HashFun});
                         {error, {already_started, _}} ->
                                 ?INFO("Net kernel already started as ~p\n", [node()]),  ok;
                         {error, Reason} ->
@@ -113,7 +115,7 @@ new(Id) ->
              _ -> ok
     end,
 
-    [{hash_fun, {PartList, ReplList, NumDcs}}] = ets:lookup(meta_info, hash_fun),
+    [{hash_fun, {PartList, ReplList, NumDcs}}] = ets:lookup(load_info, hash_fun),
 %    case net_kernel:start(MyNode) of
 %        {ok, _} ->
 %	        ok;
@@ -147,9 +149,9 @@ new(Id) ->
 	             		NameLists = lists:foldl(fun(WorkerId, Acc) -> [WorkerId|Acc]
 					    		end, [], lists:seq(1, Concurrent)),
     		     		Pids = locality_fun:get_pids(TargetNode, lists:reverse(NameLists)), 
-		     		    lists:foldl(fun(P, Acc) -> ets:insert(meta_info, {Acc, P}), Acc+1 end, 1, Pids),
+		     		    lists:foldl(fun(P, Acc) -> ets:insert(load_info, {Acc, P}), Acc+1 end, 1, Pids),
 		     		    hd(Pids);
-    	       	        _ ->  [{Id, Pid}] = ets:lookup(meta_info, Id),
+    	       	        _ ->  [{Id, Pid}] = ets:lookup(load_info, Id),
 		                  Pid
 		    end;
 		_ ->
@@ -175,6 +177,8 @@ new(Id) ->
     PercentBuyNow = dict:fetch(database_percentage_of_buy_now_items, ConfigDict) div dict:fetch(reduce_factor, ConfigDict), 
     PercentResvItem = dict:fetch(database_percentage_of_items_with_reserve_price, ConfigDict) div dict:fetch(reduce_factor, ConfigDict), 
     PercentUniqueItem = dict:fetch(database_percentage_of_unique_items, ConfigDict) div dict:fetch(reduce_factor, ConfigDict), 
+    CommentFinalLength = dict:fetch(database_comment_max_length, ConfigDict) div 10,
+    DescriptionLength = dict:fetch(database_item_description_length, ConfigDict) div 10,
     MaxDuration = dict:fetch(max_duration, ConfigDict) div dict:fetch(reduce_factor, ConfigDict), 
     %TabName = list_to_atom(pid_to_list(MyTxServer)),
     %ets:new(TabName, [set, named_table, {read_concurrency,false}]),
@@ -187,6 +191,8 @@ new(Id) ->
                access_slave=AccessSlave,
                part_list = PartList,
                hash_dict = HashDict1,
+               comment_final_length = CommentFinalLength,
+               description_length = DescriptionLength,
                prev_state=#prev_state{myself_id= {NodeId, random:uniform(NBUsers)}},
                num_replicates = NumReplicates,
                nb_users = NBUsers,
@@ -263,16 +269,11 @@ run(register, _TxnSeq, _MsgId, _, State) ->
 
 %% VERIFIED
 %% Register a user that is replicated??
-run(register_user, TxnSeq, MsgId, Seed, State=#state{nb_users=NBUsers, node_id=MyNode, tx_server=TxServer, 
+run(register_user, TxnSeq, MsgId, _Seed, State=#state{nb_users=NBUsers, node_id=MyNode, tx_server=TxServer, 
             specula=Specula, part_list=PartList, hash_dict=HashDict, nb_regions=NBRegions,
             access_master=AccessMaster, access_slave=AccessSlave, dc_rep_ids=DcRepList, no_rep_ids=DcNoRepList}) ->
-    random:seed(Seed),
+    random:seed(now()),
     UserId = random:uniform(NBUsers) + NBUsers,
-    FirstName = "Great" ++ [UserId],
-    LastName = "User" ++ [UserId],
-    NickName = "user" ++ [UserId],
-    Email = FirstName ++ "." ++ LastName ++ "@rubis.com",
-    Password = "password" ++ [UserId],
     RegionId = UserId rem NBRegions + 1,
     %% Select region
     
@@ -286,7 +287,7 @@ run(register_user, TxnSeq, MsgId, Seed, State=#state{nb_users=NBUsers, node_id=M
     User = empty_read_from_node(TxServer, TxId, UserKey, ToRegisterNode, MyNode, PartList, HashDict),
     case User of
         [] -> %% Okay
-            NewUser = rubis_tool:create_user(FirstName, LastName, NickName, Password, Email, Now, 0, 0, RegionId),
+            NewUser = rubis_tool:create_user(UserId, Now, 0, 0, RegionId),
             WS1 = dict:store({ToRegisterNode, UserKey}, NewUser, dict:new()), 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WS1, PartList, MyNode),
             Response =  gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId}, ?TIMEOUT),%, length(DepsList)}),
@@ -310,21 +311,13 @@ run(register_user, TxnSeq, MsgId, Seed, State=#state{nb_users=NBUsers, node_id=M
         _ -> 
             case Specula of
                 true ->
-                    Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),
+                    Response =  gen_server:call(TxServer, {abort_txn, TxId}, ?TIMEOUT),
                     case Response of
-                        {ok, {_, _CommitTime, Info}} ->
-                            {aborted, Info, State};
-                        {cascade_abort, Info} ->
-                            {aborted, Info, State};
                         {aborted, Info} ->
                             {aborted, Info, State};
                         {error,timeout} ->
                             lager:info("Timeout on client ~p",[TxServer]),
-                            {error, timeout, State};
-                        wrong_msg ->
-                            {wrong_msg, State};
-                        {badrpc, Reason} ->
-                            {error, Reason, State}
+                            {error, timeout, State}
                     end;
                 _ ->
                     {error, aborted, State} %#state{prev_state=PrevState#prev_state{last_user_id={ToRegisterNode, UserId}}}}
@@ -804,9 +797,9 @@ run(buy_now, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer,
 
 %% VERIFIED
 %% No need to change anything here
-run(store_buy_now, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServer, prev_state=PrevState, 
+run(store_buy_now, TxnSeq, MsgId, _Seed, State=#state{part_list=PartList, tx_server=TxServer, prev_state=PrevState, 
         hash_dict=HashDict, specula=Specula, node_id=MyNode}) ->
-    random:seed(Seed),
+    random:seed(os:timestamp()),
     MyselfId = PrevState#prev_state.myself_id,
     ItemId = PrevState#prev_state.item_id,
     {ItemNode, _} = ItemId,
@@ -821,7 +814,7 @@ run(store_buy_now, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_serv
         0 ->
             case Specula of
                 true ->
-                    Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),
+                    Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),%, length(DepsList)}),
                     case Response of
                         {ok, {committed, _CommitTime, Info}} ->
                             {ok, Info, State};
@@ -942,9 +935,9 @@ run(put_bid, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxS
     end;
 
 %% VERIFIED
-run(store_bid, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServer, 
+run(store_bid, TxnSeq, MsgId, _Seed, State=#state{part_list=PartList, tx_server=TxServer, 
         hash_dict=HashDict, node_id=MyNode, prev_state=PrevState, specula=Specula}) ->
-    random:seed(Seed),
+    random:seed(os:timestamp()),
     MyselfId = PrevState#prev_state.myself_id,
     ItemId = PrevState#prev_state.item_id,
     MinBid = PrevState#prev_state.min_bid,
@@ -964,7 +957,7 @@ run(store_bid, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=T
     case ItemQty of 0 ->
             case Specula of
                 true ->
-                    Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),
+                    Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),%, length(DepsList)}),
                     case Response of
                         {ok, {committed, _CommitTime, Info}} ->
                             {ok, Info, State};
@@ -1093,16 +1086,14 @@ run(put_comment, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server
 %% The comment should be placed in the partition of the user who receives the comment
 %% VERIFIED
 run(store_comment, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServer, 
-        hash_dict=HashDict, node_id=MyNode, prev_state=PrevState}) ->
+        hash_dict=HashDict, node_id=MyNode, prev_state=PrevState, comment_final_length=CLength}) ->
     random:seed(Seed),
     ItemId = PrevState#prev_state.item_id,
     ToId = PrevState#prev_state.last_user_id, 
     MyselfId = PrevState#prev_state.myself_id, 
     {MyselfNode, _} = MyselfId, 
 
-    Comments = ["Very bad", "Bad", "Normal", "Good", "Very good"],
     Rating = random:uniform(5) - 3,
-    Comment = lists:nth(Rating+3, Comments),
 
     TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     {ToNode, _} = ToId,
@@ -1114,7 +1105,7 @@ run(store_comment, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_serv
     
     Now = rubis_tool:now_nsec(),
     CommentKey = rubis_tool:get_key({ToId, NextCommentId}, comment),
-    CommentObj = rubis_tool:create_comment(MyselfId, ToId, ItemId, Rating, Now, Comment),
+    CommentObj = rubis_tool:create_comment(MyselfId, ToId, CLength, ItemId, Rating, Now),
 
 	WS1 = dict:store({ToNode, CommentKey}, CommentObj, dict:new()),
 	WS2 = dict:store({MyselfNode, CommentKey}, CommentObj, WS1),
@@ -1189,15 +1180,15 @@ run(sell_item_form, _TxnSeq, _MsgId, _, State) ->
 %% When a user registers an item, the item should be placed in the same server as the user
 %% VERIFIED
 %% May register an item that is stored in other places
-run(register_item, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, node_id=MyNode, prev_state=PrevState, 
+run(register_item, TxnSeq, MsgId, _Seed, State=#state{tx_server=TxServer, node_id=MyNode, prev_state=PrevState, 
             part_list=PartList, hash_dict=HashDict, max_duration=MaxDuration, nb_categories=NBCategories, max_quantity=MaxQuantity,
-            percent_reserve_item=PercentReserveItem, percent_buy_now=PercentBuyNow, percent_unique_item=PercentUniqueItem}) ->
+            percent_reserve_item=PercentReserveItem, percent_buy_now=PercentBuyNow, percent_unique_item=PercentUniqueItem,
+            description_length=DLength}) ->
             %access_master=AccessMaster, access_slave=AccessSlave, dc_rep_ids=DcRepIds, no_rep_ids=DcNoRepIds}) ->
     %ItemNode = pick_node(MyNode, DcRepIds, DcNoRepIds, AccessMaster, AccessSlave),
-    random:seed(Seed),
+    random:seed(now()),
     ItemNode = MyNode,
 
-    Description = "Don't buy it!",
     InitialPrice = random:uniform(5000),
     CategoryId = random:uniform(NBCategories),
     MyNodeRegion = PrevState#prev_state.region,
@@ -1231,7 +1222,7 @@ run(register_item, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, node_id
     ItemId = {ItemNode, LocalNextItemId},
     ItemKey = rubis_tool:get_key(ItemId, item),
     Name = "RUBiSAutoItem#" ++ integer_to_list(LocalItemId),
-    Item = rubis_tool:create_item(Name, Description, InitialPrice, Quantity, ReservePrice, BuyNow, 
+    Item = rubis_tool:create_item(Name, DLength, InitialPrice, Quantity, ReservePrice, BuyNow, 
             StartDate, EndDate, PrevState#prev_state.myself_id, CategoryId),
 
     %% Add to the user's selling list
@@ -1326,24 +1317,29 @@ run(about_me, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, node_id=MyNo
         %end,
         %lager:warning("Trying to read bid ~p from node ~w", [BidKey, BidNode]),
         Bid = read_from_node(TxServer, TxId, BidKey, MyNode, MyNode, PartList, HashDict),
-        ItemI = Bid#bid.b_item_id,
-        {ItemNode, _} = ItemI,
-        ItemKey = rubis_tool:get_key(ItemI, item), 
-        Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
-        SellerI = Item#item.i_seller,
-        {SellerNode, _} = SellerI,
-        SellerKey = rubis_tool:get_key(SellerI, user), 
-        %lager:warning("Trying to read user ~p", [SellerKey]),
-        _Seller = read_from_node(TxServer, TxId, SellerKey, SellerNode, MyNode, PartList, HashDict),
-        case IncI of RandItemIndex -> 
-            case IncU of RandUserIndex -> {IncI+1, IncU+1, ItemI, SellerI}; 
-                                 _ -> {IncI+1, IncU+1, ItemI, RU}
-            end;
-            _ -> 
-                case IncU of RandUserIndex -> {IncI+1, IncU+1, RI, SellerI}; 
-                                    _ -> {IncI+1, IncU+1, RI, RU}
+        case Bid of
+            [] ->
+                {IncI+1, IncU+1, RI, RU};
+            _ ->
+                ItemI = Bid#bid.b_item_id,
+                {ItemNode, _} = ItemI,
+                ItemKey = rubis_tool:get_key(ItemI, item), 
+                Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
+                SellerI = Item#item.i_seller,
+                {SellerNode, _} = SellerI,
+                SellerKey = rubis_tool:get_key(SellerI, user), 
+                %lager:warning("Trying to read user ~p", [SellerKey]),
+                _Seller = read_from_node(TxServer, TxId, SellerKey, SellerNode, MyNode, PartList, HashDict),
+                case IncI of RandItemIndex -> 
+                    case IncU of RandUserIndex -> {IncI+1, IncU+1, ItemI, SellerI}; 
+                                         _ -> {IncI+1, IncU+1, ItemI, RU}
+                    end;
+                    _ -> 
+                        case IncU of RandUserIndex -> {IncI+1, IncU+1, RI, SellerI}; 
+                                            _ -> {IncI+1, IncU+1, RI, RU}
+                        end
                 end
-        end
+            end
         end, {1, 1, PrevState#prev_state.item_id, PrevState#prev_state.last_user_id}, Myself#user.u_bids),
     %% List items
     {CI2, RI2} = lists:foldl(fun(ItemIndex, {IncI, RI}) ->
@@ -1514,7 +1510,17 @@ read_from_node(TxServer, TxId, Key, Node, MyNode, PartList, HashDict) ->
     end,
     case V of
         [] ->
-            lager:error("Key ~p not found!!!! Should read from dc ~w, my dc is ~w,~w, txserver is ~w", [Key, Node, MyNode, node(), TxServer]),
+            %case Node of MyNode -> {_, PL} = lists:nth(Node, PartList),
+            %                        Index0 = crypto:bytes_to_integer(erlang:md5(Key)) rem length(PL) + 1,
+            %                        Part0 = lists:nth(Index0, PL),
+            %                        lager:warning("Part is ~w", [Part0]);
+            %                _ ->    {ok, RepN} = dict:find(Node, HashDict),
+            %                        {_, L0} = lists:nth(Node, PartList),
+            %                        Index0 = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L0) + 1,
+            %                        Part0 = lists:nth(Index0, L0),
+            %                        lager:warning("RepN is ~w, Part is ~w", [RepN, Part0])
+            %end,
+            lager:error("Key ~p not found!!!! ~w, Should read from dc ~w, my dc is ~w,~w, txserver is ~w", [Key, TxId, Node, MyNode, node(), TxServer]),
             V;
         _ ->
             V

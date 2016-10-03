@@ -116,7 +116,7 @@ new(Id) ->
                 {ok, _} -> true = erlang:set_cookie(node(), Cookie),  %?INFO("Net kernel started as ~p\n", [node()]);
                            _Result = net_adm:ping(TargetNode),
                            HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []),
-                           ets:insert(meta_info, {hash_fun, HashFun});
+                           ets:insert(load_info, {hash_fun, HashFun});
                 {error, {already_started, _}} ->
                         ?INFO("Net kernel already started as ~p\n", [node()]),  ok;
                 {error, Reason} ->
@@ -125,15 +125,15 @@ new(Id) ->
              _ -> ok
     end,
 
-    [{hash_fun, {PartList, ReplList, NumDcs}}] = ets:lookup(meta_info, hash_fun),
+    [{hash_fun, {PartList, ReplList, NumDcs}}] = ets:lookup(load_info, hash_fun),
     MyTxServer = case length(IPs) of 1 ->
                  case Id of 1 -> 
                         NameLists = lists:foldl(fun(WorkerId, Acc) -> [WorkerId|Acc]
                                 end, [], lists:seq(1, Concurrent)),
                         Pids = locality_fun:get_pids(TargetNode, lists:reverse(NameLists)),
-                    lists:foldl(fun(P, Acc) -> ets:insert(meta_info, {Acc, P}), Acc+1 end, 1, Pids),
+                    lists:foldl(fun(P, Acc) -> ets:insert(load_info, {Acc, P}), Acc+1 end, 1, Pids),
                     hd(Pids);
-                            _ ->  [{Id, Pid}] = ets:lookup(meta_info, Id),
+                            _ ->  [{Id, Pid}] = ets:lookup(load_info, Id),
                           Pid
             end;
         _ ->
@@ -314,7 +314,7 @@ get_local_remote_writeset(WriteSet, PartList, LocalDcId) ->
                     end end, {dict:new(), dict:new()}, WriteSet),
     %L = dict:fetch_keys(RWSD),
     %NodeSet = lists:foldl(fun({_, N}, S) -> sets:add_element(N, S) end, sets:new(), L),
-    %ets:update_counter(meta_info, TxType, [{2, 1}, {3, length(L)}, {4,sets:size(NodeSet)}]),
+    %ets:update_counter(load_info, TxType, [{2, 1}, {3, length(L)}, {4,sets:size(NodeSet)}]),
     {dict:to_list(LWSD), dict:to_list(RWSD)}.
 
 
