@@ -25,8 +25,8 @@ threads="128"
 #threads="16"
 #threads="1 2 4 8 16"
 #threads="1 2 4 8 16"
-contentions="3"
-length="4 8"
+contentions="1 2 3 4"
+length="0"
 start_ind=1
 skipped=1
 skip_len=0
@@ -63,7 +63,7 @@ len=0
 length="0"
 
 rm -rf ./config
-echo micro duration 60 >> config
+echo micro duration 240 >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
@@ -96,7 +96,7 @@ len=8
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
-echo micro duration 120 >> config
+echo micro duration 240 >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
