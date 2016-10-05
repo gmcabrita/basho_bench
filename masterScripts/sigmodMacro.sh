@@ -49,8 +49,6 @@ skipped=1
 AM=80
 AS=0
 
-if [ 1 == 2 ];
-then
 tpcc_length="0"
 rubis_length="0"
 
@@ -73,6 +71,8 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 sudo ./script/configBeforeRestart.sh 10 $do_specula 0 $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
 
+if [ 1 == 2 ];
+then
 tpcc_threads="1500 2000"
 workloads="1"
 for t in $tpcc_threads
@@ -108,8 +108,9 @@ do
             done
         done
 done
+fi
 
-tpcc_threads="2000"
+tpcc_threads="1000 1500"
 workloads="3"
 for t in $tpcc_threads
 do  
@@ -127,6 +128,7 @@ do
         done
 done
 
+exit
 rubis_threads="500 1000 2000 3000"
 for t in $rubis_threads
 do  
@@ -138,11 +140,11 @@ fi
 specula_read=true
 do_specula=true
 
-tpcc_length="0"
-rubis_length="0"
+tpcc_length="0 4"
+rubis_length="0 4"
 len=0
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -156,7 +158,8 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
 
-tpcc_threads="1500 2000"
+#tpcc_threads="1500 2000"
+tpcc_threads=""
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -174,7 +177,8 @@ do
         done
 done
 
-tpcc_threads="800 1000"
+#tpcc_threads="800 1000"
+tpcc_threads=""
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -192,7 +196,7 @@ do
         done
 done
 
-tpcc_threads="2000 2500"
+tpcc_threads="1000 1500"
 workloads="3"
 for t in $tpcc_threads
 do  
@@ -202,11 +206,14 @@ do
 	        elif [ $wl == 2 ]; then  n=10 p=80
 	        elif [ $wl == 3 ]; then n=10 p=10
 	        fi
+	    for len in $tpcc_length
+	    do
             for wh in $warehouse
             do
                 think_time="tpcc"
                 runTpccNTimes 
             done
+	    done
         done
 done
 
