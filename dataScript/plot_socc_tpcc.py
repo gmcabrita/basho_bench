@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import matplotlib.pyplot as plt
 import sys
@@ -18,6 +18,7 @@ bench_type='tpcc'
 dict1={'title':'10% new-order, 80% payment, 10% order-status', 'no_title':True, 'x_labels':False, 'y_labels':False, 'y_lim':5.5, 'legend_type':'warehouse', 'legend_loc':'upper center', 'commit_legend':['2W: commits', '4W: commits'], 'abort_legend':['2W: UC', '2W: AC', '4W: UC', '4W: AC'], 'has_legend':True}#, 'base_line':True}
 series1=get_matching_series([input_folder, 'tpcc', 0, 7, 8, 10, 6])
 print(series1)
+exit()
 plot_multi_lines(input_folder, output_folder, bench_type, series1, 6, dict1)
 
 dict3={'title':'80% new-order, 10% payment, 10% order-status','no_title':True, 'x_labels':False, 'y_labels':False, 'y_lim':2, 'legend_type':'warehouse', 'legend_loc':2, 'commit_legend':['2W: commits', '4W: commits'], 'abort_legend':['2W: UC', '2W: AC', '4W: UC', '4W: AC'], 'has_legend':True}#, 'base_line':True}

@@ -47,8 +47,8 @@ def add_throughput(total_dict, folder):
     duration=0
     
     throughput_file = os.path.join(folder, 'specula_out')
-    SKIP_FIRST=2
-    SKIP_LAST=2
+    SKIP_FIRST=3
+    SKIP_LAST=3
     print(throughput_file)
     
     with open(throughput_file) as stream:

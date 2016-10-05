@@ -109,11 +109,13 @@ def plot_stress(specula_folders, nospecula_folders, input_folder, output_folder,
         hld, = plt.plot(nospec_th_list, nospec_list, color=colors[2], marker=markers[2], linewidth=width,  markersize=marksize)
         handlers.append(hld)
 
-    plt.xlim([0, 1000])
+    plt.xlim([0, 1500])
+    plt.ylim([0, 1000])
     plt.legend(handlers, legends, loc=1, labelspacing=0.2, borderpad=0.2, fontsize=lsize)
     plt.grid(True)
 
     plt.ylabel('Latency', fontsize=labsize)
     plt.xlabel('Throughput (txs/s)', fontsize=labsize)
 
-    plt.savefig(output_folder+'/'+output_name+'.pdf', format='pdf', bbox_inches='tight')
+    #plt.savefig(output_folder+'/'+output_name+'.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig(output_folder+'/'+output_name+'.png', bbox_inches='tight')
