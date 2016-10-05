@@ -262,6 +262,8 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
                     abort_legend = plot_dict['abort_legend']
                     swap(abort_legend, 0, 2) 
                     swap(abort_legend, 0, 1) 
+                else:
+                    abort_legend = plot_dict['abort_legend']
                 ax2.legend(abort_handlers, abort_legend, fontsize=lsize, loc=location, labelspacing=0.2, columnspacing=0.2, handletextpad=0.2, borderpad=0.2, ncol=len(plot_dict['abort_legend'])//2)
             else:
                 pass
