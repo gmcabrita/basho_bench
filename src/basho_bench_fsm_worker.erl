@@ -64,7 +64,6 @@
                  store_cdf,
                  %op_list,
                  %cdf,
-                 retry,
                  transition,
                  ops_len,
                  rng_seed}).
@@ -124,10 +123,6 @@ init([Id]) ->
     Driver  = basho_bench_config:get(driver),
     Ops     = ops_tuple(),
     ShutdownOnError = basho_bench_config:get(shutdown_on_error, false),
-    Retry = case basho_bench_config:get(retry, false) of
-                true -> true;
-                _ -> false
-            end,
    
     ThinkTime = case basho_bench_config:get(think_time, 0) of
                 Time -> Time
@@ -155,7 +150,6 @@ init([Id]) ->
                      think_time = ThinkTime,
                      do_specula = basho_bench_config:get(do_specula, false),
                      op_type = get_op_type(ToDoOp),
-                     retry = Retry,
                      specula_txs=[],
                      seed=Now,
                      read_txs=[],
