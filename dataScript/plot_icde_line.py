@@ -48,7 +48,7 @@ def plot_multi_bars(input_folder, output_folder, bench_type, data_multi_list, le
     legend_type = plot_dict['legend_type'] 
     markers=["^", "8", "s", "h", ".", "1", "v"]
     line_index=0
-    barwidth = 0.6/len(data_multi_list)
+    barwidth = 0.6/max(len(data_multi_list), 1)
     colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#eeeecc']
     num_xticks = 0
     start_pos = 0
