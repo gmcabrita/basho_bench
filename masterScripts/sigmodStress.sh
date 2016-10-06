@@ -15,7 +15,7 @@ function runNTimes {
     done
 } 
 
-seq="1 2"
+seq="1"
 #threads="32 64 96 128 160 192"
 #threads="32 64 96 128 160 192 224 256"
 #threads="64 128 192 256 320 384 448 512"
@@ -35,11 +35,11 @@ prob_access=t
 rep=1
 parts=4
 
-MBIG=100000
-MSML=10000
+MBIG=50000
+MSML=5000
 
-CBIG=20000
-CSML=2000
+CBIG=10000
+CSML=1000
 
 MR=$MBIG 
 CR=$CBIG

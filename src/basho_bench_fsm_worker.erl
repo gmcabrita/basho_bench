@@ -252,7 +252,8 @@ execute({final_abort, NewMsgId, TxId, AbortedReads, FinalCommitUpdates, FinalCom
     case (TxSeq =< PreviousSeq) of
 	true -> 
 	    {PreviousOps, _} = ToDoOp,
-        AbortStat1 = [timer:now_diff(os:timestamp(), StartTime) |AbortStat],
+            {Sum, Cnt} = AbortStat,	
+            AbortStat1 = {Sum+timer:now_diff(os:timestamp(), StartTime), Cnt+1},
 	    {next_state, execute, State#state{final_cdf=FinalCdf1, specula_cdf=SpeculaCdf1, specula_txs=SpeculaTxs1, read_txs=ReadTxs2,
 		    msg_id=NewMsgId, update_seq=TxSeq, todo_op={PreviousOps, OpName}, abort_stat=AbortStat1, seed=StartTime, op_type=update}, 0};
 	false ->
