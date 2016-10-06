@@ -85,7 +85,8 @@ run(Pids) ->
 
 cleanup(Pids) ->
     %lager:info("Sending cleanup to ~w", [Pids]),
-    [ok = gen_fsm:send_event(Pid, 'CLEANUP') || Pid <- Pids],
+    [ok = gen_fsm:send_event(Pid, {'CLEANUP', self()}) || Pid <- Pids],
+    lists:foreach(fun(_) -> receive cleaned_up -> ok end end, Pids),
     ok.
 
 suspend(Pids) ->
@@ -280,11 +281,12 @@ execute({'EXIT', Reason}, State) ->
             {stop, normal, State}
     end;
 
-execute('CLEANUP', State=#state{store_cdf=StoreCdf, final_cdf=FinalCdf, abort_stat=AbortStat, specula_cdf=SpeculaCdf}) ->
+execute({'CLEANUP', Sender}, State=#state{store_cdf=StoreCdf, final_cdf=FinalCdf, abort_stat=AbortStat, specula_cdf=SpeculaCdf}) ->
     {Cnt, _Start, _Period} = StoreCdf,
     ets:insert(final_cdf, {{Cnt, State#state.id}, FinalCdf}), 
     ets:insert(percv_cdf, {{Cnt, State#state.id}, SpeculaCdf}),
     ets:insert(abort_stat, {{abort_stat, State#state.id}, AbortStat}),
+    Sender ! cleaned_up,
     (catch (State#state.driver):terminate(haha, State#state.driver_state)),
     {stop, normal, State};
 
