@@ -21,12 +21,12 @@ seq="1 2"
 #threads="64 128 192 256 320 384 448 512"
 #threads="64 128"
 #threads="1 2 4 8 16 32 64 128"
-threads="128"
+threads="64 128"
 #threads="16"
 #threads="1 2 4 8 16"
 #threads="1 2 4 8 16"
 contentions="1 2 3 4"
-length="0"
+length="8 4"
 start_ind=1
 skipped=1
 skip_len=0
@@ -93,15 +93,15 @@ do_specula=true
 specula_read=true
 clock=new
 len=8
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
-echo micro duration 240 >> config
+echo micro duration 120 >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
