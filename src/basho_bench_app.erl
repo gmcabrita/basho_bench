@@ -55,6 +55,7 @@ start() ->
 
           _ = ets:new(final_cdf, [public, named_table, set, {write_concurrency, true}]),
           _ = ets:new(percv_cdf, [public, named_table, set, {write_concurrency, true}]),
+          _ = ets:new(abort_stat, [public, named_table, set, {write_concurrency, true}]),
 
           %% Start up our application -- mark it as permanent so that the node
           %% will be killed if we go down
@@ -116,6 +117,7 @@ write_cdf() ->
 
     PercvCdf = ets:tab2list(percv_cdf),
     FinalCdf = ets:tab2list(final_cdf),
+    AbortStat = ets:tab2list(abort_stat),
     PercvCdfSort = lists:sort(PercvCdf),
     FinalCdfSort = lists:sort(FinalCdf),
 
@@ -124,6 +126,16 @@ write_cdf() ->
     lists:foreach(fun({{_Count, _}, LatList}) ->
                 output_when(StartTimeInt, EndTimeInt, LatList, PercvLatFile)
                 end, PercvCdfSort),
+
+    {SSum, SCount} = lists:foldl(fun({_, {Sum, Count}}, {TSum, TCount}) ->
+                      {TSum+Sum, Count+TCount}
+                      end, {0,0}, AbortStat), 
+    
+    file:write(PercvLatFile,  io_lib:format("Avg wait ~w, waited ~w\n", [SSum div SCount, SCount])), 
+    lists:foreach(fun({_, {Sum, Count}}) ->
+                file:write(PercvLatFile, io_lib:format("~w, ~w\n", [Sum, Count]))
+                end, AbortStat),
+    
     %file:write(PercvLatFile,  io_lib:format("EndTimeInt is ~w, EndTime is ~w \n", [EndTimeInt/1000000+15, to_integer(now())/1000000])),
     file:close(PercvLatFile),
 

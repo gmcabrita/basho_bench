@@ -49,11 +49,12 @@ def add_throughput(total_dict, folder):
     throughput_file = os.path.join(folder, 'specula_out')
     SKIP_FIRST=3
     SKIP_LAST=3
-    print(throughput_file)
     
     with open(throughput_file) as stream:
-        lines = stream.read().splitlines() 
-        lines = lines[SKIP_FIRST+1:-SKIP_LAST-1] ##Skip the header line        
+        oldlines = stream.read().splitlines() 
+        lines = oldlines[SKIP_FIRST+1:-SKIP_LAST-1] ##Skip the header line        
+        if lines == []:
+            lines = oldlines[SKIP_FIRST:-SKIP_LAST] ##Skip the header line        
 
         for line in lines:
             print(line)

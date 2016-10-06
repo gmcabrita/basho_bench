@@ -234,7 +234,6 @@ run(txn, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServe
 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WriteSet, PartList, MyNodeId),
 
-            %lager:warning("Before calling certify"),
             Response = gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId}, ?TIMEOUT),%, length(DepsList)}),
             %lager:warning("After calling certify"),
             case Response of
