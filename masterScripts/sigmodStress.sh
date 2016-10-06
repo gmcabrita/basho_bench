@@ -21,25 +21,25 @@ seq="1 2"
 #threads="64 128 192 256 320 384 448 512"
 #threads="64 128"
 #threads="1 2 4 8 16 32 64 128"
-threads="64 128"
+#threads="32 64 96 128 160 192 224 256"
+threads="32 64 96 128"
 #threads="16"
 #threads="1 2 4 8 16"
 #threads="1 2 4 8 16"
-contentions="1 2 3 4"
-length="8 4"
+contentions="4"
 start_ind=1
 skipped=1
 skip_len=0
 prob_access=t
 
-rep=2
+rep=1
 parts=4
 
-MBIG=40000
-MSML=2000
+MBIG=100000
+MSML=10000
 
-CBIG=80000
-CSML=1000
+CBIG=20000
+CSML=2000
 
 MR=$MBIG 
 CR=$CBIG
@@ -52,8 +52,6 @@ MN=80
 SN=20
 CN=0
 
-if [ 1 == 2 ];
-then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
 
 clock="old"
@@ -63,7 +61,7 @@ len=0
 length="0"
 
 rm -rf ./config
-echo micro duration 240 >> config
+echo micro duration 120 >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
@@ -87,12 +85,11 @@ do
     done
 done
 done
-fi
 
 do_specula=true
 specula_read=true
 clock=new
-len=8
+length="0 8"
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
