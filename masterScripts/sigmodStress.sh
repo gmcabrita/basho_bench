@@ -22,7 +22,7 @@ seq="1"
 #threads="64 128"
 #threads="1 2 4 8 16 32 64 128"
 #threads="32 64 96 128 160 192 224 256"
-threads="32 64 96 128"
+threads="72 80 88"
 #threads="16"
 #threads="1 2 4 8 16"
 #threads="1 2 4 8 16"
@@ -35,11 +35,11 @@ prob_access=t
 rep=1
 parts=4
 
-MBIG=50000
-MSML=5000
+MBIG=30000
+MSML=3000
 
-CBIG=10000
-CSML=1000
+CBIG=8000
+CSML=800
 
 MR=$MBIG 
 CR=$CBIG
@@ -52,7 +52,7 @@ MN=80
 SN=20
 CN=0
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
 
 clock="old"
 specula_read=false
