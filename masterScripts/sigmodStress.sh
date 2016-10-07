@@ -22,7 +22,7 @@ seq="1"
 #threads="64 128"
 #threads="1 2 4 8 16 32 64 128"
 #threads="32 64 96 128 160 192 224 256"
-threads="72 80 88"
+threads="8 64 128"
 #threads="16"
 #threads="1 2 4 8 16"
 #threads="1 2 4 8 16"
@@ -52,6 +52,8 @@ MN=80
 SN=20
 CN=0
 
+if [ 1 == 2 ];
+then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
 
 clock="old"
@@ -85,6 +87,7 @@ do
     done
 done
 done
+fi
 
 do_specula=true
 specula_read=true
