@@ -23,6 +23,7 @@
 
 -export([new/1,
         terminate/2,
+        get_stat/1,
         run/5]).
 
 -include("basho_bench.hrl").
@@ -186,6 +187,9 @@ new(Id) ->
                num_nodes = NumNodes,
                node_id = NodeId,
                target_node=TargetNode}}.
+
+get_stat(#state{target_node=TargetNode}) ->
+    rpc:call(TargetNode, tx_cert_sup, get_hitcounters, []).
 
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 

@@ -20,6 +20,10 @@ def parse_line(line):
         return ''
     elif line[0]=='t':
         return ''
+    elif line[0]=='A':
+        return ''
+    elif ',' in line:
+        return ''
     else:
         return int(line[:-1])/1000
 
@@ -57,7 +61,7 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
     legends=[]
     handlers=[]
     lines_to_plot=len(specula_folders)*2
-    postfixes=['-latency_percv', '-latency_final']
+    postfixes=['percv_latency-', 'final_latency-']
     nospecula_postfix='-latency_final'
         
     sp_lat_list=[[] for i in range(lines_to_plot)]
@@ -72,7 +76,10 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
             for folder in sub_folders:
                 maxv=0
                 for index in range(2):
-                    sub_files = [glob.glob(folder+'/'+n+postfixes[index]) for n in nodes]
+                    sub_files = [glob.glob(folder+'/'+postfixes[index]+n) for n in nodes]
+                    print(folder)
+                    print(postfixes[index])
+                    print(nodes)
                     print(sub_files)
                     for file_arr in sub_files:
                         file=file_arr[0] 
@@ -142,11 +149,11 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
             hld, =plt.plot(np.sort(lats), np.linspace(0, 1, len(lats), endpoint=False), color=colors[colori], marker=markers[colori], linewidth=width,  markersize=marksize, markevery=stride)
 
         #plt.xlim([0, sumv/numpt*max_factor])
-        plt.xlim([0, 30000])
+        plt.xlim([0, 2000])
         #plt.xlim([0, maxv_list[sl_index]])
         if has_legend:
-            legends=['Observed', 'SL1', 'SL2', 'SL4', 'SL8',  'Real',
-                'No spec', 'SL1', 'SL2', 'SL4', 'SL8']
+            legends=['Observed', '4', '8', '16', '32', '64', '96', 'Real',
+                '4', '8', '16', '32', '64', '96']
 
             even_hlt=[]
             odd_hlt=[]

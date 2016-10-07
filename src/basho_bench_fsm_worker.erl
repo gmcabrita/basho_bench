@@ -86,8 +86,11 @@ run(Pids) ->
 cleanup(Pids) ->
     %lager:info("Sending cleanup to ~w", [Pids]),
     [ok = gen_fsm:send_event(Pid, {'CLEANUP', self()}) || Pid <- Pids],
-    lists:foreach(fun(_) -> receive cleaned_up -> ok end end, Pids),
-    ok.
+    lists:foldl(fun(_, OldStat) -> 
+                receive {stat, Value} -> OldStat = nil, Value;
+                        cleaned_up -> OldStat end 
+                end, 
+                nil, Pids).
 
 suspend(Pids) ->
     [ok = gen_fsm:send_event(Pid, 'SUSPEND') || Pid <- Pids],
@@ -282,12 +285,18 @@ execute({'EXIT', Reason}, State) ->
             {stop, normal, State}
     end;
 
-execute({'CLEANUP', Sender}, State=#state{store_cdf=StoreCdf, final_cdf=FinalCdf, abort_stat=AbortStat, specula_cdf=SpeculaCdf}) ->
+execute({'CLEANUP', Sender}, State=#state{store_cdf=StoreCdf, id=Id, final_cdf=FinalCdf, abort_stat=AbortStat, specula_cdf=SpeculaCdf}) ->
     {Cnt, _Start, _Period} = StoreCdf,
     ets:insert(final_cdf, {{Cnt, State#state.id}, FinalCdf}), 
     ets:insert(percv_cdf, {{Cnt, State#state.id}, SpeculaCdf}),
     ets:insert(abort_stat, {{abort_stat, State#state.id}, AbortStat}),
-    Sender ! cleaned_up,
+    case Id of 
+        1 ->
+            Value = (State#state.driver):get_stat(State#state.driver_state),
+            Sender ! {stat, Value};
+        _ ->
+            Sender ! cleaned_up
+    end,
     (catch (State#state.driver):terminate(haha, State#state.driver_state)),
     {stop, normal, State};
 
