@@ -47,7 +47,8 @@ def get_lists(root_folder, config_str):
 #input_folder='./stat/2016-10-05-130734/'
 #input_folder='./stat/2016-10-05-165257/'
 #input_folder='./stat/2016-10-05-232558/'
-input_folder='./stat/2016-10-06-150759/'
+#input_folder='./stat/2016-10-06-150759/'
+input_folder='./stat/2016-10-07-004840/'
 #input_folder='./stat/2016-10-03-235824/'
 output_folder='./figures/icde/stress_merged_test/'
 ss1=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 40000, 20000, 'true', 'true', 8])
@@ -59,8 +60,8 @@ ss1.reverse()
 
 plot_multi_bars(input_folder, output_folder, 'micro', ns1+ss1, 6, dict1)
 
-ss2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 2000, 500, 'true', 'true', 8])
-ns2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 2000, 500, 'false', 'false', 8])
+ss2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 3000, 800, 'true', 'true', 8])
+ns2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 3000, 800, 'false', 'false', 8])
 dict1['title']='highhigh'
 ss2.reverse()
 for i, ss in enumerate(ss2):

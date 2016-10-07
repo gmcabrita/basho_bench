@@ -63,9 +63,9 @@ start() ->
     end.
 
 stop() ->
-    ok = basho_bench_fsm_worker:cleanup(basho_bench_sup:workers()),
+    Stat = basho_bench_fsm_worker:cleanup(basho_bench_sup:workers()),
     %ok = basho_bench_fsm_worker:suspend(basho_bench_sup:workers()),
-    write_cdf(),
+    write_cdf(Stat),
     application:stop(basho_bench).
 
 is_running() ->
@@ -109,7 +109,7 @@ stop(_State) ->
 %% Internal functions
 %% ===================================================================
 
-write_cdf() ->
+write_cdf(Stat) ->
     [{start_time, StartTime}] = ets:lookup(final_cdf, start_time),
     StartTimeInt = to_integer(StartTime) + 1000000*20, 
     EndTimeInt = to_integer(StartTime) + basho_bench_config:get(duration)*1000000 - 1000000*20, 
@@ -136,6 +136,7 @@ write_cdf() ->
                 file:write(PercvLatFile, io_lib:format("~w, ~w\n", [Sum, Count]))
                 end, AbortStat),
     
+    file:write(PercvLatFile, io_lib:format("A hit counters ~w\n", [Stat])),
     %file:write(PercvLatFile,  io_lib:format("EndTimeInt is ~w, EndTime is ~w \n", [EndTimeInt/1000000+15, to_integer(now())/1000000])),
     file:close(PercvLatFile),
 

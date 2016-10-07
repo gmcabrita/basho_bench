@@ -23,6 +23,7 @@
 
 -export([new/1,
 	    read/5,
+        get_stat/1,
          run/5]).
 
 -include("basho_bench.hrl").
@@ -182,6 +183,9 @@ new(Id) ->
                num_nodes = NumNodes,
                node_id = NodeId,
                target_node=TargetNode}}.
+
+get_stat(_) ->
+    0.
 
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 

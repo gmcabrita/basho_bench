@@ -22,6 +22,7 @@
 
 -export([new/1,
 	    read/5,
+        get_stat/1,
         terminate/2,
         run/5]).
 
@@ -226,6 +227,8 @@ terminate(_, _State) ->
     %        [MasterRead, SlaveRead, RemoteRead, RemoteRead/(MasterRead+SlaveRead+RemoteRead)]), [append]).
     ok.
 
+get_stat(_) ->
+    0.
 
 %% VERIFIED
 run(home, TxnSeq, MsgId, Seed, State=#state{specula=Specula, tx_server=TxServer, prev_state=PrevState,
