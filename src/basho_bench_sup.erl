@@ -26,6 +26,7 @@
 %% API
 -export([start_link/0,
          workers/0,
+	 workers_dict/0,
          start_children/1,
          stop_child/1]).
 
@@ -50,6 +51,13 @@ workers() ->
     Sups = generate_sup_specs(?NUM_WORKER_SUP),
     AllChildren = lists:foldl(fun(Sup, Acc) -> Acc ++ supervisor:which_children(Sup) end, [], Sups),
     [Pid || {_, Pid, worker, [basho_bench_fsm_worker]} <- AllChildren].
+
+workers_dict() ->
+    Sups = generate_sup_specs(?NUM_WORKER_SUP),
+    {AllChildren, D1} = lists:foldl(fun(Sup, {Acc, D}) -> 
+		 Pid = supervisor:which_children(Sup),
+		{[Pid|Acc], dict:store(Pid, Sup, D)} end, [], Sups),
+    {[Pid || {_, Pid, worker, [basho_bench_fsm_worker]} <- AllChildren], D1}.
 
 stop_child(Id) ->
     ok = supervisor:terminate_child(?MODULE, Id),

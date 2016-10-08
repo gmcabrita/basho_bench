@@ -27,7 +27,7 @@
 %% API
 -export([start_link/1,
          run/1,
-         cleanup/1,
+         cleanup/2,
          suspend/1,
          stop/1]).
 
@@ -85,14 +85,26 @@ run(Pids) ->
     [ok = gen_fsm:send_event(Pid, start) || Pid <- Pids],
     ok.
 
-cleanup(Pids) ->
-    %lager:info("Sending cleanup to ~w", [Pids]),
+cleanup({Pids, Dict}, Stat0) ->
+    lager:info("Sending cleanup!!!"),
     [ok = gen_fsm:send_event(Pid, {'CLEANUP', self()}) || Pid <- Pids],
-    lists:foldl(fun(_, OldStat) -> 
-                receive {stat, Value} -> OldStat = nil, Value;
-                        cleaned_up -> OldStat end 
-                end, 
-                nil, Pids).
+    {Stat, RDict} = lists:foldl(fun(_, {OldStat, D}) -> 
+                receive {Pid, {stat, Value}} -> OldStat = nil, {Value, dict:erase(Pid, D)};
+                        {Pid, cleaned_up} -> {OldStat, dict:erase(Pid, D)}
+		        after
+			    50 ->
+			      OldStat
+                end end, 
+                {Stat0, Dict}, Pids),
+    case dict:to_list(RDict) of
+	[] -> Stat;
+	L -> Sups = [V || {_K,V}<-L],
+	     {AllChildren, NewDict} = lists:foldl(fun(Sup, {Acc, D}) -> 
+					 Pid = supervisor:which_children(Sup),
+					{[Pid|Acc], dict:store(Pid, Sup, D)} end, [], Sups),
+    	     lager:info("Retrying cleanup to ~w!!!!", [L]),
+	     cleanup({AllChildren, NewDict}, Stat)
+    end.
 
 suspend(Pids) ->
     [ok = gen_fsm:send_event(Pid, 'SUSPEND') || Pid <- Pids],
@@ -305,9 +317,9 @@ execute({'CLEANUP', Sender}, State=#state{store_cdf=StoreCdf, id=Id, final_cdf=F
     case Id of 
         1 ->
             Value = (State#state.driver):get_stat(State#state.driver_state),
-            Sender ! {stat, Value};
+            Sender ! {self(), {stat, Value}};
         _ ->
-            Sender ! cleaned_up
+            Sender ! {self(), cleaned_up}
     end,
     (catch (State#state.driver):terminate(haha, State#state.driver_state)),
     {stop, normal, State};

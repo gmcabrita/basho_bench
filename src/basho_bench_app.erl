@@ -63,7 +63,8 @@ start() ->
     end.
 
 stop() ->
-    Stat = basho_bench_fsm_worker:cleanup(basho_bench_sup:workers()),
+    lager:warning("Before stop!!!!"),
+    Stat = basho_bench_fsm_worker:cleanup(basho_bench_sup:workers(), nil),
     %ok = basho_bench_fsm_worker:suspend(basho_bench_sup:workers()),
     write_cdf(Stat),
     application:stop(basho_bench).
