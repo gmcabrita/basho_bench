@@ -24,7 +24,8 @@
 -export([new/1,
         terminate/2,
         get_stat/1,
-        run/5]).
+        run/5,
+        run/6]).
 
 -include("basho_bench.hrl").
 
@@ -84,8 +85,8 @@ new(Id) ->
 
     random:seed(os:timestamp()),
     %_PbPorts = basho_bench_config:get(antidote_pb_port),
-    MyNode = basho_bench_config:get(antidote_mynode),
-    Cookie = basho_bench_config:get(antidote_cookie),
+    %MyNode = basho_bench_config:get(antidote_mynode),
+    %Cookie = basho_bench_config:get(antidote_cookie),
     IPs = basho_bench_config:get(antidote_pb_ips),
     MasterToSleep = basho_bench_config:get(master_to_sleep),
     ToSleep = basho_bench_config:get(to_sleep),
@@ -113,16 +114,16 @@ new(Id) ->
 
     TargetNode = lists:nth(((Id-1) rem length(IPs)+1), IPs),
     case Id of 1 ->
-        case net_kernel:start(MyNode) of
-                {ok, _} -> true = erlang:set_cookie(node(), Cookie),  %?INFO("Net kernel started as ~p\n", [node()]);
-                           _Result = net_adm:ping(TargetNode),
-                           HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []),
-                           ets:insert(load_info, {hash_fun, HashFun});
-                {error, {already_started, _}} ->
-                        ?INFO("Net kernel already started as ~p\n", [node()]),  ok;
-                {error, Reason} ->
-                ?FAIL_MSG("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
-        end;
+    %    case net_kernel:start(MyNode) of
+    %            {ok, _} -> true = erlang:set_cookie(node(), Cookie),  %?INFO("Net kernel started as ~p\n", [node()]);
+           _Result = net_adm:ping(TargetNode),
+           HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []),
+           ets:insert(load_info, {hash_fun, HashFun});
+    %            {error, {already_started, _}} ->
+    %                    ?INFO("Net kernel already started as ~p\n", [node()]),  ok;
+    %            {error, Reason} ->
+    %            ?FAIL_MSG("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
+    %    end;
              _ -> ok
     end,
 
@@ -193,7 +194,10 @@ get_stat(#state{target_node=TargetNode}) ->
 
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
-run(txn, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter, total_key=TotalKey,
+run(txn, TxnSeq, MsgId, Seed, State) ->
+    run(txn, TxnSeq, MsgId, Seed, ignore, State).
+
+run(txn, TxnSeq, MsgId, Seed, SpeculaLength, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter, total_key=TotalKey,
         dc_rep_ids=DcRepIds, node_id=MyNodeId,  hash_dict=HashDict, no_rep_ids=NoRepIds, 
         local_hot_rate=LocalHotRate, local_hot_range=LocalHotRange, remote_hot_rate=RemoteHotRate, remote_hot_range=RemoteHotRange,
         cache_hot_range=CacheHotRange, cache_range=CRange, cache_hot_rate=CacheHotRate,
@@ -238,7 +242,7 @@ run(txn, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServe
 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WriteSet, PartList, MyNodeId),
 
-            Response = gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId}, ?TIMEOUT),%, length(DepsList)}),
+            Response = gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId, SpeculaLength}, ?TIMEOUT),%, length(DepsList)}),
             %lager:warning("After calling certify"),
             case Response of
                 {ok, {committed, _CommitTime, Info}} ->

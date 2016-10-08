@@ -40,6 +40,7 @@
                  last_write_time = os:timestamp(),
                  report_interval,
                  errors_since_last_report = false,
+                 auto_tuner,
                  summary_file,
                  errors_file}).
 
@@ -128,6 +129,7 @@ init([]) ->
     {ok, #state{ ops = Ops ++ Measurements,
                  report_interval = ReportInterval,
                  summary_file = SummaryFile,
+                 auto_tuner = basho_bench_tuner:tuner_name(),
                  errors_file = ErrorsFile}}.
 
 handle_call(run, _From, State) ->
@@ -266,6 +268,10 @@ process_stats(Now, State) ->
                               Oks,
                               ImmediateErrors,
                               SpeculaErrors])),
+
+    %% Send to auto_tuner
+    TunerName = State#state.auto_tuner,
+    gen_fsm:send_event({global, TunerName}, {throughput, Oks}),
 
     %% Dump current error counts to console
     case (State#state.errors_since_last_report) of

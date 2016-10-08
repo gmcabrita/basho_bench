@@ -42,6 +42,7 @@ def load_nodes(path):
 
 # input data
 def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, output_name, allnodes, nospeculanodes, has_legend, y_ticks, y_label):
+    plt.clf()
     sumv=0
     numpt=0
     width=4.5
@@ -53,7 +54,6 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
     mpl.rcParams['ytick.labelsize'] = fsize 
     ax = plt.axes()        
     ax.yaxis.grid()
-    sl_index=0
     nsl_index=0
     #colors=['#397fb8', '#ed7e7e', '#944fa1', '#4fb04c', '#000000', '#e31b1b', '#e37f1b']
     colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#000000']
@@ -64,23 +64,19 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
     postfixes=['percv_latency-', 'final_latency-']
     nospecula_postfix='-latency_final'
         
-    sp_lat_list=[[] for i in range(lines_to_plot)]
-    nsp_lat_list=[[] for i in range(len(nospecula_folders))]
-    maxv_list=[0 for i in range(lines_to_plot)]
+    sp_lat_list={}
+    nsp_lat_list={}
+    threads=[]
 
     for nodei in range(len(allnodes)):
         nodes = allnodes[nodei]
-        sl_index=0
         plt.clf()
         for sub_folders in specula_folders:
             for folder in sub_folders:
+                tag = get_tag(0, folder+'/config')
                 maxv=0
                 for index in range(2):
                     sub_files = [glob.glob(folder+'/'+postfixes[index]+n) for n in nodes]
-                    print(folder)
-                    print(postfixes[index])
-                    print(nodes)
-                    print(sub_files)
                     for file_arr in sub_files:
                         file=file_arr[0] 
                         with open(file) as f:
@@ -89,11 +85,15 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
                                 if lat == '':
                                     continue
                                 else:
-                                    maxv_list[sl_index*2+index]=max(maxv_list[sl_index*2+index], lat)
                                     sumv+=lat
                                     numpt+=1
-                                    sp_lat_list[sl_index*2+index].append(lat)
-            sl_index += 1
+                                    #sp_lat_list[sl_index*2+index].append(lat)
+                                    if tag not in sp_lat_list:
+                                        print("Adding key "+str(tag))
+                                        sp_lat_list[tag] = {} 
+                                        sp_lat_list[tag][postfixes[0]] = [] 
+                                        sp_lat_list[tag][postfixes[1]] = [] 
+                                    sp_lat_list[tag][postfixes[index]].append(lat)
 
         for sub_folders in nospecula_folders:
             for folder in sub_folders:
@@ -107,42 +107,31 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
                             if lat == '':
                                 continue
                             else:
-                                maxv_list[nsl_index]=max(maxv_list[nsl_index], lat)
                                 sumv+=lat
                                 numpt+=1
                                 nsp_lat_list[nsl_index].append(lat)
             nsl_index += 1
 
-        #print("No specula folders are "+"".join(nospecula_folders))
-        #nspnodes = nospeculanodes[nodei]
-        #for folder in nospecula_folders:
-        #    ##Hack here!! Change back!!!!
-        #    sub_files = []
-        #    for n in nspnodes:
-        #        print(folder+'/'+n+ nospecula_postfix)
-        #        file = glob.glob(folder+'/'+n+ nospecula_postfix)
-        #        sub_files.append(file)
-        #    for file_arr in sub_files:
-        #        print("File arr is "+"".join(file_arr))
-        #        file=file_arr[0] 
-        #        with open(file) as f:
-        #            for line in f:
-        #                lat = parse_line(line)
-        #                if lat == '':
-        #                    continue
-        #                else:
-        #                    maxv_list[sl_index*2]=max(maxv_list[sl_index*2], lat)
-        #                    sumv+=lat
-        #                    numpt+=1
-        #                    lat_list[sl_index*2].append(lat)
-
-        for i, lats in enumerate(sp_lat_list):
+        i = 0
+        lat_type='percv_latency-'
+        key_list = sp_lat_list.keys()
+        key_list.sort()
+        print(key_list)
+        for key in key_list:
+            lats = sp_lat_list[key][lat_type]
             stride = max( int(len(lats) / 10), 1)
-            if i % 2 == 1:
-                hld, =plt.plot(np.sort(lats), np.linspace(0, 1, len(lats), endpoint=False), color=colors[i//2], marker=markers[i//2], markersize=marksize, markevery=stride, linestyle='--', linewidth=width)
-            else:
-                hld, =plt.plot(np.sort(lats), np.linspace(0, 1, len(lats), endpoint=False), color=colors[i//2], marker=markers[i//2], markersize=marksize, markevery=stride, linewidth=width)
+            hld, =plt.plot(np.sort(lats), np.linspace(0, 1, len(lats), endpoint=False), color=colors[i], marker=markers[i], markersize=marksize, markevery=stride, linewidth=width)
             handlers.append(hld)
+            i += 1
+
+        i = 0
+        lat_type='final_latency-'
+        for key in key_list:
+            lats = sp_lat_list[key][lat_type]
+            stride = max( int(len(lats) / 10), 1)
+            hld, =plt.plot(np.sort(lats), np.linspace(0, 1, len(lats), endpoint=False), color=colors[i], marker=markers[i], markersize=marksize, markevery=stride, linestyle='--', linewidth=width)
+            handlers.append(hld)
+            i += 1
 
         for i, lats in enumerate(nsp_lat_list):
             colori = i+len(sp_lat_list)/2 
@@ -150,30 +139,31 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
 
         #plt.xlim([0, sumv/numpt*max_factor])
         plt.xlim([0, 2000])
-        #plt.xlim([0, maxv_list[sl_index]])
         if has_legend:
-            legends=['Observed', '4', '8', '16', '32', '64', '96', 'Real',
-                '4', '8', '16', '32', '64', '96']
+            legends=['Observed']
+            legends.extend(key_list) 
+            legends.append('Final') 
+            legends.extend(key_list) 
 
-            even_hlt=[]
-            odd_hlt=[]
-            for i,l in enumerate(handlers[:-1]):
-                if i%2 == 0:
-                    even_hlt.append(l)
-                else:
-                    odd_hlt.append(l)
-            handlers = even_hlt +  [handlers[-1]]  +odd_hlt 
+            #even_hlt=[]
+            #odd_hlt=[]
+            #for i,l in enumerate(handlers[:-1]):
+            #    if i%2 == 0:
+            #        even_hlt.append(l)
+            #    else:
+            #        odd_hlt.append(l)
+            #handlers = even_hlt + [handlers[-1]]  +odd_hlt 
             extra = Rectangle((0, 0), 0, 0, fc="w", fill=False, edgecolor='none', linewidth=0)
             handlers.insert(0, extra)
-            handlers.insert(5, extra)
+            handlers.insert(1+len(key_list), extra)
             lgd = plt.legend(handlers, legends, fontsize=lsize, loc=4, labelspacing=0.0, handletextpad=0.2, borderpad=0.2)
             commit_fonts = lgd.get_texts()
-            t0 = commit_fonts[0]
-            t5 = commit_fonts[5]
-            t0._fontproperties = commit_fonts[1]._fontproperties.copy()
-            t5._fontproperties = commit_fonts[1]._fontproperties.copy()
-            t0.set_weight('bold')
-            t5.set_weight('bold')
+            #t0 = commit_fonts[0]
+            #t5 = commit_fonts[5]
+            #t0._fontproperties = commit_fonts[1]._fontproperties.copy()
+            #t5._fontproperties = commit_fonts[1]._fontproperties.copy()
+            #t0.set_weight('bold')
+            #t5.set_weight('bold')
         else:
             plt.legend(handlers, legends, loc=4, labelspacing=0.2, borderpad=0.2, fontsize=lsize)
         plt.grid(True)
@@ -188,3 +178,8 @@ def plot_cdf(specula_folders, nospecula_folders, max_factor, output_folder, outp
             plt.savefig(output_folder+'/'+str(nodei)+ output_name+'.pdf', format='pdf', bbox_extra_artists=(lgd,), bbox_inches='tight')
         else:
             plt.savefig(output_folder+'/'+str(nodei)+ output_name+'.pdf', format='pdf', bbox_inches='tight')
+
+def get_tag(num, config_file):
+    f = open(config_file)
+    data = f.read()
+    return int(data.split(' ')[0])

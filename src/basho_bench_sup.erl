@@ -75,7 +75,6 @@ start_children(Total) ->
             lists:foreach(fun(_) ->  receive  done ->  ok  end end, lists:seq(1, ?NUM_WORKER_SUP))
     end.
 
-
 %% ===================================================================
 %% Supervisor callbacks
 %% ===================================================================
@@ -94,11 +93,17 @@ init([]) ->
             _Driver -> [?CHILD(basho_bench_measurement, worker)]
         end,
 
+    Tuner = case basho_bench_config:get(auto_tune, false) of
+                true -> [?CHILD(basho_bench_tuner, worker)];
+                false -> [] 
+            end,
+
     %{ok, {{one_for_one, 100, 5},
     {ok, {{one_for_one, 1, 5},
         [?CHILD(basho_bench_stats, worker)] ++
         WorkerSups ++
-        MeasurementDriver
+        MeasurementDriver ++
+        Tuner
     }}.
 
 %% ===================================================================

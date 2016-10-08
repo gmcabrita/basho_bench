@@ -43,10 +43,12 @@
                  valgen,
                  think_time,
                  driver,
+                 auto_tune,
                  driver_state,
                  shutdown_on_error,
                  ops,
                  todo_op,
+                 specula_length,
                  mode,
                  rate_sleep,
                  seed,
@@ -134,6 +136,11 @@ init([Id]) ->
                 Time -> Time
             end,
 
+    AutoTune = case basho_bench_config:get(auto_tune, false) of
+                true -> true;
+                false -> false
+            end,
+
     {ToDoOp, Transition} = case basho_bench_config:get(transition, false) of
                 true -> LoadTransition = rubis_tool:load_transition(), 
                      {{[], home}, LoadTransition}; 
@@ -154,9 +161,11 @@ init([Id]) ->
                      ops = Ops, ops_len = size(Ops),
                      rng_seed = RngSeed,
                      think_time = ThinkTime,
+                     auto_tune = AutoTune,
                      do_specula = basho_bench_config:get(do_specula, false),
                      op_type = get_op_type(ToDoOp),
                      specula_txs=[],
+                     specula_length = 0,
                      seed=Now,
                      read_txs=[],
                      abort_stat={0,0},
@@ -232,6 +241,9 @@ execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf,
         _ -> ok
     end,
     worker_next_op(State#state{store_cdf={Count, os:timestamp(), Period}});
+
+execute({specula_length, NewLength}, State) ->
+    worker_next_op(State#state{specula_length=NewLength});
 
 execute(timeout, State=#state{mode=Mode, rate_sleep=RateSleep}) ->
     case Mode of
@@ -328,19 +340,26 @@ code_change(_OldVsn, _, State, _Extra) ->
 %% ====================================================================
 
 worker_next_op2(State, OpTag, Seed, update) ->
-   catch (State#state.driver):run(OpTag, State#state.update_seq, State#state.msg_id, Seed, 
+    AutoTune = State#state.auto_tune,
+    SpeculaLength = State#state.specula_length,
+    case AutoTune of
+        true -> 
+           catch (State#state.driver):run(OpTag, State#state.update_seq, State#state.msg_id, Seed, SpeculaLength, 
                                   State#state.driver_state);
+        false ->
+           catch (State#state.driver):run(OpTag, State#state.update_seq, State#state.msg_id, Seed, 
+                                  State#state.driver_state)
+    end;
 worker_next_op2(State, OpTag, Seed, read) ->
-   catch (State#state.driver):run(OpTag, State#state.read_seq, State#state.msg_id, Seed,
-                                  State#state.driver_state).
+    catch (State#state.driver):run(OpTag, State#state.read_seq, State#state.msg_id, Seed,
+                          State#state.driver_state).
+
 worker_next_op(State) ->
     Transition = State#state.transition,
     ToDo = State#state.todo_op,
     Seed = State#state.seed,
     ThinkTime = State#state.think_time,
     {PreviousOps, OpTag} = ToDo,
-    %TranslatedOp = rubis_tool:translate_op(OpTag),
-    %Start = os:timestamp(),
     FinalCdf0 = State#state.final_cdf,
     SpeculaCdf0 = State#state.specula_cdf,
     AbortStat = State#state.abort_stat,
@@ -353,7 +372,6 @@ worker_next_op(State) ->
     {Cnt, ExprStart, Period} = State#state.store_cdf,
     Result = worker_next_op2(State, OpTag, Seed, CurrentOpType),
     Now = os:timestamp(),
-    %ElapsedUs = erlang:max(0, timer:now_diff(End, Start)),
     TimerDiff = timer:now_diff(Now, ExprStart),
     {FinalCdf, SpeculaCdf, StoreCdf} 
             = case (TimerDiff > Period*Cnt) or (Period*Cnt-TimerDiff < ?DELTA) of
