@@ -87,6 +87,17 @@ halt_or_kill() ->
 %%===================================================================
 
 start(_StartType, _StartArgs) ->
+    MyNode = basho_bench_config:get(antidote_mynode),
+    Cookie = basho_bench_config:get(antidote_cookie),
+    case net_kernel:start(MyNode) of
+        {ok, _} -> 
+            true = erlang:set_cookie(node(), Cookie);  %?INFO("Net kernel started as ~p\n", [node()]);
+        {error, {already_started, _}} ->
+            lager:info("Net kernel already started as ~p\n", [node()]),  ok;
+        {error, Reason} ->
+            lager:error("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
+    end,
+
     {ok, Pid} = basho_bench_sup:start_link(),
     ets:new(load_info, [set, public, named_table]),
     basho_bench_sup:start_children(basho_bench_config:get(concurrent)),

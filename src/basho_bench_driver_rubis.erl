@@ -90,8 +90,6 @@ new(Id) ->
 
     random:seed(os:timestamp()),
     %_PbPorts = basho_bench_config:get(antidote_pb_port),
-    MyNode = basho_bench_config:get(antidote_mynode),
-    Cookie = basho_bench_config:get(antidote_cookie),
     Concurrent = basho_bench_config:get(concurrent),
     IPs = basho_bench_config:get(antidote_pb_ips),
     ToSleep = basho_bench_config:get(to_sleep),
@@ -103,17 +101,10 @@ new(Id) ->
 
     TargetNode = lists:nth(((Id-1) rem length(IPs)+1), IPs),
     case Id of 1 ->
-                case net_kernel:start(MyNode) of
-                        {ok, _} -> true = erlang:set_cookie(node(), Cookie),  %?INFO("Net kernel started as ~p\n", [node()]);
-                                   _Result = net_adm:ping(TargetNode),
-                                   HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []),
-                                   ets:insert(load_info, {hash_fun, HashFun});
-                        {error, {already_started, _}} ->
-                                ?INFO("Net kernel already started as ~p\n", [node()]),  ok;
-                        {error, Reason} ->
-                        ?FAIL_MSG("Failed to start net_kernel for ~p: ~p\n", [?MODULE, Reason])
-                end;
-             _ -> ok
+       _Result = net_adm:ping(TargetNode),
+       HashFun =  rpc:call(TargetNode, hash_fun, get_hash_fun, []),
+       ets:insert(load_info, {hash_fun, HashFun});
+        _ -> ok
     end,
 
     [{hash_fun, {PartList, ReplList, NumDcs}}] = ets:lookup(load_info, hash_fun),

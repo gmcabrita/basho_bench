@@ -32,12 +32,15 @@ root='/Users/liz/Documents/MyDocument/repositories/basho_bench2/specula_tests/si
 #allnodes = load_nodes('/Users/liz/Documents/MyDocument/repositories/basho_bench2/specula_tests/sigmod/all/2016-07-20-192954/nodes')
 allnodes=[['52.212.40.41', '184.73.37.119']]
 
-
 list1=[['specula_tests/icde/10-06/2016-10-07-004244'], ['specula_tests/icde/10-06/2016-10-07-003735/'], ['specula_tests/icde/10-06/2016-10-07-003226/'], ['specula_tests/icde/10-06/2016-10-06-221332'], ['specula_tests/icde/10-06/2016-10-06-221844/']]
 plot_cdf(list1, [], 5, './figures/eurosys/cdf', '111', allnodes, allnodes, True, True, True)
 
-list2=[['specula_tests/icde/10-06/2016-10-06-222358/'], ['specula_tests/icde/10-06/2016-10-06-222913']]
-plot_cdf(list2, [], 5, './figures/eurosys/cdf', '222', allnodes, allnodes, True, True, True)
+allnodes1=[['52.212.70.221', '54.158.143.253']]
+list2=[['specula_tests/icde/10-06/2016-10-07-140227/'], ['specula_tests/icde/10-06/2016-10-07-140739/'], ['specula_tests/icde/10-06/2016-10-07-141252']]
+plot_cdf(list2, [], 5, './figures/eurosys/cdf', '222', allnodes1, allnodes, True, True, True)
+
+list3=[['specula_tests/icde/10-06/2016-10-06-222358/'], ['specula_tests/icde/10-06/2016-10-06-222913']]
+plot_cdf(list3, [], 5, './figures/eurosys/cdf', '333', allnodes, allnodes, True, True, True)
 
 exit()
 
