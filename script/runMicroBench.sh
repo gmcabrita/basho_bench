@@ -70,12 +70,12 @@ sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 ./script/clean_data.sh
-#sleep 10
 
+sleep $((MasterToSleep/1000)) && vmstat 2 > $Folder/cpu_info &
+pid=$!
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/micro.config"
 
-wait
-
+sudo kill 15 $pid
 ./script/gatherThroughput.sh $Folder &
 ./script/gatherLatency.sh $Folder &
 ./script/copyFromAll.sh console.log ./basho_bench/tests/current/ $Folder & 
