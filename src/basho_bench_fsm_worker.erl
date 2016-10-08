@@ -438,34 +438,37 @@ worker_next_op(State) ->
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], Now),
             CurrentOpType = update,
             {FinalCdf2, SpeculaCdf2, SpeculaTxs2} = commit_updates(FinalCdf1, SpeculaCdf1, [{UpdateSeq, Now}], SpeculaTxs1, [], Now),
-            case SpeculaTxs2 of [] -> ok;
-                                _ -> lager:warning("Tx1 is ~w, Tx2 is ~w, UpdateSeq is ~w", [SpeculaTxs1, SpeculaTxs2, UpdateSeq]),
-                                     UpdateSeq = -1
-            end, 
 
-            NextOp = case Transition of
-                        undef ->
-                            element(random:uniform(State#state.ops_len), State#state.ops);
-                        _ ->
-                            {PreviousStates, CurrentOpName} = ToDo,
-                            rubis_tool:get_next_state(PreviousStates, Transition, CurrentOpName)
-                    end,
-            {_, NextOpName} = NextOp,
-            OpThinkTime = op_think_time(ToDo, NextOp, ThinkTime, Transition),
-            timer:sleep(OpThinkTime),
-            case get_op_type(NextOpName) of 
-                update ->
-                    NextUpdateSeq = UpdateSeq +1,
-                    SpeculaTxs4 = [{NextUpdateSeq, NextOpName, Now, ignore}], 
-                    %lager:warning("Update seq is ~w", [NextUpdateSeq]),
-                    {next_state, execute, State#state { driver_state = DriverState, todo_op=NextOp, final_cdf=FinalCdf2, update_seq=NextUpdateSeq, 
-                        specula_cdf=SpeculaCdf2, specula_txs=SpeculaTxs4, read_txs=ReadTxs2, last_update_cnt=NextUpdateSeq
-                        , store_cdf=StoreCdf, op_type=update, seed=Now}, 0};
-                read ->
-                    NextReadSeq = ReadSeq +1,
-                    ReadTxs3 = ReadTxs2 ++ [{NextReadSeq, Now, NextOpName}], 
-                    {next_state, execute, State#state { driver_state = DriverState, todo_op=NextOp, read_seq=NextReadSeq, read_txs=ReadTxs3, 
-                        specula_txs=[], specula_cdf=SpeculaCdf2, final_cdf=FinalCdf2, store_cdf=StoreCdf, seed=Now, op_type=read}, 0}
+            case LastUpdateCnt of
+                UpdateSeq ->
+                    SpeculaTxs2 = [],
+                    NextOp = case Transition of
+                                undef ->
+                                    element(random:uniform(State#state.ops_len), State#state.ops);
+                                _ ->
+                                    {PreviousStates, CurrentOpName} = ToDo,
+                                    rubis_tool:get_next_state(PreviousStates, Transition, CurrentOpName)
+                            end,
+                    {_, NextOpName} = NextOp,
+                    OpThinkTime = op_think_time(ToDo, NextOp, ThinkTime, Transition),
+                    timer:sleep(OpThinkTime),
+                    case get_op_type(NextOpName) of 
+                        update ->
+                            NextUpdateSeq = UpdateSeq +1,
+                            SpeculaTxs4 = [{NextUpdateSeq, NextOpName, Now, ignore}], 
+                            {next_state, execute, State#state { driver_state = DriverState, todo_op=NextOp, final_cdf=FinalCdf2, update_seq=NextUpdateSeq, 
+                                specula_cdf=SpeculaCdf2, specula_txs=SpeculaTxs4, read_txs=ReadTxs2, last_update_cnt=NextUpdateSeq
+                                , store_cdf=StoreCdf, op_type=update, seed=Now}, 0};
+                        read ->
+                            NextReadSeq = ReadSeq +1,
+                            ReadTxs3 = ReadTxs2 ++ [{NextReadSeq, Now, NextOpName}], 
+                            {next_state, execute, State#state { driver_state = DriverState, todo_op=NextOp, read_seq=NextReadSeq, read_txs=ReadTxs3, 
+                                specula_txs=[], specula_cdf=SpeculaCdf2, final_cdf=FinalCdf2, store_cdf=StoreCdf, seed=Now, op_type=read}, 0}
+                    end;
+                _ ->
+                    {NewSeed, NextOp} = get_next_op(SpeculaTxs, UpdateSeq+1, ToDo),
+                    {next_state, execute, State#state{driver_state=DriverState, todo_op=NextOp, update_seq=UpdateSeq+1, op_type=update,
+                                    specula_txs=SpeculaTxs2, read_txs=ReadTxs2, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, store_cdf=StoreCdf, seed=NewSeed}, 0}
             end;
         {Res, DriverState} when Res == silent orelse element(1, Res) == silent ->
             %% Not implemented here
