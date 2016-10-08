@@ -80,8 +80,8 @@
 %% ====================================================================
 
 start_link(Id) ->
-    Name = atom_to_list("FSM"++integer_to_list(Id)),
-    lager:warning("Starting with name ~w", [Name]),
+    Name = list_to_atom("FSM"++integer_to_list(Id)),
+    %lager:warning("Starting with name ~w", [Name]),
     gen_fsm:start_link({local, Name}, ?MODULE, [Id, Name], []).
 
 run(Pids) ->
@@ -91,7 +91,6 @@ run(Pids) ->
 cleanup(Children, Stat0) ->
     lager:info("Sending cleanup!!!, Children is ~w", [Children]),
     lists:foreach(fun(C) -> 
- 		    lager:warning("C is ~w", [C]),
 		    ok = gen_fsm:send_event(C, {'CLEANUP', self()})
 		end, Children),
     {Stat, RecvNames} = lists:foldl(fun(_, {OldStat, RNames}) -> 
@@ -124,6 +123,7 @@ stop(Pids) ->
 %% ====================================================================
 
 init([Id, Name]) ->
+    %Name = list_to_atom("FSM"++integer_to_list(Id)),
     %% Setup RNG seed for worker sub-process to use; incorporate the ID of
     %% the worker to ensure consistency in load-gen
     %%
@@ -134,7 +134,6 @@ init([Id, Name]) ->
     %% and value size generation between test runs.
 
 
-    lager:warning("Id is ~w, name is ~w", [Id, Name]),
     %process_flag(trap_exit, true),
     {A1, A2, A3} =
         case basho_bench_config:get(rng_seed, {42, 23, 12}) of
@@ -249,7 +248,6 @@ init([Id, Name]) ->
     {ok, execute, State1#state{driver_state=DriverState, mode=Mode, rate_sleep=RateSleep}}.
 
 execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf, id=Id}) ->
-    lager:warning("Start"),
     {Count, ignore, Period} = StoreCdf, 
     case Mode of
         max -> ok; 
