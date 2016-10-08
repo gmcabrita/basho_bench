@@ -437,7 +437,11 @@ worker_next_op(State) ->
             ReadTxs2 = finalize_reads(lists:sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], Now),
             CurrentOpType = update,
-            {FinalCdf2, SpeculaCdf2, []} = commit_updates(FinalCdf1, SpeculaCdf1, [{UpdateSeq, Now}], SpeculaTxs1, [], Now),
+            {FinalCdf2, SpeculaCdf2, SpeculaTxs2} = commit_updates(FinalCdf1, SpeculaCdf1, [{UpdateSeq, Now}], SpeculaTxs1, [], Now),
+            case SpeculaTxs2 of [] -> ok;
+                                _ -> lager:warning("Tx1 is ~w, Tx2 is ~w, UpdateSeq is ~w", [SpeculaTxs1, SpeculaTxs2, UpdateSeq]),
+                                     UpdateSeq = -1
+            end, 
 
             NextOp = case Transition of
                         undef ->
