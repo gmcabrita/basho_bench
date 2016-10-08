@@ -68,7 +68,7 @@ init([]) ->
               {basho_bench_fsm_worker, start_link, []},
                %temporary, 5000, worker, [basho_bench_fsm_worker]},
                transient, 5000, worker, [basho_bench_fsm_worker]},
-    {ok, {{simple_one_for_one, 1, 10}, [Worker]}}.
+    {ok, {{simple_one_for_one, 100, 5}, [Worker]}}.
     %{ok, {{simple_one_for_one, 100, 5}, [Worker]}}.
 
 %init([Id, NumWorkers]) ->
