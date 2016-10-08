@@ -224,6 +224,7 @@ get_stat(_) ->
 %% VERIFIED
 run(home, TxnSeq, MsgId, Seed, State=#state{specula=Specula, tx_server=TxServer, prev_state=PrevState,
             part_list=PartList, hash_dict=HashDict, node_id=MyNode, nb_users=NBUsers}) ->
+lager:warning("Home"),
     random:seed(Seed),
     TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     PrevState1 = PrevState#prev_state{myself_id= {MyNode, random:uniform(NBUsers)}},

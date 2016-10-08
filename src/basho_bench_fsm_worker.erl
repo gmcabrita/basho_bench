@@ -39,6 +39,7 @@
          terminate/3, code_change/4]).
 
 -record(state, { id,
+    		 name,
                  keygen,
                  valgen,
                  think_time,
@@ -79,31 +80,34 @@
 %% ====================================================================
 
 start_link(Id) ->
-    gen_fsm:start_link(?MODULE, [Id], []).
+    Name = atom_to_list("FSM"++integer_to_list(Id)),
+    lager:warning("Starting with name ~w", [Name]),
+    gen_fsm:start_link({local, Name}, ?MODULE, [Id, Name], []).
 
 run(Pids) ->
     [ok = gen_fsm:send_event(Pid, start) || Pid <- Pids],
     ok.
 
-cleanup({Pids, Dict}, Stat0) ->
-    lager:info("Sending cleanup!!!"),
-    [ok = gen_fsm:send_event(Pid, {'CLEANUP', self()}) || Pid <- Pids],
-    {Stat, RDict} = lists:foldl(fun(_, {OldStat, D}) -> 
-                receive {Pid, {stat, Value}} -> OldStat = nil, {Value, dict:erase(Pid, D)};
-                        {Pid, cleaned_up} -> {OldStat, dict:erase(Pid, D)}
+cleanup(Children, Stat0) ->
+    lager:info("Sending cleanup!!!, Children is ~w", [Children]),
+    lists:foreach(fun(C) -> 
+ 		    lager:warning("C is ~w", [C]),
+		    ok = gen_fsm:send_event(C, {'CLEANUP', self()})
+		end, Children),
+    {Stat, RecvNames} = lists:foldl(fun(_, {OldStat, RNames}) -> 
+                receive {Name, {stat, Value}} -> OldStat = nil, {Value, [Name|RNames]};
+                        {Name, cleaned_up} -> {OldStat, [Name|RNames]}
 		        after
 			    50 ->
-			      OldStat
+			      {OldStat, RNames}
                 end end, 
-                {Stat0, Dict}, Pids),
-    case dict:to_list(RDict) of
+                {Stat0, []}, Children),
+    RemainNames = Children -- RecvNames,
+    case RemainNames of
 	[] -> Stat;
-	L -> Sups = [V || {_K,V}<-L],
-	     {AllChildren, NewDict} = lists:foldl(fun(Sup, {Acc, D}) -> 
-					 Pid = supervisor:which_children(Sup),
-					{[Pid|Acc], dict:store(Pid, Sup, D)} end, [], Sups),
-    	     lager:info("Retrying cleanup to ~w!!!!", [L]),
-	     cleanup({AllChildren, NewDict}, Stat)
+	_ -> 
+    	     lager:info("Retrying cleanup to ~w!!!!", [RemainNames]),
+	     cleanup(RemainNames, Stat)
     end.
 
 suspend(Pids) ->
@@ -119,7 +123,7 @@ stop(Pids) ->
 %% gen_server callbacks
 %% ====================================================================
 
-init([Id]) ->
+init([Id, Name]) ->
     %% Setup RNG seed for worker sub-process to use; incorporate the ID of
     %% the worker to ensure consistency in load-gen
     %%
@@ -130,6 +134,7 @@ init([Id]) ->
     %% and value size generation between test runs.
 
 
+    lager:warning("Id is ~w, name is ~w", [Id, Name]),
     %process_flag(trap_exit, true),
     {A1, A2, A3} =
         case basho_bench_config:get(rng_seed, {42, 23, 12}) of
@@ -176,6 +181,7 @@ init([Id]) ->
                      auto_tune = AutoTune,
                      do_specula = basho_bench_config:get(do_specula, false),
                      op_type = get_op_type(ToDoOp),
+	    	     name=Name,
                      specula_txs=[],
                      specula_length = 0,
                      seed=Now,
@@ -243,6 +249,7 @@ init([Id]) ->
     {ok, execute, State1#state{driver_state=DriverState, mode=Mode, rate_sleep=RateSleep}}.
 
 execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf, id=Id}) ->
+    lager:warning("Start"),
     {Count, ignore, Period} = StoreCdf, 
     case Mode of
         max -> ok; 
@@ -309,7 +316,7 @@ execute({'EXIT', Reason}, State) ->
             {stop, normal, State}
     end;
 
-execute({'CLEANUP', Sender}, State=#state{store_cdf=StoreCdf, id=Id, final_cdf=FinalCdf, abort_stat=AbortStat, specula_cdf=SpeculaCdf}) ->
+execute({'CLEANUP', Sender}, State=#state{store_cdf=StoreCdf, id=Id, name=Name, final_cdf=FinalCdf, abort_stat=AbortStat, specula_cdf=SpeculaCdf}) ->
     {Cnt, _Start, _Period} = StoreCdf,
     ets:insert(final_cdf, {{Cnt, State#state.id}, FinalCdf}), 
     ets:insert(percv_cdf, {{Cnt, State#state.id}, SpeculaCdf}),
@@ -317,9 +324,9 @@ execute({'CLEANUP', Sender}, State=#state{store_cdf=StoreCdf, id=Id, final_cdf=F
     case Id of 
         1 ->
             Value = (State#state.driver):get_stat(State#state.driver_state),
-            Sender ! {self(), {stat, Value}};
+            Sender ! {Name, {stat, Value}};
         _ ->
-            Sender ! {self(), cleaned_up}
+            Sender ! {Name, cleaned_up}
     end,
     (catch (State#state.driver):terminate(haha, State#state.driver_state)),
     {stop, normal, State};
