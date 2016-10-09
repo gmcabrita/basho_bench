@@ -94,7 +94,7 @@ init(Name) ->
                             sum_throughput = 0}};
         true ->
             AllNodes = basho_bench_config:get(all_nodes),
-            AllTuners = lists:foreach(fun(Node) -> list_to_atom( get_ip(atom_to_list(Node)) ++"auto_tuner") end,
+            AllTuners = lists:foreach(fun(Node) -> list_to_atom( get_ip(atom_to_list(Node), []) ++"auto_tuner") end,
                             AllNodes),
             NumNodes = length(AllNodes),
             [MasterNode|_] = AllNodes, 
@@ -202,12 +202,14 @@ get_new_length(Dict, Small, Big, Mid, Throughput) ->
             end
     end.
 
-get_ip([C|T]) ->
+get_ip([], Prev) ->
+    lists:reverse(Prev);
+get_ip([C|T], Prev) ->
     D = [C],
     case D of
         "@" -> T;
-        _ -> get_ip(T)
+        _ -> get_ip(T, [C|Prev])
     end.
 
 tuner_name() ->
-    list_to_atom( get_ip(atom_to_list(node()))  ++ "auto_tuner").
+    list_to_atom( get_ip(atom_to_list(node()), [])  ++ "auto_tuner").
