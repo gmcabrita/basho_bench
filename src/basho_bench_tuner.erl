@@ -136,6 +136,7 @@ gather_stat({throughput, Throughput}, State=#state{remain_num=RemainNum, num_nod
                             SumThroughput1 = SumThroughput + Throughput,
                             {S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
                             lager:warning("Centralized: Previous length is ~w, current length is ~w", [Mid, NewLength]),
+		    	    lager:warning("Sending to nodes ~w", [AllNodes]),
                             lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, NewLength}) end, AllNodes),
                             {next_state, gather_stat, State=#state{remain_num=NumNodes, sum_throughput=0,
                                 sml=S1, big=B1, mid=NewLength, prev_throughput=PrevTh1}};
@@ -143,7 +144,8 @@ gather_stat({throughput, Throughput}, State=#state{remain_num=RemainNum, num_nod
                             {next_state, gather_stat, State=#state{remain_num=RemainNum-1, sum_throughput=SumThroughput+Throughput}}
                     end;
                 false ->
-                    gen_fsm:send_event(Master, {throughput, Throughput}),
+		    lager:warning("Sending to master ~w", [Master]),
+                    gen_fsm:send_event({global, Master}, {throughput, Throughput}),
                     {next_state, gather_stat, State}
             end
     end;
