@@ -41,6 +41,7 @@
                  report_interval,
                  errors_since_last_report = false,
                  auto_tuner,
+		 seq,
                  summary_file,
                  errors_file}).
 
@@ -129,6 +130,7 @@ init([]) ->
     {ok, #state{ ops = Ops ++ Measurements,
                  report_interval = ReportInterval,
                  summary_file = SummaryFile,
+		 seq=1,
                  auto_tuner = basho_bench_tuner:tuner_name(),
                  errors_file = ErrorsFile}}.
 
@@ -145,15 +147,15 @@ handle_call({op, Op, {error, Reason}}, _From, State) ->
 handle_cast(_, State) ->
     {noreply, State}.
 
-handle_info(report, State) ->
+handle_info(report, State=#state{seq=Seq}) ->
     consume_report_msgs(),
     Now = os:timestamp(),
-    process_stats(Now, State),
-    {noreply, State#state { last_write_time = Now, errors_since_last_report = false }}.
+    process_stats(Now, State, Seq),
+    {noreply, State#state { last_write_time = Now, errors_since_last_report = false, seq=Seq+1 }}.
 
-terminate(_Reason, State) ->
+terminate(_Reason, State=#state{seq=Seq}) ->
     %% Do the final stats report and write the errors file
-    process_stats(os:timestamp(), State),
+    process_stats(os:timestamp(), State, Seq),
     report_total_errors(State),
 
     [ok = file:close(F) || {{csv_file, _}, F} <- erlang:get()],
@@ -241,7 +243,7 @@ lookup_or_zero(Tab, Key) ->
     end.
 
 
-process_stats(Now, State) ->
+process_stats(Now, State, Seq) ->
     %% Determine how much time has elapsed (seconds) since our last report
     %% If zero seconds, round up to one to avoid divide-by-zeros in reporting
     %% tools.
@@ -271,7 +273,7 @@ process_stats(Now, State) ->
 
     %% Send to auto_tuner
     TunerName = State#state.auto_tuner,
-    gen_fsm:send_event({global, TunerName}, {throughput, Oks}),
+    gen_fsm:send_event({global, TunerName}, {throughput, Seq, Oks}),
 
     %% Dump current error counts to console
     case (State#state.errors_since_last_report) of
