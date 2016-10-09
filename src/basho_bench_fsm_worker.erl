@@ -98,7 +98,7 @@ cleanup(Children, Stat0) ->
                 receive {Name, {stat, Value}} -> OldStat = nil, {Value, [Name|RNames]};
                         {Name, cleaned_up} -> {OldStat, [Name|RNames]}
 		        after
-			    50 ->
+			    100 ->
 			      {OldStat, RNames}
                 end end, 
                 {Stat0, []}, Children),
