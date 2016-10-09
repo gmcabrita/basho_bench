@@ -202,6 +202,7 @@ get_new_length(Dict, Small, Big, Mid, Throughput) ->
             Dict1 = dict:store(Mid, Throughput, Dict),
             SmallTh = dict:fetch(Small, Dict),
             %io:format("Small th is ~w, th is ~w ~n", [SmallTh, Throughput]),
+	    lager:warning("Current pos is ~w, th is ~w, small th is ~w", [Mid, Throughput, SmallTh]),
             case Throughput > SmallTh of
                 true ->
                     S1 = Mid,
