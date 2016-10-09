@@ -161,7 +161,7 @@ gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, 
                     end;
                 false ->
 		    lager:warning("Sending to master ~w, current round is ~w", [Master, CurrentRound]),
-                    gen_fsm:send_event({global, Master}, {throughput, Throughput}),
+                    gen_fsm:send_event({global, Master}, {throughput, CurrentRound, Throughput}),
                     {next_state, gather_stat, State#state{current_round=CurrentRound+1}}
             end
     end;
