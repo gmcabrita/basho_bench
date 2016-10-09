@@ -106,8 +106,9 @@ cleanup(Children, Stat0) ->
     case RemainNames of
 	[] -> Stat;
 	_ -> 
-    	 lager:info("Retrying cleanup to ~w!!!!", [RemainNames]),
-	     cleanup(RemainNames, Stat)
+    	     lager:info("So many has not finished... w!!!!", [RemainNames]),
+	     %cleanup(RemainNames, Stat)
+	     Stat
     end.
 
 suspend(Pids) ->
