@@ -389,6 +389,9 @@ worker_next_op(State) ->
     ReadSeq = State#state.read_seq,
     {Cnt, ExprStart, Period} = State#state.store_cdf,
     Result = worker_next_op2(State, OpTag, Seed, CurrentOpType),
+    case Result of crash -> lager:warning("***************WTF, CRASHED!!!!************");
+		   _ -> ok
+    end,
     Now = os:timestamp(),
     TimerDiff = timer:now_diff(Now, ExprStart),
     {FinalCdf, SpeculaCdf, StoreCdf} 
