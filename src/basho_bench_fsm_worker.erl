@@ -89,10 +89,11 @@ run(Pids) ->
     ok.
 
 cleanup(Children, Stat0) ->
-    lager:info("Sending cleanup!!!, Children is ~w", [Children]),
-    lists:foreach(fun(C) -> 
-		    ok = gen_fsm:send_event(C, {'CLEANUP', self()})
-		end, Children),
+    Failed = lists:foldl(fun(C, F) -> 
+		    case catch ( gen_fsm:send_event(C, {'CLEANUP', self()})) of
+                ok -> F;
+                _ -> [C|F] 
+		    end end, [], Children),
     {Stat, RecvNames} = lists:foldl(fun(_, {OldStat, RNames}) -> 
                 receive {Name, {stat, Value}} -> OldStat = nil, {Value, [Name|RNames]};
                         {Name, cleaned_up} -> {OldStat, [Name|RNames]}
@@ -101,11 +102,11 @@ cleanup(Children, Stat0) ->
 			      {OldStat, RNames}
                 end end, 
                 {Stat0, []}, Children),
-    RemainNames = Children -- RecvNames,
+    RemainNames = Children -- RecvNames -- Failed,
     case RemainNames of
 	[] -> Stat;
 	_ -> 
-    	     lager:info("Retrying cleanup to ~w!!!!", [RemainNames]),
+    	 lager:info("Retrying cleanup to ~w!!!!", [RemainNames]),
 	     cleanup(RemainNames, Stat)
     end.
 
