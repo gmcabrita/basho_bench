@@ -398,12 +398,8 @@ worker_next_op(State) ->
                          {[], [], {Cnt+1, ExprStart, Period}};
                 false -> {FinalCdf0, SpeculaCdf0, {Cnt, ExprStart, Period}}
               end,
-    %lager:warning("Trying to do op ~w, type is ~w, ~w, ~w, ~w, MsgId is ~w", [OpTag, CurrentOpType, UpdateSeq, ReadSeq, SpeculaTxs, State#state.msg_id]),
-
-    %lager:info("Result is ~p", [Result]),     
     case Result of
         {prev_state, DriverState} ->
-            %case CurrentOpType of  update ->lager:warning("Op ~p previous state", [UpdateSeq]); read -> ok end,
             case PreviousOps of
                 [] ->
                     case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time({1,1}, Transition));
@@ -418,9 +414,6 @@ worker_next_op(State) ->
             end;
         %%% A no-op has finished
         {Res, DriverState} when Res == ok orelse element(1, Res) == ok ->
-            %case CurrentOpType of  update ->lager:warning("Op ~p no-op committed", [UpdateSeq]); read -> ok end,
-            %basho_bench_stats:op_complete({TranslatedOp, TranslatedOp}, ok, ElapsedUs),
-
             ReadTxs1 = finalize_reads([ReadSeq], ReadTxs, [], ok),
             NextOp = case Transition of
                         undef ->
@@ -430,7 +423,6 @@ worker_next_op(State) ->
                             rubis_tool:get_next_state(PreviousStates, Transition, CurrentOpName)
                     end,
             {_, NextOpName} = NextOp,
-            %TransNextOp = rubis_tool:translate_op(NextOpName),
 
             OpThinkTime = op_think_time(ToDo, NextOp, ThinkTime, Transition),
             case get_op_type(NextOpName) of
@@ -556,8 +548,6 @@ worker_next_op(State) ->
            %lager:warning("Cascading abort: previous seq is ~w, retry op seq is ~w, op name is ~w", [UpdateSeq, RetryOpSeq, NextOpName]),
             {next_state, execute, State#state{driver_state=DriverState, todo_op={RetryOpSeq, NextOpName}, update_seq=RetryOpSeq, op_type=update, specula_txs=SpeculaTxs1, read_txs=ReadTxs2, abort_stat=AbortStat1, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, seed=StartTime, store_cdf=StoreCdf}, 0};
         {aborted, {AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
-            %case CurrentOpType of  update ->lager:warning("Op ~p aborted", [UpdateSeq]); read -> ok end,
-            %lager:warning("Current txn ~w is aborted!!! ", [OpTag]),
             State#state.shutdown_on_error andalso
                 erlang:send_after(500, basho_bench,
                                   {shutdown, "Shutdown on errors requested", 1}),
@@ -566,15 +556,16 @@ worker_next_op(State) ->
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], Now),
                       %% Add abort of this txn to stat, if no cascading abort was found 
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
-            %lager:warning("Update seq is ~w", [UpdateSeq]),
             {Sum, Count} = AbortStat,
             AbortStat1 = {timer:now_diff(Now, Seed)+Sum, Count+1},
             {next_state, execute, State#state{driver_state=DriverState, update_seq=UpdateSeq, store_cdf=StoreCdf,
                     specula_txs=SpeculaTxs1, read_txs=ReadTxs2, abort_stat=AbortStat1, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1}, 0};
         {wrong_msg, DriverState} ->
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
-            {next_state, execute, State#state{driver_state=DriverState}, 100};
-        %% Aborted due to other reasons. Just retry the current one.
+            {next_state, execute, State#state{driver_state=DriverState, final_cdf=FinalCdf, specula_cdf=SpeculaCdf, store_cdf=StoreCdf}, 100};
+        crash -> %% Got timeout 
+            basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
+            {next_state, execute, State#state{final_cdf=FinalCdf, specula_cdf=SpeculaCdf, store_cdf=StoreCdf}, 100};
         {error, Reason, DriverState} ->
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, Reason}),
             State#state.shutdown_on_error andalso
