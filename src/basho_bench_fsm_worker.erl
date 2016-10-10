@@ -48,6 +48,7 @@
                  driver_state,
                  shutdown_on_error,
                  ops,
+                 all_update,
                  todo_op,
                  specula_length,
                  mode,
@@ -171,6 +172,8 @@ init([Id, Name]) ->
     KeyGen = basho_bench_keygen:new(basho_bench_config:get(key_generator), Id),
     ValGen = basho_bench_valgen:new(basho_bench_config:get(value_generator), Id),
     Now = now(),
+    AllUpdate = basho_bench_config:get(all_update, false),
+    lager:warning("All update is ~w", [AllUpdate]),
 
     State = #state { id = Id, keygen = KeyGen, valgen = ValGen,
                      driver = Driver, %cdf=CDF,
@@ -180,8 +183,9 @@ init([Id, Name]) ->
                      think_time = ThinkTime,
                      auto_tune = AutoTune,
                      do_specula = basho_bench_config:get(do_specula, false),
-                     op_type = get_op_type(ToDoOp),
-	    	     name=Name,
+                     all_update = AllUpdate, 
+                     op_type = get_op_type(ToDoOp, AllUpdate),
+	    	         name=Name,
                      specula_txs=[],
                      specula_length = 0,
                      seed=Now,
@@ -199,7 +203,7 @@ init([Id, Name]) ->
 
     {_, OpName} = ToDoOp,
 
-    State1 = case get_op_type(ToDoOp) of
+    State1 = case get_op_type(ToDoOp, AllUpdate) of
                 update -> State#state{specula_txs=[{1, OpName, Now, ignore}], update_seq=1, last_update_cnt=1}; 
                 read -> State#state{read_txs=[{1, Now, OpName}], read_seq=1}
              end,
@@ -391,6 +395,7 @@ worker_next_op(State) ->
     Result = worker_next_op2(State, OpTag, Seed, CurrentOpType),
     Now = os:timestamp(),
     TimerDiff = timer:now_diff(Now, ExprStart),
+    AllUpdate = State#state.all_update,
     {FinalCdf, SpeculaCdf, StoreCdf} 
             = case (TimerDiff > Period*Cnt) or (Period*Cnt-TimerDiff < ?DELTA) of
                  true -> ets:insert(final_cdf, {{Cnt, State#state.id}, FinalCdf0}), 
@@ -414,6 +419,7 @@ worker_next_op(State) ->
             end;
         %%% A no-op has finished
         {Res, DriverState} when Res == ok orelse element(1, Res) == ok ->
+            AllUpdate = false,
             ReadTxs1 = finalize_reads([ReadSeq], ReadTxs, [], ok),
             NextOp = case Transition of
                         undef ->
@@ -425,7 +431,7 @@ worker_next_op(State) ->
             {_, NextOpName} = NextOp,
 
             OpThinkTime = op_think_time(ToDo, NextOp, ThinkTime, Transition),
-            case get_op_type(NextOpName) of
+            case get_op_type(NextOpName, AllUpdate) of
                 update ->
                     NextUpdateSeq = UpdateSeq + 1,
                     timer:sleep(OpThinkTime),
@@ -462,7 +468,7 @@ worker_next_op(State) ->
                     {_, NextOpName} = NextOp,
                     OpThinkTime = op_think_time(ToDo, NextOp, ThinkTime, Transition),
                     timer:sleep(OpThinkTime),
-                    case get_op_type(NextOpName) of 
+                    case get_op_type(NextOpName, AllUpdate) of 
                         update ->
                             NextUpdateSeq = UpdateSeq +1,
                             SpeculaTxs4 = [{NextUpdateSeq, NextOpName, Now, ignore}], 
@@ -510,7 +516,7 @@ worker_next_op(State) ->
                     {_, NextOpName} = NextOp,
                     %TransNextOp = rubis_tool:translate_op(NextOpName),
                     OpThinkTime = op_think_time(ToDo, NextOp, ThinkTime, Transition), 
-                    case get_op_type(NextOpName) of 
+                    case get_op_type(NextOpName, AllUpdate) of 
                         update ->  
                             NextUpdateSeq = UpdateSeq + 1,
                             SpeculaTxs3 = SpeculaTxs2 ++ [{NextUpdateSeq, NextOpName, Now, ignore}],
@@ -735,6 +741,11 @@ finalize_reads(List, [Entry|SpeculaRest], PreviousSpecula, Result) ->
 finalize_reads(List, [], Previous, Result) ->
     lager:error("List is ~p, Previous is ~p, result is ~p", [List, Previous, Result]),
     List = 1.
+
+get_op_type(_, true) ->
+    update;
+get_op_type(OpName, false) ->
+    get_op_type(OpName).
 
 get_op_type(register_user) ->
     update;
