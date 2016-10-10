@@ -23,7 +23,7 @@ seq="1"
 #threads="1 2 4 8 16 32 64 128"
 #threads="32 64 96 128 160 192 224 256"
 #threads="128 96 64 32"
-threads="32 64 96 128"
+threads="16 32 64 128"
 #threads="16"
 #threads="1 2 4 8 16"
 #threads="1 2 4 8 16"
@@ -93,8 +93,8 @@ fi
 do_specula=true
 specula_read=true
 clock=new
-length="8"
-len=8
+length="0"
+len=0
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
