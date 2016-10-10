@@ -13,6 +13,7 @@ import os
 import numpy as np
 import pandas as pd
 import re
+from datetime import * 
 
 def list_folders(path):
     files=glob.glob(path+"/*")
@@ -48,9 +49,14 @@ def get_lists(root_folder, config_str):
 #input_folder='./stat/2016-10-05-165257/'
 #input_folder='./stat/2016-10-05-232558/'
 #input_folder='./stat/2016-10-06-150759/'
-input_folder='./stat/2016-10-07-004840/'
-#input_folder='./stat/2016-10-03-235824/'
-output_folder='./figures/icde/stress_merged_test/'
+#input_folder='./stat/2016-10-08-184852/'
+#input_folder='./stat/2016-10-08-201623/'
+#input_folder='./stat/2016-10-09-194349/'
+#input_folder='./stat/2016-10-09-194354/'
+input_folder='./stat/2016-10-09-194358/'
+time=datetime.now().strftime("%Y%m%d-%H:%M:%S")
+output_folder='./figures/icde/stress_merged_test/' + time
+os.mkdir(output_folder)
 ss1=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 40000, 20000, 'true', 'true', 8])
 ns1=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 40000, 20000, 'false', 'false', 8])
 print(ss1)
@@ -60,8 +66,8 @@ ss1.reverse()
 
 plot_multi_bars(input_folder, output_folder, 'micro', ns1+ss1, 6, dict1)
 
-ss2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 3000, 800, 'true', 'true', 8])
-ns2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 3000, 800, 'false', 'false', 8])
+ss2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 2000, 500, 'true', 'true', 8])
+ns2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 2000, 500, 'false', 'false', 8])
 dict1['title']='highhigh'
 ss2.reverse()
 for i, ss in enumerate(ss2):

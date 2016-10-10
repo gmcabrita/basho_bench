@@ -46,6 +46,7 @@
                 hash_length,
                 my_table,
                 to_sleep,
+                all_update,
                 hash_dict,
                 other_master_ids,
                 comment_final_length,
@@ -132,6 +133,7 @@ new(Id) ->
     %lager:info("Part list is ~w, repl list is ~w", [PartList, ReplList]),
 
     %lager:info("My Rep Ids is ~p, my rep list is ~p", [MyRepIds, MyRepList]),
+    AllUpdate = basho_bench_config:get(all_update, false),
     AllNodes = [N || {N, _} <- PartList],
     [NumReplicates] = [length(L) || {N, L} <- ReplList, N == TargetNode],
     NodeId = index(TargetNode, AllNodes),
@@ -182,6 +184,7 @@ new(Id) ->
                access_master=AccessMaster,
                access_slave=AccessSlave,
                part_list = PartList,
+               all_update = AllUpdate,
                hash_dict = HashDict1,
                comment_final_length = CommentFinalLength,
                description_length = DescriptionLength,
@@ -222,7 +225,7 @@ get_stat(_) ->
     0.
 
 %% VERIFIED
-run(home, TxnSeq, MsgId, Seed, State=#state{specula=Specula, tx_server=TxServer, prev_state=PrevState,
+run(home, TxnSeq, MsgId, Seed, State=#state{specula=Specula, tx_server=TxServer, all_update=AllUpdate, prev_state=PrevState,
             part_list=PartList, hash_dict=HashDict, node_id=MyNode, nb_users=NBUsers}) ->
     random:seed(Seed),
     TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
@@ -235,7 +238,7 @@ run(home, TxnSeq, MsgId, Seed, State=#state{specula=Specula, tx_server=TxServer,
     
     case Specula of
         true ->
-            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
             case Response of
                 {ok, {committed, _CommitTime, Info}} ->
                     {ok, Info, State#state{prev_state=PrevState1#prev_state{region={MyNode, Region}}}};
@@ -258,8 +261,32 @@ run(home, TxnSeq, MsgId, Seed, State=#state{specula=Specula, tx_server=TxServer,
     end;
 
 %% VERIFIED
-run(register, _TxnSeq, _MsgId, _, State) ->
-    {ok, State};
+run(register, TxnSeq, MsgId, _, State=#state{all_update=AllUpdate, tx_server=TxServer}) ->
+    case AllUpdate of 
+        false ->
+            {ok, State};
+        true ->
+            TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
+            Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),%, length(DepsList)}),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                wrong_msg ->
+                    {wrong_msg, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end
+    end;
+            
 
 %% VERIFIED
 %% Register a user that is replicated??
@@ -319,12 +346,35 @@ run(register_user, TxnSeq, MsgId, _Seed, State=#state{nb_users=NBUsers, node_id=
     end;
 
 %% VERIFIED
-run(browse, _TxnSeq, _MsgId, _, State) ->
-    {ok, State};
+run(browse, TxnSeq, MsgId, _, State=#state{all_update=AllUpdate, tx_server=TxServer}) ->
+    case AllUpdate of 
+        false ->
+            {ok, State};
+        true ->
+            TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
+            Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),%, length(DepsList)}),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                wrong_msg ->
+                    {wrong_msg, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end
+    end;
 
 %% VERIFIED
 run(browse_categories, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, nb_categories=NBCategories, 
-            hash_dict=HashDict, part_list=PartList, node_id=MyNode, specula=Specula}) ->
+            all_update=AllUpdate, hash_dict=HashDict, part_list=PartList, node_id=MyNode, specula=Specula}) ->
     random:seed(Seed),
     Seq = lists:seq(1, NBCategories),
     TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
@@ -334,7 +384,7 @@ run(browse_categories, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, nb_
                 end, Seq),
     case Specula of
         true ->
-            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
             case Response of
                 {ok, {committed, _CommitTime, Info}} ->
                     {ok, Info, State};
@@ -358,7 +408,7 @@ run(browse_categories, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, nb_
 
 %% VERIFIED
 %% READ_SPECULA
-run(search_items_in_category, TxnSeq, MsgId, Seed, State=#state{nb_categories=NBCategories, node_id=MyNode, tx_server=TxServer, 
+run(search_items_in_category, TxnSeq, MsgId, Seed, State=#state{nb_categories=NBCategories, node_id=MyNode, tx_server=TxServer, all_update=AllUpdate, 
             hash_dict=HashDict, prev_state=PrevState, part_list=PartList, specula=Specula, dc_rep_ids=DcRepIds,
             no_rep_ids=DcNoRepIds, access_master=AccessMaster, access_slave=AccessSlave}) ->
     random:seed(Seed),
@@ -369,7 +419,7 @@ run(search_items_in_category, TxnSeq, MsgId, Seed, State=#state{nb_categories=NB
     CategoryNewItems = read_from_node(TxServer, TxId, CategoryNewItemKey, CategoryNode, MyNode, PartList, HashDict),
     case Specula of
         true ->
-            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
             NewItem = case CategoryNewItems of
                         empty -> PrevState#prev_state.item_id;  
                         [] -> PrevState#prev_state.item_id; 
@@ -406,7 +456,7 @@ run(search_items_in_category, TxnSeq, MsgId, Seed, State=#state{nb_categories=NB
     end;
 
 %% VERIFIED
-run(browse_regions, TxnSeq, MsgId, Seed, State=#state{nb_regions=NBRegions, tx_server=TxServer, 
+run(browse_regions, TxnSeq, MsgId, Seed, State=#state{nb_regions=NBRegions, tx_server=TxServer, all_update=AllUpdate, 
             hash_dict=HashDict, node_id=MyNode, part_list=PartList, specula=Specula}) ->
     random:seed(Seed),
     Seq = lists:seq(1, NBRegions),
@@ -417,7 +467,7 @@ run(browse_regions, TxnSeq, MsgId, Seed, State=#state{nb_regions=NBRegions, tx_s
                 end, Seq),
     case Specula of
         true ->
-            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
             case Response of
                   {ok, {committed, _CommitTime, Info}} ->
                       {ok, Info, State};
@@ -441,7 +491,7 @@ run(browse_regions, TxnSeq, MsgId, Seed, State=#state{nb_regions=NBRegions, tx_s
 
 %% KINDA VERIFIED
 run(browse_categories_in_region, TxnSeq, MsgId, Seed, State=#state{nb_categories=NBCategories, hash_dict=HashDict, 
-            node_id=MyNode, part_list=PartList, tx_server=TxServer, specula=Specula}) ->
+            node_id=MyNode, part_list=PartList, tx_server=TxServer, all_update=AllUpdate, specula=Specula}) ->
     random:seed(Seed),
     Seq = lists:seq(1, NBCategories),
     TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
@@ -451,7 +501,7 @@ run(browse_categories_in_region, TxnSeq, MsgId, Seed, State=#state{nb_categories
                 end, Seq),
     case Specula of
         true ->
-            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
             case Response of
                 {ok, {committed, _CommitTime, Info}} ->
                     {ok, Info, State};
@@ -476,7 +526,7 @@ run(browse_categories_in_region, TxnSeq, MsgId, Seed, State=#state{nb_categories
 %% KINDA VERIFIED
 %% READ_SPECULA
 run(search_items_in_region, TxnSeq, MsgId, Seed, State=#state{node_id=MyNode, nb_regions=NBRegions, 
-            tx_server=TxServer, prev_state=PrevState, hash_dict=HashDict, part_list=PartList, specula=Specula,
+            tx_server=TxServer, all_update=AllUpdate, prev_state=PrevState, hash_dict=HashDict, part_list=PartList, specula=Specula,
             access_master=AccessMaster, access_slave=AccessSlave, dc_rep_ids=DcRepIds, no_rep_ids=DcNoRepIds}) ->
     random:seed(Seed),
     RegionNode = pick_node(MyNode, DcRepIds, DcNoRepIds, AccessMaster, AccessSlave),
@@ -494,7 +544,7 @@ run(search_items_in_region, TxnSeq, MsgId, Seed, State=#state{node_id=MyNode, nb
               end,
     case Specula of
         true ->
-            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
             case Response of
                 {ok, {committed, _CommitTime, Info}} ->
                     {ok, Info, State#state{prev_state=PrevState#prev_state{item_id=NewItem}}};
@@ -519,7 +569,7 @@ run(search_items_in_region, TxnSeq, MsgId, Seed, State=#state{node_id=MyNode, nb
 
 %% VERIFIED
 %% READ_SPECULA
-run(view_item, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, 
+run(view_item, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, all_update=AllUpdate, 
             part_list=PartList, prev_state=PrevState, node_id=MyNode, hash_dict=HashDict, specula=Specula}) ->
     random:seed(Seed),
     ItemId = PrevState#prev_state.item_id,
@@ -549,7 +599,7 @@ run(view_item, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer,
                           end, BidIds),
             case Specula of
                 true ->
-                    Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                    Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
                     case Response of
                         {ok, {committed, _CommitTime, Info}} ->
                             {ok, Info, State#state{prev_state=PrevState#prev_state{last_user_id=Item#item.i_seller}}};
@@ -574,7 +624,7 @@ run(view_item, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer,
 
 %%% VERIFIED 
 %% READ_SPECULA
-run(view_user_info, TxnSeq, MsgId, Seed, State=#state{prev_state=PrevState, tx_server=TxServer,
+run(view_user_info, TxnSeq, MsgId, Seed, State=#state{prev_state=PrevState, tx_server=TxServer, all_update=AllUpdate,
         hash_dict=HashDict, node_id=MyNode, part_list=PartList, specula=Specula, 
         num_replicates=NumReplicates, num_nodes=NumNodes}) ->
     random:seed(Seed),
@@ -593,7 +643,7 @@ run(view_user_info, TxnSeq, MsgId, Seed, State=#state{prev_state=PrevState, tx_s
             case NumComments of 0 ->  
                             case Specula of
                                 true ->
-                                    Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                                    Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
                                     case Response of
                                         {ok, {committed, _CommitTime, Info}} ->
                                             {ok, Info, State};
@@ -639,7 +689,7 @@ run(view_user_info, TxnSeq, MsgId, Seed, State=#state{prev_state=PrevState, tx_s
                                 end, {User#user.u_num_comments, 1, UserId}, CommentNodeList),
                     case Specula of
                         true ->
-                            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                            Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
                             case Response of
                                 {ok, {committed, _CommitTime, Info}} ->
                                     {ok, Info, State#state{prev_state=PrevState#prev_state{last_user_id=RandUser}}};
@@ -665,7 +715,7 @@ run(view_user_info, TxnSeq, MsgId, Seed, State=#state{prev_state=PrevState, tx_s
 
 %% VERIFIED
 %% READ_SPECULA
-run(view_bid_history, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, 
+run(view_bid_history, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, all_update=AllUpdate, 
             part_list=PartList, prev_state=PrevState, node_id=MyNode, hash_dict=HashDict, specula=Specula}) ->
     random:seed(Seed),
     ItemId = PrevState#prev_state.item_id,
@@ -678,7 +728,7 @@ run(view_bid_history, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer,
         [] ->
             case Specula of
                 true ->
-                    Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                    Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
                     case Response of
                         {ok, {committed, _CommitTime, Info}} ->
                             {ok, Info, State};
@@ -719,7 +769,7 @@ run(view_bid_history, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer,
                         end, undef, ItemBids),
             case Specula of
                 true ->
-                    Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                    Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
                     case Response of
                         {ok, {committed, _CommitTime, Info}} ->
                             {ok, Info, State#state{prev_state=PrevState#prev_state{last_user_id=RandUserId}}};
@@ -743,13 +793,36 @@ run(view_bid_history, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer,
     end;
 
 %% VERIFIED
-run(buy_now_auth, _TxnSeq, _MsgId, _, State) ->
-    {ok, State};
+run(buy_now_auth, TxnSeq, MsgId, _, State=#state{all_update=AllUpdate, tx_server=TxServer}) ->
+    case AllUpdate of 
+        false ->
+            {ok, State};
+        true ->
+            TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
+            Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),%, length(DepsList)}),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                wrong_msg ->
+                    {wrong_msg, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end
+    end;
 
 %% Buy now should be placed as the user's location
 %% VERIFIED
 %% READ_SPECULA
-run(buy_now, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer,
+run(buy_now, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, all_update=AllUpdate,
               part_list=PartList, prev_state=PrevState, node_id=MyNode, hash_dict=HashDict, specula=Specula}) -> 
     random:seed(Seed),
     ItemId = PrevState#prev_state.item_id,
@@ -767,7 +840,7 @@ run(buy_now, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer,
     %              end, BidIds),
     case Specula of
         true ->
-            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
             case Response of
                 {ok, {committed, _CommitTime, Info}} ->
                     {ok, Info, State#state{prev_state=PrevState#prev_state{max_qty=Item#item.i_quantity}}};
@@ -878,13 +951,36 @@ run(store_buy_now, TxnSeq, MsgId, _Seed, State=#state{part_list=PartList, tx_ser
     end;
 
 %% VERIFIED
-run(put_bid_auth, _TxnSeq, _MsgId, _, State) ->
-    {ok, State}; 
+run(put_bid_auth, TxnSeq, MsgId, _, State=#state{all_update=AllUpdate, tx_server=TxServer}) ->
+    case AllUpdate of 
+        false ->
+            {ok, State};
+        true ->
+            TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
+            Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),%, length(DepsList)}),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                wrong_msg ->
+                    {wrong_msg, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end
+    end;
     %lager:info("Mhuahau, put bid auth"),
 
 %% KINDA VERIFIED, MAYBE NEED TO FETCH MORE BIDS
 %% READ_SPECULA
-run(put_bid, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServer, prev_state=PrevState, 
+run(put_bid, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServer, all_update=AllUpdate, prev_state=PrevState, 
         hash_dict=HashDict, node_id=MyNode, specula=Specula}) ->
     random:seed(Seed),
     %lager:warning("In put_bid, state is ~w", [PrevState]),
@@ -905,7 +1001,7 @@ run(put_bid, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxS
             _Seller = read_from_node(TxServer, TxId, SellerKey, ItemNode, MyNode, PartList, HashDict),
             case Specula of
                 true ->
-                    Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                    Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
                     case Response of
                         {ok, {committed, _CommitTime, Info}} ->
                             {ok, Info, State#state{prev_state=PrevState#prev_state{min_bid=Item#item.i_max_bid+1}}};
@@ -1029,12 +1125,35 @@ run(store_bid, TxnSeq, MsgId, _Seed, State=#state{part_list=PartList, tx_server=
             end
     end;
 
-run(put_comment_auth, _TxnSeq, _MsgId, _, State) ->
-    {ok, State};
+run(put_comment_auth, TxnSeq, MsgId, _, State=#state{all_update=AllUpdate, tx_server=TxServer}) ->
+    case AllUpdate of 
+        false ->
+            {ok, State};
+        true ->
+            TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
+            Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),%, length(DepsList)}),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                wrong_msg ->
+                    {wrong_msg, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end
+    end;
 
 %% VERIFIED
 %% READ_SPECULA
-run(put_comment, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServer, 
+run(put_comment, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxServer, all_update=AllUpdate, 
         hash_dict=HashDict, node_id=MyNode, prev_state=PrevState, specula=Specula}) ->
     random:seed(Seed),
     ToUserId = PrevState#prev_state.last_user_id,
@@ -1054,7 +1173,7 @@ run(put_comment, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server
             _Item = read_from_node(TxServer, TxId, ItemKey, ItemNode, MyNode, PartList, HashDict),
             case Specula of
                 true ->
-                    Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+                    Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
                     case Response of
                         {ok, {committed, _CommitTime, Info}} ->
                             {ok, Info, State};
@@ -1132,10 +1251,33 @@ run(store_comment, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_serv
         {error, Reason, State}
     end;
 
-run(sell, _TxnSeq, _MsgId, _, State) ->
-    {ok, State};
+run(sell, TxnSeq, MsgId, _, State=#state{all_update=AllUpdate, tx_server=TxServer}) ->
+    case AllUpdate of 
+        false ->
+            {ok, State};
+        true ->
+            TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
+            Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),%, length(DepsList)}),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                wrong_msg ->
+                    {wrong_msg, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end
+    end;
 
-run(select_category_to_sell_item, TxnSeq, MsgId, Seed, State=#state{nb_categories=NBCategories, tx_server=TxServer, 
+run(select_category_to_sell_item, TxnSeq, MsgId, Seed, State=#state{nb_categories=NBCategories, tx_server=TxServer, all_update=AllUpdate, 
             hash_dict=HashDict, part_list=PartList, node_id=MyNode, specula=Specula}) ->
     random:seed(Seed),
     Seq = lists:seq(1, NBCategories),
@@ -1146,7 +1288,7 @@ run(select_category_to_sell_item, TxnSeq, MsgId, Seed, State=#state{nb_categorie
                 end, Seq),
     case Specula of
         true ->
-            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
             case Response of
                 {ok, {committed, _CommitTime, Info}} ->
                     {ok, Info, State};
@@ -1168,8 +1310,31 @@ run(select_category_to_sell_item, TxnSeq, MsgId, Seed, State=#state{nb_categorie
             {ok, State}
     end;
 
-run(sell_item_form, _TxnSeq, _MsgId, _, State) ->
-    {ok, State};
+run(sell_item_form, TxnSeq, MsgId, _, State=#state{all_update=AllUpdate, tx_server=TxServer}) ->
+    case AllUpdate of 
+        false ->
+            {ok, State};
+        true ->
+            TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
+            Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),%, length(DepsList)}),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                wrong_msg ->
+                    {wrong_msg, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end
+    end;
 
 %% When a user registers an item, the item should be placed in the same server as the user
 %% VERIFIED
@@ -1272,13 +1437,35 @@ run(register_item, TxnSeq, MsgId, _Seed, State=#state{tx_server=TxServer, node_i
             {error, Reason, State}
     end;
 
-run(about_me_auth, _TxnSeq, _MsgId, _, State) ->
-    %lager:info("Mhuahau, abou me auth"),
-    {ok, State};
+run(about_me_auth, TxnSeq, MsgId, _, State=#state{all_update=AllUpdate, tx_server=TxServer}) ->
+    case AllUpdate of 
+        false ->
+            {ok, State};
+        true ->
+            TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
+            Response =  gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT),%, length(DepsList)}),
+            case Response of
+                {ok, {committed, _CommitTime, Info}} ->
+                    {ok, Info, State};
+                {ok, {specula_commit, _SpeculaCT, Info}} ->
+                    {specula_commit, Info, State};
+                {cascade_abort, Info} ->
+                    {cascade_abort, Info, State};
+                wrong_msg ->
+                    {wrong_msg, State};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[TxServer]),
+                    {error, timeout, State};
+                {aborted, Info} ->
+                    {aborted, Info, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end
+    end;
 
 %% READ_SPECULA
 run(about_me, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, node_id=MyNode, prev_state=PrevState,
-              specula=Specula, part_list=PartList, hash_dict=HashDict}) ->
+              specula=Specula, all_update=AllUpdate, part_list=PartList, hash_dict=HashDict}) ->
     random:seed(Seed),
     TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     %% Display user info
@@ -1380,7 +1567,7 @@ run(about_me, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, node_id=MyNo
         end, {CU2, RU2}, ToFetchCommentList),
     case Specula of
         true ->
-            Response =  gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT),
+            Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
             case Response of
                 {ok, {committed, _CommitTime, Info}} ->
                     {ok, Info, State#state{prev_state=PrevState#prev_state{last_user_id=RU3, item_id=RI3}}};
@@ -1554,6 +1741,11 @@ add_to_writeset(Key, Value, {_, PartList}, WSet) ->
 random(L) ->
     Len = length(L),
     lists:nth(random:uniform(Len), L).
+
+certify_read(TxServer, TxId, MsgId, true) ->
+    gen_server:call(TxServer, {certify_update, TxId, [], [], MsgId}, ?TIMEOUT);
+certify_read(TxServer, TxId, MsgId, false) ->
+    gen_server:call(TxServer, {certify_read, TxId, MsgId}, ?TIMEOUT).
 
 load_config() ->
     ConfigFile = basho_bench_config:get(config_file), 

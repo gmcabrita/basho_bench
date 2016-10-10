@@ -13,6 +13,7 @@ import os
 import numpy as np
 import pandas as pd
 import re
+from datetime import datetime
 
 def list_folders(path):
     files=glob.glob(path+"/*")
@@ -44,15 +45,15 @@ def get_lists(root_folder, config_str):
 #input_folder='./stat/2016-09-26-230722/'
 #input_folder='./stat/2016-09-30-150417/'
 #input_folder='./stat/2016-09-29-184315/'
-input_folder='./stat/2016-10-03-235816/rubis/'
-output_folder='./figures/icde/macro/'
+input_folder='./stat/2016-10-09-203848/'
+time=datetime.now().strftime("%Y%m%d-%H:%M:%S")
+output_folder='./figures/icde/macro/' + time
+os.mkdir(output_folder)
 ss2=get_matching_series([input_folder, 'rubis', 3, 'true', 5])
-[ns2]=get_matching_series([input_folder, 'rubis', 3, 'false', 5])
+ns2=get_matching_series([input_folder, 'rubis', 3, 'false', 5])
 dict1={'title':'rubis', 'no_title':True, 'x_labels':False, 'y_labels':False, 'y_lim':1.5, 'legend_type':'warehouse', 'legend_loc':'upper center', 'commit_legend':['Baseline', 'SL0', 'SL4'], 'abort_legend':['2W: UC', '2W: AC', '4W: UC', '4W: AC'], 'has_legend':True}
 dict1['title']='rubis'
 ss2.reverse()
-print(ss2)
-print(ns2)
 #ss2=ss2[:-1]
 for i, ss in enumerate(ss2):
     break
@@ -60,7 +61,7 @@ for i, ss in enumerate(ss2):
     s_ns1 = sort_by_num(ns2)
     spec_length = get_field(s_ss1[0], 8)
     plot_stress(s_ss1, s_ns1, input_folder, output_folder, 'rubis'+str(spec_length))
-plot_multi_lines(input_folder, output_folder, 'rubis', [ns2]+ss2, 5, dict1)
+plot_multi_lines(input_folder, output_folder, 'rubis', ns2+ss2, 5, dict1)
 
 
 input_folder='./stat/2016-10-04-225001/tpcc/'
