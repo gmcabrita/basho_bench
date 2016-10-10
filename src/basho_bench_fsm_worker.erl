@@ -99,7 +99,7 @@ cleanup(Children, Stat0) ->
                 receive {Name, {stat, Value}} -> OldStat = nil, {Value, [Name|RNames]};
                         {Name, cleaned_up} -> {OldStat, [Name|RNames]}
 		        after
-			    50 ->
+			    100 ->
 			      {OldStat, RNames}
                 end end, 
                 {Stat0, []}, Children),
@@ -107,8 +107,9 @@ cleanup(Children, Stat0) ->
     case RemainNames of
 	[] -> Stat;
 	_ -> 
-    	 lager:info("Retrying cleanup to ~w!!!!", [RemainNames]),
-	     cleanup(RemainNames, Stat)
+    	     lager:info("So many has not finished... w!!!!", [RemainNames]),
+	     %cleanup(RemainNames, Stat)
+	     Stat
     end.
 
 suspend(Pids) ->
@@ -393,6 +394,9 @@ worker_next_op(State) ->
     ReadSeq = State#state.read_seq,
     {Cnt, ExprStart, Period} = State#state.store_cdf,
     Result = worker_next_op2(State, OpTag, Seed, CurrentOpType),
+    case Result of crash -> lager:warning("***************WTF, CRASHED!!!!************");
+		   _ -> ok
+    end,
     Now = os:timestamp(),
     TimerDiff = timer:now_diff(Now, ExprStart),
     AllUpdate = State#state.all_update,

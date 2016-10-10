@@ -47,6 +47,8 @@
                  mid,
                  num_nodes,
                  all_nodes,
+	    	 current_round,
+		 round_dict,
                  remain_num,
                  sum_throughput = 0
                }).
@@ -58,17 +60,14 @@
 %% ====================================================================
 
 start_link() ->
-    lager:warning("AtomList is ~p", [atom_to_list(node())]),
     Name = tuner_name(), 
-    lager:warning("Name is ~w!!", [Name]),
-    lager:warning("After name!!"),
     gen_fsm:start_link({global, Name}, ?MODULE, [Name], []).
 
 %% ====================================================================
 %% gen_server callbacks
 %% ====================================================================
 
-init(Name) ->
+init([Name]) ->
     lager:warning("In init!!"),
     Myself = Name, 
     Centralized = basho_bench_config:get(centralized),
@@ -94,18 +93,21 @@ init(Name) ->
                             sum_throughput = 0}};
         true ->
             AllNodes = basho_bench_config:get(all_nodes),
-            AllTuners = lists:foreach(fun(Node) -> list_to_atom( get_ip(atom_to_list(Node)) ++"auto_tuner") end,
-                            AllNodes),
+            AllTuners = [ list_to_atom( get_ip(atom_to_list(Node), []) ++"auto_tuner") || Node <- AllNodes],
             NumNodes = length(AllNodes),
             [MasterNode|_] = AllNodes, 
             Master = list_to_atom( atom_to_list(MasterNode) ++ "auto_tuner"),
             MyWorkers = basho_bench_sup:workers(),
+	    RoundDict = dict:store(1, {0, 0}, dict:new()),
             {ok, gather_stat, #state{ prev_throughput=PrevThroughput,
                             myself = Myself,
                             master = Master,
                             my_workers=MyWorkers,
                             centralized = Centralized,
                             num_nodes=NumNodes,
+			    remain_num=NumNodes,
+			    current_round=1,
+			    round_dict=RoundDict,
                             sml = Sml,
                             big = Big,
                             mid = Mid,
@@ -113,8 +115,8 @@ init(Name) ->
                             sum_throughput = 0}}
     end.
 
-gather_stat({throughput, Throughput}, State=#state{remain_num=RemainNum, num_nodes=NumNodes, centralized=Centralized, 
-                all_nodes=AllNodes, my_workers=MyWorkers, prev_throughput=PrevTh, 
+gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, num_nodes=NumNodes, centralized=Centralized, 
+                all_nodes=AllNodes, my_workers=MyWorkers, prev_throughput=PrevTh, current_round=CurrentRound, round_dict=RoundDict, 
                 master=Master, myself=Myself, sum_throughput=SumThroughput, sml=Sml, big=Big, mid=Mid}) ->
     case Centralized of
         false ->
@@ -129,6 +131,7 @@ gather_stat({throughput, Throughput}, State=#state{remain_num=RemainNum, num_nod
             lists:foreach(fun(Worker) -> gen_fsm:send_event(Worker, {specula_length, NewLength}) end, Workers),
             {next_state, gather_stat, State#state{sml=S1, big=B1, mid=NewLength, prev_throughput=PrevTh1, my_workers=Workers}};
         true ->
+    	    lager:warning("Received ~w for round ~w, remain is ~w", [Throughput, Round, RemainNum]),
             case Master == Myself of
                 true ->
                     case RemainNum of
@@ -136,15 +139,30 @@ gather_stat({throughput, Throughput}, State=#state{remain_num=RemainNum, num_nod
                             SumThroughput1 = SumThroughput + Throughput,
                             {S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
                             lager:warning("Centralized: Previous length is ~w, current length is ~w", [Mid, NewLength]),
+		    	    lager:warning("Sending to nodes ~w", [AllNodes]),
                             lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, NewLength}) end, AllNodes),
-                            {next_state, gather_stat, State=#state{remain_num=NumNodes, sum_throughput=0,
-                                sml=S1, big=B1, mid=NewLength, prev_throughput=PrevTh1}};
+			    case dict:find(CurrentRound+1, RoundDict) of
+				{ok, {Sum, Replied}} ->
+				    {next_state, gather_stat, State#state{remain_num=NumNodes-Replied, sum_throughput=Sum,
+					sml=S1, big=B1, mid=NewLength, prev_throughput=PrevTh1, current_round=CurrentRound+1}};
+				error ->
+				    {next_state, gather_stat, State#state{remain_num=NumNodes, sum_throughput=0,
+					sml=S1, big=B1, mid=NewLength, prev_throughput=PrevTh1, current_round=CurrentRound+1}}
+			    end;
                         _ ->
-                            {next_state, gather_stat, State=#state{remain_num=RemainNum-1, sum_throughput=SumThroughput+Throughput}}
+			    case Round > CurrentRound of
+				true ->
+				    RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict),
+				    {next_state, gather_stat, State#state{round_dict=RoundDict1}};
+				false ->
+				    Round = CurrentRound,
+                             	    {next_state, gather_stat, State#state{remain_num=RemainNum-1, sum_throughput=SumThroughput+Throughput}}
+			    end
                     end;
                 false ->
-                    gen_fsm:send_event(Master, {throughput, Throughput}),
-                    {next_state, gather_stat, State}
+		    lager:warning("Sending to master ~w, current round is ~w", [Master, CurrentRound]),
+                    gen_fsm:send_event({global, Master}, {throughput, CurrentRound, Throughput}),
+                    {next_state, gather_stat, State#state{current_round=CurrentRound+1}}
             end
     end;
 
@@ -184,6 +202,7 @@ get_new_length(Dict, Small, Big, Mid, Throughput) ->
             Dict1 = dict:store(Mid, Throughput, Dict),
             SmallTh = dict:fetch(Small, Dict),
             %io:format("Small th is ~w, th is ~w ~n", [SmallTh, Throughput]),
+	    lager:warning("Current pos is ~w, th is ~w, small th is ~w", [Mid, Throughput, SmallTh]),
             case Throughput > SmallTh of
                 true ->
                     S1 = Mid,
@@ -202,12 +221,14 @@ get_new_length(Dict, Small, Big, Mid, Throughput) ->
             end
     end.
 
-get_ip([C|T]) ->
+get_ip([], Prev) ->
+    lists:reverse(Prev);
+get_ip([C|T], Prev) ->
     D = [C],
     case D of
         "@" -> T;
-        _ -> get_ip(T)
+        _ -> get_ip(T, [C|Prev])
     end.
 
 tuner_name() ->
-    list_to_atom( get_ip(atom_to_list(node()))  ++ "auto_tuner").
+    list_to_atom( get_ip(atom_to_list(node()), [])  ++ "auto_tuner").

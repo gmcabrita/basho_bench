@@ -63,7 +63,6 @@ start() ->
     end.
 
 stop() ->
-    lager:warning("Before stop!!!!"),
     ChildrenList = [list_to_atom("FSM"++integer_to_list(I))  ||I <- lists:seq(1, basho_bench_config:get(concurrent))],
     Stat = basho_bench_fsm_worker:cleanup(ChildrenList, nil),
     %ok = basho_bench_fsm_worker:suspend(basho_bench_sup:workers()),

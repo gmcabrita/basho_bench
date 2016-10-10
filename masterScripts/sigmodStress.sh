@@ -22,7 +22,8 @@ seq="1"
 #threads="64 128"
 #threads="1 2 4 8 16 32 64 128"
 #threads="32 64 96 128 160 192 224 256"
-threads="128 96 64 32"
+#threads="128 96 64 32"
+threads="32 64 96 128"
 #threads="16"
 #threads="1 2 4 8 16"
 #threads="1 2 4 8 16"
@@ -32,11 +33,11 @@ skipped=1
 skip_len=0
 prob_access=t
 
-rep=1
+rep=2
 parts=4
 
 MBIG=50000
-MSML=5000
+MSML=2000
 
 CBIG=5000
 CSML=500
@@ -93,12 +94,14 @@ do_specula=true
 specula_read=true
 clock=new
 length="8"
-len=0
+len=8
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
 echo micro duration 120 >> config
-echo micro auto_tune false >> config
+echo micro auto_tune true >> config
+echo micro centralized true >> config
+echo micro all_nodes replace >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 

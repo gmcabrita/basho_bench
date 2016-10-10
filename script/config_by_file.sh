@@ -35,8 +35,18 @@ do
     Value=${List[2]}
     if [ "$Type" -eq 0 ]
     then
-        sudo sed -i -e 's/{'"$Key"'.*/{'"$Key"', '"$Value"'}./' "$File"
-        sudo sed -i -e 's/{'"$Key"'.*/{'"$Key"', '"$Value"'}./' "$File2"
+	if [ $Key == "all_nodes" ]
+	then
+	    A=`cat ./script/allnodes`
+	    S=""
+	    for L in $A; do S=$S','\'$L\'; done; 
+	    V=`echo "${S:1}"`
+            sudo sed -i -e 's/{'"all_nodes"'.*/{'"all_nodes"', '["$V"]'}./' "$File"
+            sudo sed -i -e 's/{'"all_nodes"'.*/{'"all_nodes"', '["$V"]'}./' "$File2"
+	else
+            sudo sed -i -e 's/{'"$Key"'.*/{'"$Key"', '"$Value"'}./' "$File"
+            sudo sed -i -e 's/{'"$Key"'.*/{'"$Key"', '"$Value"'}./' "$File2"
+	fi
     else
         sudo sed -i -e 's/{'"$Key"'.*/{'"$Key"', '"$Value"'},/' "$File"
         sudo sed -i -e 's/{'"$Key"'.*/{'"$Key"', '"$Value"'},/' "$File2"
