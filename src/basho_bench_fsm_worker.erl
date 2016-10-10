@@ -174,7 +174,6 @@ init([Id, Name]) ->
     ValGen = basho_bench_valgen:new(basho_bench_config:get(value_generator), Id),
     Now = now(),
     AllUpdate = basho_bench_config:get(all_update, false),
-    lager:warning("All update is ~w", [AllUpdate]),
 
     State = #state { id = Id, keygen = KeyGen, valgen = ValGen,
                      driver = Driver, %cdf=CDF,
