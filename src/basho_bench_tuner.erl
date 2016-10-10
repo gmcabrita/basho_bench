@@ -92,6 +92,7 @@ init([Name]) ->
                             previous = -1,
                             current = 0,
                             num_nodes=1,
+                            current_round=1,
                             remain_num=1,
                             my_workers = MyWorkers,
                             all_nodes = [],
@@ -130,15 +131,16 @@ gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, 
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, Throughput),
             {Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, Throughput),
             lager:warning("Distribute: Previous length is ~w, current length is ~w", [Prev, Current1]),
+            ets:insert(stat, {{auto_tune, CurrentRound}, Current1}),
             Workers = case MyWorkers of [] -> basho_bench_sup:workers();
                                         _ -> MyWorkers
                       end,
             lists:foreach(fun(Worker) -> gen_fsm:send_event(Worker, {specula_length, Current1}) end, Workers),
             case Current of
                 Current1 ->
-                    {next_state, gather_stat, State#state{previous=Prev, current=Current1, prev_throughput=PrevTh1, my_workers=Workers}};
+                    {next_state, gather_stat, State#state{previous=Prev, current_round=CurrentRound+1, current=Current1, prev_throughput=PrevTh1, my_workers=Workers}};
                 _ ->
-                    {next_state, gather_stat, State#state{previous=Current, current=Current1, prev_throughput=PrevTh1, my_workers=Workers}}
+                    {next_state, gather_stat, State#state{previous=Current, current_round=CurrentRound+1, current=Current1, prev_throughput=PrevTh1, my_workers=Workers}}
             end;
         true ->
     	    lager:warning("Received ~w for round ~w, remain is ~w", [Throughput, Round, RemainNum]),
@@ -150,9 +152,9 @@ gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, 
                             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
                             {Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
                             lager:warning("Centralized: Previous length is ~w, current length is ~w", [Prev, Current1]),
-		    	            lager:warning("Sending to nodes ~w", [AllNodes]),
                             lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, Current1}) end, AllNodes),
                             {Prev1, Current2} = case Current1 of Current -> {Prev, Current}; _ -> {Current, Current1} end, 
+                            ets:insert(stat, {{auto_tune, CurrentRound}, Current1}),
                             case dict:find(CurrentRound+1, RoundDict) of
                             {ok, {Sum, Replied}} ->
                                 {next_state, gather_stat, State#state{remain_num=NumNodes-Replied, sum_throughput=Sum,

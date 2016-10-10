@@ -66,10 +66,11 @@
                  specula_cdf, 
                  do_specula,
                  store_cdf,
+                 abort_stat,
                  %op_list,
                  %cdf,
                  txn_start,
-                 abort_stat,
+                 ebort_stat,
                  transition,
                  ops_len,
                  rng_seed}).
@@ -323,7 +324,7 @@ execute({'CLEANUP', Sender}, State=#state{store_cdf=StoreCdf, id=Id, name=Name, 
     {Cnt, _Start, _Period} = StoreCdf,
     ets:insert(final_cdf, {{Cnt, State#state.id}, FinalCdf}), 
     ets:insert(percv_cdf, {{Cnt, State#state.id}, SpeculaCdf}),
-    ets:insert(abort_stat, {{abort_stat, State#state.id}, AbortStat}),
+    ets:insert(stat, {{abort_stat, State#state.id}, AbortStat}),
     case Id of 
         1 ->
             Value = (State#state.driver):get_stat(State#state.driver_state),

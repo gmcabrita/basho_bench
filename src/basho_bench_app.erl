@@ -55,7 +55,7 @@ start() ->
 
           _ = ets:new(final_cdf, [public, named_table, set, {write_concurrency, true}]),
           _ = ets:new(percv_cdf, [public, named_table, set, {write_concurrency, true}]),
-          _ = ets:new(abort_stat, [public, named_table, set, {write_concurrency, true}]),
+          _ = ets:new(stat, [public, named_table, set, {write_concurrency, true}]),
 
           %% Start up our application -- mark it as permanent so that the node
           %% will be killed if we go down
@@ -129,7 +129,8 @@ write_cdf(Stat) ->
 
     PercvCdf = ets:tab2list(percv_cdf),
     FinalCdf = ets:tab2list(final_cdf),
-    AbortStat = ets:tab2list(abort_stat),
+    AllStat = ets:tab2list(stat),
+    {AbortStat, TuneStat} = filter_stat(AllStat, [], []),
     PercvCdfSort = lists:sort(PercvCdf),
     FinalCdfSort = lists:sort(FinalCdf),
 
@@ -150,6 +151,10 @@ write_cdf(Stat) ->
     
     file:write(PercvLatFile, io_lib:format("A hit counters ~w\n", [Stat])),
     %file:write(PercvLatFile,  io_lib:format("EndTimeInt is ~w, EndTime is ~w \n", [EndTimeInt/1000000+15, to_integer(now())/1000000])),
+    SortTune = lists:sort(TuneStat),
+    lists:foreach(fun({{auto_tune, Round}, Length}) ->
+                file:write(PercvLatFile, io_lib:format("AutoTune: Round ~w, Len ~w\n", [Round, Length]))
+                end, SortTune),
     file:close(PercvLatFile),
 
     {ok, FinalLatFile} = file:open("final_latency", [raw, binary, write]),
@@ -187,3 +192,10 @@ ensure_started(Application) ->
 
 to_integer({A, B, C}) ->
     (A * 1000000 + B) * 1000000 + C.
+
+filter_stat([], AbortStat, TuneStat) ->
+    {AbortStat, TuneStat};
+filter_stat([{{abort_stat, _}, _}=H|T], AbortStat, TuneStat) ->
+    filter_stat(T, [H|AbortStat], TuneStat);
+filter_stat([{{auto_tune, _}, _}=H|T], AbortStat, TuneStat) ->
+    filter_stat(T, AbortStat, [H|TuneStat]).
