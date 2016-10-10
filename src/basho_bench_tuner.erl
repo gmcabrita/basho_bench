@@ -30,6 +30,7 @@
 
 %% gen_server callbacks
 -export([init/1, gather_stat/2, 
+         binary_search/5,
          tuner_name/0,
          handle_info/3,
          handle_event/3,
@@ -42,9 +43,11 @@
                  myself,
                  master,
                  centralized,
-                 big,
-                 sml,
-                 mid,
+                 %big,
+                 %sml,
+                 %mid,
+                 previous,
+                 current,
                  num_nodes,
                  all_nodes,
 	    	 current_round,
@@ -71,21 +74,23 @@ init([Name]) ->
     lager:warning("In init!!"),
     Myself = Name, 
     Centralized = basho_bench_config:get(centralized),
-    Sml = ?SML,
-    Big = ?BIG,
-    Mid = Sml,
-    PrevThroughput = lists:foldl(fun(N, D) ->
-                dict:store(N, inf, D)
-                end, dict:new(), lists:seq(Sml, Big)),
+    %Sml = ?SML,
+    %Big = ?BIG,
+    %Mid = Sml,
+    PrevThroughput = dict:new(), %lists:foldl(fun(N, D) ->
+               % dict:store(N, inf, D)
+               % end, dict:new(), lists:seq(Sml, Big)),
     case Centralized of
         false ->
             MyWorkers = basho_bench_sup:workers(),
             {ok, gather_stat, #state{ prev_throughput=PrevThroughput,
                             myself = Myself,
                             centralized = Centralized,
-                            sml = Sml,
-                            big = Big,
-                            mid = Mid,
+                            %sml = Sml,
+                            %big = Big,
+                            %mid = Mid,
+                            previous = -1,
+                            current = 0,
                             num_nodes=1,
                             remain_num=1,
                             my_workers = MyWorkers,
@@ -98,38 +103,43 @@ init([Name]) ->
             [MasterNode|_] = AllNodes, 
             Master = list_to_atom( atom_to_list(MasterNode) ++ "auto_tuner"),
             MyWorkers = basho_bench_sup:workers(),
-	    RoundDict = dict:store(1, {0, 0}, dict:new()),
+	        RoundDict = dict:store(1, {0, 0}, dict:new()),
             {ok, gather_stat, #state{ prev_throughput=PrevThroughput,
                             myself = Myself,
                             master = Master,
                             my_workers=MyWorkers,
                             centralized = Centralized,
                             num_nodes=NumNodes,
-			    remain_num=NumNodes,
-			    current_round=1,
-			    round_dict=RoundDict,
-                            sml = Sml,
-                            big = Big,
-                            mid = Mid,
+                            previous = -1,
+                            current = 0,
+                            remain_num=NumNodes,
+                            current_round=1,
+                            round_dict=RoundDict,
                             all_nodes = AllTuners,
                             sum_throughput = 0}}
     end.
 
 gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, num_nodes=NumNodes, centralized=Centralized, 
                 all_nodes=AllNodes, my_workers=MyWorkers, prev_throughput=PrevTh, current_round=CurrentRound, round_dict=RoundDict, 
-                master=Master, myself=Myself, sum_throughput=SumThroughput, sml=Sml, big=Big, mid=Mid}) ->
+                master=Master, myself=Myself, sum_throughput=SumThroughput, previous=Prev, current=Current}) ->
     case Centralized of
         false ->
             SumThroughput = 0,
             RemainNum = 1,
             NumNodes = 1,
-           {S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, Throughput),
-            lager:warning("Distribute: Previous length is ~w, current length is ~w", [Mid, NewLength]),
+            %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, Throughput),
+            {Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, Throughput),
+            lager:warning("Distribute: Previous length is ~w, current length is ~w", [Prev, Current1]),
             Workers = case MyWorkers of [] -> basho_bench_sup:workers();
                                         _ -> MyWorkers
                       end,
-            lists:foreach(fun(Worker) -> gen_fsm:send_event(Worker, {specula_length, NewLength}) end, Workers),
-            {next_state, gather_stat, State#state{sml=S1, big=B1, mid=NewLength, prev_throughput=PrevTh1, my_workers=Workers}};
+            lists:foreach(fun(Worker) -> gen_fsm:send_event(Worker, {specula_length, Current1}) end, Workers),
+            case Current of
+                Current1 ->
+                    {next_state, gather_stat, State#state{previous=Prev, current=Current1, prev_throughput=PrevTh1, my_workers=Workers}};
+                _ ->
+                    {next_state, gather_stat, State#state{previous=Current, current=Current1, prev_throughput=PrevTh1, my_workers=Workers}}
+            end;
         true ->
     	    lager:warning("Received ~w for round ~w, remain is ~w", [Throughput, Round, RemainNum]),
             case Master == Myself of
@@ -137,30 +147,32 @@ gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, 
                     case RemainNum of
                         1 ->
                             SumThroughput1 = SumThroughput + Throughput,
-                            {S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
-                            lager:warning("Centralized: Previous length is ~w, current length is ~w", [Mid, NewLength]),
-		    	    lager:warning("Sending to nodes ~w", [AllNodes]),
-                            lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, NewLength}) end, AllNodes),
-			    case dict:find(CurrentRound+1, RoundDict) of
-				{ok, {Sum, Replied}} ->
-				    {next_state, gather_stat, State#state{remain_num=NumNodes-Replied, sum_throughput=Sum,
-					sml=S1, big=B1, mid=NewLength, prev_throughput=PrevTh1, current_round=CurrentRound+1}};
-				error ->
-				    {next_state, gather_stat, State#state{remain_num=NumNodes, sum_throughput=0,
-					sml=S1, big=B1, mid=NewLength, prev_throughput=PrevTh1, current_round=CurrentRound+1}}
-			    end;
+                            %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
+                            {Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
+                            lager:warning("Centralized: Previous length is ~w, current length is ~w", [Prev, Current1]),
+		    	            lager:warning("Sending to nodes ~w", [AllNodes]),
+                            lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, Current1}) end, AllNodes),
+                            {Prev1, Current2} = case Current1 of Current -> {Prev, Current}; _ -> {Current, Current1} end, 
+                            case dict:find(CurrentRound+1, RoundDict) of
+                            {ok, {Sum, Replied}} ->
+                                {next_state, gather_stat, State#state{remain_num=NumNodes-Replied, sum_throughput=Sum,
+                                    previous=Prev1, current=Current2, prev_throughput=PrevTh1, current_round=CurrentRound+1}};
+                            error ->
+                                {next_state, gather_stat, State#state{remain_num=NumNodes, sum_throughput=0,
+					                previous=Prev1, current=Current2, prev_throughput=PrevTh1, current_round=CurrentRound+1}}
+			                end;
                         _ ->
-			    case Round > CurrentRound of
-				true ->
-				    RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict),
-				    {next_state, gather_stat, State#state{round_dict=RoundDict1}};
-				false ->
-				    Round = CurrentRound,
-                             	    {next_state, gather_stat, State#state{remain_num=RemainNum-1, sum_throughput=SumThroughput+Throughput}}
-			    end
+                            case Round > CurrentRound of
+                                true ->
+                                    RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict),
+                                    {next_state, gather_stat, State#state{round_dict=RoundDict1}};
+                                false ->
+                                    Round = CurrentRound,
+                                    {next_state, gather_stat, State#state{remain_num=RemainNum-1, sum_throughput=SumThroughput+Throughput}}
+                            end
                     end;
                 false ->
-		    lager:warning("Sending to master ~w, current round is ~w", [Master, CurrentRound]),
+		            lager:warning("Sending to master ~w, current round is ~w", [Master, CurrentRound]),
                     gen_fsm:send_event({global, Master}, {throughput, CurrentRound, Throughput}),
                     {next_state, gather_stat, State#state{current_round=CurrentRound+1}}
             end
@@ -192,8 +204,34 @@ code_change(_OldVsn, _, State, _Extra) ->
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
+linear_new_length(Prev, Current, Dict, Throughput) ->
+    case Prev of
+        -1 -> %% This is the first time!
+            lager:warning("Prev is -1, Current is 0, throughput is ~w", [Throughput]),
+            Current = 0,
+            {1, dict:store(0, Throughput, Dict)};
+        _ ->
+            PrevTh = dict:fetch(Prev, Dict),
+            lager:warning("Prev is ~w, prevth is ~w, curr is ~w, curr th is ~w", [PrevTh, Prev, Throughput, Current]),
+            case Throughput > PrevTh of
+                true ->
+                    case Current > Prev of
+                        true ->
+                            {min(Current+1, ?BIG), dict:store(Current, Throughput, Dict)};
+                        false -> 
+                            {max(Current-1, ?SML), dict:store(Current, Throughput, Dict)}
+                    end;
+                false ->
+                    case Current > Prev of
+                        true ->
+                            {max(Current-1, ?SML), dict:store(Current, Throughput, Dict)};
+                        false -> 
+                            {min(Current+1, ?BIG), dict:store(Current, Throughput, Dict)}
+                    end
+            end
+    end.
 
-get_new_length(Dict, Small, Big, Mid, Throughput) ->
+binary_search(Dict, Small, Big, Mid, Throughput) ->
     case (Big == ?BIG) and (Small == ?SML) and (Mid == ?SML) of
         true -> % First time!
             D1 = dict:store(Small, Throughput, Dict),
