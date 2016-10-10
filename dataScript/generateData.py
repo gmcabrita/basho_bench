@@ -37,7 +37,6 @@ def init_dict(folder):
     dict['files'] = []
     dict['nodes'] = {}
     nodefiles = glob.glob(folder+"/summary.csv-*")
-    print(nodefiles)
     for f in nodefiles:
         node = f.split('/')[-1].split('-')[-1] 
         dict['nodes'][node] = {}
@@ -66,7 +65,6 @@ def add_throughput(my_dict, my_file):
             lines = oldlines[SKIP_FIRST:-SKIP_LAST] ##Skip the header line        
 
         for line in lines:
-            print(line)
             nums = line.split(",")
             #print words[3]+words[4]
             committed += int(nums[3])
@@ -106,7 +104,6 @@ def add_real_latency(tag, total_entry, node_entry, folder):
                     tmp_sum += lat
                     tmp_cnt += 1
         node = file.split('/')[-1].split('-')[-1] 
-        print(node)
         node_entry[node][tag] = tmp_sum / max(1, tmp_cnt) 
         total_sum += tmp_sum
         total_cnt += tmp_cnt
@@ -119,8 +116,6 @@ def write_to_file(file_name, dict, keys, title):
         if key in dict:
             data_list = dict[key]
             data_array = np.array(data_list).astype(np.float)
-            #print(data_list)
-            #print(data_array)
             if data_array.ndim == 2:
                 data_avg = list(np.average(data_array, axis=0))
             else:
@@ -168,6 +163,7 @@ time = strftime("%Y-%m-%d-%H%M%S", gmtime())
 output_fold = os.path.join(output, time)
 os.mkdir(output_fold)
 for config in dict:
+    print(config)
     entry = dict[config]
     config_folder = os.path.join(output_fold, config)
     os.mkdir(config_folder)
@@ -183,8 +179,6 @@ for config in dict:
     real_latency = os.path.join(config_folder, 'real_latency')
 
     if len(entry['final_latency']) != 0:
-        print(entry['percv_latency'])
-        print(entry['final_latency'])
         write_to_file(real_latency, entry, ['percv_latency', 'final_latency'], 'percvlat finallat') 
         write_std(real_latency, entry['percv_latency'])
         write_std(real_latency, entry['final_latency'])
@@ -194,6 +188,7 @@ for config in dict:
     node_file = open(output_fold+'/'+config+'/node_info', 'w')
     node_file.write('nodes committed all_abort immediate_abort specula_abort abort_rate specula_abort_rate percv_lat real_lat\n')
     for node in entry['nodes']:
+        print(entry['nodes'][node])
         throughput = entry['nodes'][node]['throughput']
         percv_lat = entry['nodes'][node]['percv_latency']
         final_lat = entry['nodes'][node]['final_latency']
