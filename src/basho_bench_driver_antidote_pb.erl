@@ -160,64 +160,59 @@ run(txn, KeyGen, ValueGen, State = #state{pb_pid = Pid, worker_id = Id,
 
 
 
-run(txn, KeyGen, ValueGen, State=#state{pb_pid = Pid, worker_id = Id,
+run(txn, KeyGen, ValueGen, State=#state{pb_pid=Pid, worker_id=Id,
     pb_port=_Port, target_node=_Node,
     num_reads=NumReads,
-    num_updates = NumUpdates,
-    type_dict = TypeDict,
+    num_updates=NumUpdates,
+    type_dict=TypeDict,
     set_size=SetSize,
     commit_time=OldCommitTime,
-    sequential_writes = SeqWrites,
-    sequential_reads = SeqReads}) ->
-%%    io:format("~nNumReads = ~w  NumUpdates = ~w",[NumReads, NumUpdates]),
-    IntKeys = generate_keys(NumReads, KeyGen),
-    BoundObjects = [{list_to_binary(integer_to_list(K)), get_key_type(K, TypeDict), <<"bucket">>} || K <- IntKeys ],
-%  BoundObjects = [{list_to_binary(integer_to_list(K)), riak_dt_lwwreg, <<"bucket">>} || K <- IntKeys ],
+    sequential_writes=SeqWrites,
+    sequential_reads=SeqReads})->
+%%    io:format("~nNumReads = ~w  NumUpdates = ~w", [NumReads, NumUpdates]),
+    IntKeys=generate_keys(NumReads, KeyGen),
+    BoundObjects=[{list_to_binary(integer_to_list(K)), get_key_type(K, TypeDict), <<"bucket">>}||K<-IntKeys],
+    BoundObjects=[{list_to_binary(integer_to_list(K)), riak_dt_lwwreg, <<"bucket">>}||K<-IntKeys],
     case antidotec_pb:start_transaction(Pid, term_to_binary(OldCommitTime), [{static, false}]) of
-        {ok, TxId} ->
+        {ok, TxId}->
+%%            lager:info("TxId = ~p", [TxId]),
             case create_read_operations(Pid, BoundObjects, TxId, SeqReads) of
-                {ok, _ReadResult} ->
-%%                    UpdateIntKeys = generate_keys(NumUpdates, KeyGen),
-%%                    The following selects the latest reads for updating.
-                    UpdateIntKeys = lists:sublist(IntKeys, NumReads - NumUpdates +1, NumUpdates),
+                {ok, _ReadResult}->
+                    %%                    UpdateIntKeys = generate_keys(NumUpdates, KeyGen),
+                    %%                    The following selects the latest reads for updating.
+                    UpdateIntKeys=lists:sublist(IntKeys, NumReads-NumUpdates+1, NumUpdates),
                     %    BoundObjects = [{list_to_binary(integer_to_list(K)), get_key_type(K, TypeDict), <<"bucket">>} || K <- IntKeys ],
                     %  BKeys = [list_to_binary(integer_to_list(K1)) || K1 <- UpdateIntKeys],
-                    BObjs = multi_get_random_param_new(UpdateIntKeys, TypeDict, ValueGen(), undefined, SetSize),
+                    BObjs=multi_get_random_param_new(UpdateIntKeys, TypeDict, ValueGen(), undefined, SetSize),
                     %BObjs = [{{K1, riak_dt_lwwreg, <<"bucket">>},
                     %  assign, random_string(10)} || K1 <- BKeys ],
-
-%%            lager:info("Sending this updates ~p",[BObjs]),
+                    
+%%                    lager:info("Sending this updates ~p", [BObjs]),
                     case create_update_operations(Pid, BObjs, TxId, SeqWrites) of
-                        ok ->
+                        ok->
                             case antidotec_pb:commit_transaction(Pid, TxId) of
-                                {ok, BCommitTime} ->
-                                    CommitTime =
-%%                          case BCommitTime of
-%%                                       ignore ->
-%%                                           ignore;
-%%                                       _->
+                                {ok, BCommitTime}->
+                                    CommitTime=
+                                        %%                          case BCommitTime of
+                                    %%                                       ignore ->
+                                    %%                                           ignore;
+                                    %%                                       _->
                                     binary_to_term(BCommitTime),
-%%                                   end,
-%%                        lager:info("BCommitTime ~p",[BCommitTime]),
-
+                                    %%                                   end,
+%%                                    lager:info("BCommitTime ~p", [BCommitTime]),
                                     {ok, State#state{commit_time=CommitTime}};
-                                Error ->
+                                Error->
                                     {error, {Id, Error}, State}
                             end;
-                        Error ->
+                        Error->
                             {error, {Id, Error}, State}
                     end;
-                Error ->
+                Error->
                     {error, {Id, Error}, State}
             end;
-        Error ->
+        Error->
             {error, {Id, Error}, State}
     end;
-
-
-
-
-
 
 
 %% A  static transaction that reads and updates the same objects.
@@ -283,6 +278,7 @@ create_read_operations(Pid, BoundObjects, TxId, IsSeq) ->
                 end,BoundObjects),
             {ok, Result};
         false ->
+%%            lager:info("sending this reads in parallel", [BoundObjects]),
                 antidotec_pb:read_objects(Pid, BoundObjects, TxId)
     end.
 
