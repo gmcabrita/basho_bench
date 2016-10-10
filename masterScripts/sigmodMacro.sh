@@ -148,6 +148,7 @@ echo tpcc cdf true >> config
 echo tpcc duration 120 >> config
 echo rubis cdf true >> config
 echo rubis duration 120 >> config
+echo rubis all_update true >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
@@ -221,7 +222,7 @@ fi
 for len in $rubis_length
 do
 #rubis_threads="500 1000 2000 3000 4000"
-rubis_threads="5000"
+rubis_threads="2000 3000 4000"
 for t in $rubis_threads
 do  
         think_time="rubis"
