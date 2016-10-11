@@ -15,7 +15,7 @@ function runNTimes {
     done
 } 
 
-seq="1"
+seq="1 2"
 #threads="32 64 96 128 160 192"
 #threads="32 64 96 128 160 192 224 256"
 #threads="64 128 192 256 320 384 448 512"
@@ -93,14 +93,14 @@ fi
 do_specula=true
 specula_read=true
 clock=new
-length="0"
+length="0 1 2 8"
 len=0
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
 echo micro duration 120 >> config
-echo micro auto_tune true >> config
-echo micro centralized true >> config
+echo micro auto_tune false >> config
+echo micro centralized false >> config
 echo micro all_nodes replace >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
