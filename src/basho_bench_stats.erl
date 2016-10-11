@@ -41,7 +41,10 @@
                  report_interval,
                  errors_since_last_report = false,
                  auto_tuner,
-		 seq,
+                 counter,
+                 sum,
+		         seq,
+                 tune_period,
                  summary_file,
                  errors_file}).
 
@@ -126,11 +129,15 @@ init([]) ->
 
     %% Schedule next write/reset of data
     ReportInterval = timer:seconds(basho_bench_config:get(report_interval)),
+    TunePeriod = basho_bench_config:get(tune_period, 1),
 
     {ok, #state{ ops = Ops ++ Measurements,
                  report_interval = ReportInterval,
                  summary_file = SummaryFile,
-		 seq=1,
+		         seq=1,
+                 counter=TunePeriod,
+                 tune_period=TunePeriod,
+                 sum=0,
                  auto_tuner = basho_bench_tuner:tuner_name(),
                  errors_file = ErrorsFile}}.
 
@@ -147,11 +154,18 @@ handle_call({op, Op, {error, Reason}}, _From, State) ->
 handle_cast(_, State) ->
     {noreply, State}.
 
-handle_info(report, State=#state{seq=Seq}) ->
+handle_info(report, State=#state{seq=Seq, counter=Counter, tune_period=TunePeriod}) ->
     consume_report_msgs(),
     Now = os:timestamp(),
-    process_stats(Now, State, Seq),
-    {noreply, State#state { last_write_time = Now, errors_since_last_report = false, seq=Seq+1 }}.
+    AggrThroughput = process_stats(Now, State, Seq),
+    %lager:warning("Counter is ~w, seq is ~w", [Counter, Seq]),
+    case Counter of
+        1 ->
+            %lager:warning("Resetting, next seq is ~w", [Seq+1]),
+            {noreply, State#state { last_write_time = Now, errors_since_last_report = false, sum=0, seq=Seq+1, counter=TunePeriod}};
+        _ ->
+            {noreply, State#state { last_write_time = Now, errors_since_last_report = false, sum=AggrThroughput, counter=Counter-1}}
+    end.
 
 terminate(_Reason, State=#state{seq=Seq}) ->
     %% Do the final stats report and write the errors file
@@ -249,6 +263,8 @@ process_stats(Now, State, Seq) ->
     %% tools.
     Elapsed = timer:now_diff(Now, State#state.start_time) / 1000000,
     Window  = timer:now_diff(Now, State#state.last_write_time) / 1000000,
+    PrevSum = State#state.sum,
+    Counter = State#state.counter,
 
     %% Time to report latency data to our CSV files
     {Oks, ImmediateErrors, SpeculaErrors, OkOpsRes} =
@@ -273,7 +289,14 @@ process_stats(Now, State, Seq) ->
 
     %% Send to auto_tuner
     TunerName = State#state.auto_tuner,
-    gen_fsm:send_event({global, TunerName}, {throughput, Seq, Oks}),
+    case Counter of
+        1 ->
+            %lager:warning("Sending ~w to the caller, counter is ~w", [PrevSum, Counter]),
+            gen_fsm:send_event({global, TunerName}, {throughput, Seq, Oks+PrevSum});
+        _ ->
+            %lager:warning("Did not send anything, current aggr result is ~w, counter is ~w", [Oks+PrevSum, Counter]),
+            ok
+    end,
 
     %% Dump current error counts to console
     case (State#state.errors_since_last_report) of
@@ -283,9 +306,9 @@ process_stats(Now, State, Seq) ->
             ?INFO("Errors:~p\n", [lists:sort(ErrCounts)]),
             [ets_increment(basho_bench_total_errors, Err, Count) || 
                               {Err, Count} <- ErrCounts],
-            ok;
+            PrevSum+Oks;
         false ->
-            ok
+            PrevSum+Oks
     end.
 
 %%

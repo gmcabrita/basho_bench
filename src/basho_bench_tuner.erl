@@ -30,6 +30,7 @@
 
 %% gen_server callbacks
 -export([init/1, gather_stat/2, 
+         linear_new_length/4,
          binary_search/5,
          tuner_name/0,
          handle_info/3,
@@ -77,9 +78,12 @@ init([Name]) ->
     %Sml = ?SML,
     %Big = ?BIG,
     %Mid = Sml,
-    PrevThroughput = dict:new(), %lists:foldl(fun(N, D) ->
+    %PrevThroughput = dict:new(), %lists:foldl(fun(N, D) ->
                % dict:store(N, inf, D)
                % end, dict:new(), lists:seq(Sml, Big)),
+    PrevThroughput = lists:foldl(fun(N, D) ->
+                dict:store(N, inf, D)
+                end, dict:new(), lists:seq(?SML, ?BIG)),
     case Centralized of
         false ->
             MyWorkers = basho_bench_sup:workers(),
@@ -129,8 +133,8 @@ gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, 
             RemainNum = 1,
             NumNodes = 1,
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, Throughput),
-            {Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, Throughput),
-            lager:warning("Distribute: Previous length is ~w, current length is ~w", [Prev, Current1]),
+            {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, Throughput),
+            lager:warning("Distribute: Previous length is ~w, current is ~, next length is ~w, dict is ~p", [Prev, Current, Current1, dict:to_list(PrevTh1)]),
             ets:insert(stat, {{auto_tune, CurrentRound}, Current1}),
             Workers = case MyWorkers of [] -> basho_bench_sup:workers();
                                         _ -> MyWorkers
@@ -150,7 +154,7 @@ gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, 
                         1 ->
                             SumThroughput1 = SumThroughput + Throughput,
                             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
-                            {Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
+                            {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, SumThroughput1),
                             lager:warning("Centralized: Previous length is ~w, current length is ~w", [Prev, Current1]),
                             lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, Current1}) end, AllNodes),
                             {Prev1, Current2} = case Current1 of Current -> {Prev, Current}; _ -> {Current, Current1} end, 
@@ -206,6 +210,46 @@ code_change(_OldVsn, _, State, _Extra) ->
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
+linear_stay(Prev, Current, Dict, Throughput) ->
+    Dict1 = dict:store(Current, Throughput, Dict),
+    case Prev of
+        -1 -> %% This is the first time!
+            Current = 0,
+            {1, Dict1};
+        _ ->
+            PrevTh = dict:fetch(Prev, Dict),
+            lager:warning("Prev is ~w, prevth is ~w, curr is ~w, curr th is ~w", [PrevTh, Prev, Throughput, Current]),
+            case Throughput > PrevTh of
+                true ->
+                    case Current > Prev of
+                        true ->
+                            Next = min(Current+1, ?BIG),
+                            to_next_or_not(Current, Next, Dict1, Throughput);
+                        false -> 
+                            Next = max(Current-1, ?SML),
+                            to_next_or_not(Current, Next, Dict1, Throughput)
+                    end;
+                false ->
+                    case Current > Prev of
+                        true ->
+                            {max(Current-1, ?SML), Dict1};
+                        false -> 
+                            {min(Current+1, ?BIG), Dict1}
+                    end
+            end
+    end.
+
+to_next_or_not(Current, Next, Dict, Throughput) ->
+    NextTh = dict:fetch(Next, Dict),
+    case NextTh of inf -> {Next, Dict};
+                   _ -> case NextTh > Throughput of
+                            true -> %%Should go to next
+                                {Next, Dict};
+                            false -> %%Next is smaller than myself, stay!
+                                {Current, Dict}
+                        end
+    end.
+
 linear_new_length(Prev, Current, Dict, Throughput) ->
     case Prev of
         -1 -> %% This is the first time!
@@ -242,7 +286,7 @@ binary_search(Dict, Small, Big, Mid, Throughput) ->
             Dict1 = dict:store(Mid, Throughput, Dict),
             SmallTh = dict:fetch(Small, Dict),
             %io:format("Small th is ~w, th is ~w ~n", [SmallTh, Throughput]),
-	    lager:warning("Current pos is ~w, th is ~w, small th is ~w", [Mid, Throughput, SmallTh]),
+	        lager:warning("Current pos is ~w, th is ~w, small th is ~w", [Mid, Throughput, SmallTh]),
             case Throughput > SmallTh of
                 true ->
                     S1 = Mid,
