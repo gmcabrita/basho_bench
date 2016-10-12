@@ -93,20 +93,20 @@ fi
 do_specula=true
 specula_read=true
 clock=new
-length="0 1 2 8"
+length="0"
 len=0
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
-echo micro duration 120 >> config
-echo micro auto_tune false >> config
+echo micro duration 240 >> config
+echo micro auto_tune true >> config
 echo micro centralized false >> config
 echo micro all_nodes replace >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
@@ -125,3 +125,27 @@ do
 done
 done
 
+rm -rf ./config
+echo micro duration 240 >> config
+echo micro auto_tune true >> config
+echo micro centralized true >> config
+echo micro all_nodes replace >> config
+sudo ./script/copy_to_all.sh ./config ./basho_bench/
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+
+for t in $threads
+do
+for len in $length
+do
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
+    for cont in $contentions
+    do
+        if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
+        elif [ $cont == 2 ]; then MR=$MSML CR=$CBIG
+        elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
+        elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
+        fi
+        runNTimes
+    done
+done
+done
