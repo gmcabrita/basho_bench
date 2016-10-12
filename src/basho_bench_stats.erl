@@ -41,6 +41,7 @@
                  report_interval,
                  errors_since_last_report = false,
                  auto_tuner,
+                 tune_sleep,
                  counter,
                  sum,
 		         seq,
@@ -130,10 +131,12 @@ init([]) ->
     %% Schedule next write/reset of data
     ReportInterval = timer:seconds(basho_bench_config:get(report_interval)),
     TunePeriod = basho_bench_config:get(tune_period, 1),
+    TuneSleep = basho_bench_config:get(tune_sleep, 1),
 
     {ok, #state{ ops = Ops ++ Measurements,
                  report_interval = ReportInterval,
                  summary_file = SummaryFile,
+                 tune_sleep = TuneSleep,
 		         seq=1,
                  counter=TunePeriod,
                  tune_period=TunePeriod,
@@ -154,17 +157,22 @@ handle_call({op, Op, {error, Reason}}, _From, State) ->
 handle_cast(_, State) ->
     {noreply, State}.
 
-handle_info(report, State=#state{seq=Seq, counter=Counter, tune_period=TunePeriod}) ->
+handle_info(report, State=#state{seq=Seq, counter=Counter, tune_period=TunePeriod, tune_sleep=TuneSleep}) ->
     consume_report_msgs(),
     Now = os:timestamp(),
     AggrThroughput = process_stats(Now, State, Seq),
     %lager:warning("Counter is ~w, seq is ~w", [Counter, Seq]),
-    case Counter of
-        1 ->
-            %lager:warning("Resetting, next seq is ~w", [Seq+1]),
-            {noreply, State#state { last_write_time = Now, errors_since_last_report = false, sum=0, seq=Seq+1, counter=TunePeriod}};
+    case TuneSleep of 
+        0 ->
+            case Counter of
+                1 ->
+                    %lager:warning("Resetting, next seq is ~w", [Seq+1]),
+                    {noreply, State#state { last_write_time = Now, errors_since_last_report = false, sum=0, seq=Seq+1, counter=TunePeriod}};
+                _ ->
+                    {noreply, State#state { last_write_time = Now, errors_since_last_report = false, sum=AggrThroughput, counter=Counter-1}}
+            end;
         _ ->
-            {noreply, State#state { last_write_time = Now, errors_since_last_report = false, sum=AggrThroughput, counter=Counter-1}}
+            {noreply, State#state { last_write_time = Now, errors_since_last_report = false, tune_sleep=TuneSleep-1}}
     end.
 
 terminate(_Reason, State=#state{seq=Seq}) ->
@@ -289,13 +297,20 @@ process_stats(Now, State, Seq) ->
 
     %% Send to auto_tuner
     TunerName = State#state.auto_tuner,
-    case Counter of
-        1 ->
-            %lager:warning("Sending ~w to the caller, counter is ~w", [PrevSum, Counter]),
-            gen_fsm:send_event({global, TunerName}, {throughput, Seq, Oks+PrevSum});
-        _ ->
-            %lager:warning("Did not send anything, current aggr result is ~w, counter is ~w", [Oks+PrevSum, Counter]),
-            ok
+    TuneSleep = State#state.tune_sleep,
+    case TuneSleep of
+        0 ->
+            case Counter of
+                1 ->
+                    %lager:warning("Sending ~w to the caller, counter is ~w", [PrevSum, Counter]),
+                    gen_fsm:send_event({global, TunerName}, {throughput, Seq, Oks+PrevSum});
+                _ ->
+                    %lager:warning("Did not send anything, current aggr result is ~w, counter is ~w", [Oks+PrevSum, Counter]),
+                    ok
+            end;
+       _ ->
+            lager:warning("TuneSleeping! tune sleep is ~w", [TuneSleep]),
+            ok 
     end,
 
     %% Dump current error counts to console

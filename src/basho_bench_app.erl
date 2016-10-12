@@ -152,8 +152,8 @@ write_cdf(Stat) ->
     file:write(PercvLatFile, io_lib:format("A hit counters ~w\n", [Stat])),
     %file:write(PercvLatFile,  io_lib:format("EndTimeInt is ~w, EndTime is ~w \n", [EndTimeInt/1000000+15, to_integer(now())/1000000])),
     SortTune = lists:sort(TuneStat),
-    lists:foreach(fun({{auto_tune, Round}, Length}) ->
-                file:write(PercvLatFile, io_lib:format("AutoTune: Round ~w, Len ~w\n", [Round, Length]))
+    lists:foreach(fun({{auto_tune, Round}, {Prev, PrevTh, Current, CurrentTh, Next}}) ->
+                file:write(PercvLatFile, io_lib:format("AutoTune: Round ~w, prev length is ~w, prev throughput ~w, current len is ~w, current th is ~w, next is ~w \n", [Round, Prev, PrevTh, Current, CurrentTh, Next]))
                 end, SortTune),
     file:close(PercvLatFile),
 
