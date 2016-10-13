@@ -32,11 +32,11 @@ prob_access=t
 rep=5
 parts=28
 
-MBIG=50000
-MSML=2000
+MBIG=40000
+MSML=4000
 
-CBIG=5000
-CSML=500
+CBIG=10000
+CSML=1000
 
 MR=$MBIG 
 CR=$CBIG
@@ -49,6 +49,8 @@ MN=80
 SN=20
 CN=0
 
+if [ 1 == 2 ];
+then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
@@ -92,14 +94,20 @@ do_specula=true
 len=1
 length="1"
 
-sudo ./script/configBeforeRestart.sh 200 $do_specula $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+rm -rf ./config
+echo micro duration 80 >> config
+echo micro auto_tune false >> config
+sudo ./script/copy_to_all.sh ./config ./basho_bench/
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+
+#sudo ./script/configBeforeRestart.sh 200 $do_specula $len $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
 for len in $length
 do
-    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
+    #sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
@@ -111,6 +119,7 @@ do
     done
 done
 done
+fi
 
 ### Normal specula
 do_specula=true
@@ -118,7 +127,7 @@ specula_read=true
 clock=new
 length="8 4 1 0"
 len=8
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
 echo micro duration 100 >> config
@@ -128,14 +137,14 @@ echo micro all_nodes replace >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
 for len in $length
 do
-    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
+    #sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
@@ -149,6 +158,7 @@ done
 done
 
 # Dist tune
+len=0
 rm -rf ./config
 echo micro duration 180 >> config
 echo micro auto_tune true >> config
@@ -159,13 +169,13 @@ sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
 for len in $length
 do
-    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
+    #sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
