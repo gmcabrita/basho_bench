@@ -153,9 +153,9 @@ new(Id) ->
     NumNodes = length(AllNodes),
     ExpandPartList = lists:flatten([L || {_, L} <- PartList]),
     HashLength = length(ExpandPartList),
-    {OtherMasterIds, DcRepIds, DcNoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_dc_read),
+    {OtherMasterIds, DcRepIds, DcNoRepIds, HashDict} = locality_fun:get_locality_list(PartList, ReplList, NumDcs, TargetNode, single_node_read),
     HashDict1 = locality_fun:replace_name_by_pid(TargetNode, dict:store(cache, TargetNode, HashDict)),
-    %lager:info("MyTxServer is  ~w, DcRepIds ~w, NoRepIds ~w, D ~w", [MyTxServer, DcRepIds, DcNoRepIds, dict:to_list(HashDict1)]),
+    %lager:info("NodeId is ~w, MyTxServer is  ~w, DcRepIds ~w, NoRepIds ~w, D ~w", [NodeId, MyTxServer, DcRepIds, DcNoRepIds, dict:to_list(HashDict1)]),
 
     %lager:info("Part list is ~w",[PartList]),
     MyTable = ets:new(my_table, [private, set]),
@@ -241,6 +241,7 @@ run(txn, TxnSeq, MsgId, Seed, SpeculaLength, State=#state{part_list=PartList, tx
                   end, {1, dict:new()}, lists:seq(1, NumKeys)),
 
             {LocalWriteList, RemoteWriteList} = get_local_remote_writeset(WriteSet, PartList, MyNodeId),
+            %lager:warning("Node is ~w, local ws is ~w, remote ws is ~w", [MyNodeId, LocalWriteList, RemoteWriteList]),
 
             Response = gen_server:call(TxServer, {certify_update, TxId, LocalWriteList, RemoteWriteList, MsgId, SpeculaLength}, ?TIMEOUT),%, length(DepsList)}),
             %lager:warning("After calling certify"),

@@ -27,6 +27,25 @@ get_locality_list(PartList, ReplList, NumDcs, MyNode, single_dc_read) ->
     %                    end, HashDict, MyRepIds),
     {OtherPrimaryIds, DcRepIds, DcNonRepIds, HashDict1};
 
+get_locality_list(PartList, ReplList, NumDcs, MyNode, single_node_read) ->
+    %% The first is the list of partitions that replicated by nodes in your dc and being the primary replicas. 
+    %% The second list is the partitions that are replicated by nodes in your dc but not being the primary replicas.
+    AllNodes = [N || {N, _} <- PartList],
+    NodeId = index(MyNode, AllNodes),
+    OtherPrimaryIds = get_dc_other_node_ids(NodeId, AllNodes, NumDcs),
+
+    DcRepIds = get_replicas([NodeId], ReplList, AllNodes), 
+    AllNodeIds = lists:seq(1, length(AllNodes)),
+    DcNonRepIds = AllNodeIds -- ([NodeId] ++ OtherPrimaryIds ++ DcRepIds),
+    %lager:info("NodeiD ~w, OthePId ~w, RepId ~w", [NodeId, OtherPrimaryIds, DcRepIds]),
+    
+    HashDict1 = build_dc_srep_dict(ReplList, AllNodes, NodeId, NumDcs),
+    %HashDict = build_local_norep_dict(NodeId, ReplList, AllNodes, NoRepIds, NumDcs),
+    %HashDict1 =  lists:foldl(fun(N, D) ->
+    %                    dict:store(N, get_rep_name(MyNode, lists:nth(N, AllNodes)), D)
+    %                    end, HashDict, MyRepIds),
+    {OtherPrimaryIds, DcRepIds, DcNonRepIds, HashDict1};
+
 
 get_locality_list(PartList, ReplList, NumDcs, MyNode, node_aware) ->
       [M] = [L || {N, L} <- ReplList, N == MyNode ],
