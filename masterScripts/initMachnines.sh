@@ -42,7 +42,7 @@ sudo ./script/parallel_command.sh "sudo apt-get -y install sshpass"
 sudo ./script/parallel_command.sh "sudo apt-get -y install cgroup-bin"
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.email 'mars.leezm@gmail.com'"
 sudo ./script/parallel_command.sh "cd basho_bench && git config --global user.name 'marsleezm'"
-./script/makeRel.sh benchmark_precise_remove_stat 
+#./script/makeRel.sh benchmark_precise_remove_stat 
 ./script/parallel_command.sh "cd basho_bench && git stash && git fetch && git checkout real_redo_node_specula && git pull && sudo make"
 ./script/parallel_command.sh "cd ./basho_bench/ && sudo chown -R ubuntu specula_tests"
 sudo ./script/parallel_command.sh "./basho_bench/masterScripts/config.sh" 
