@@ -29,10 +29,8 @@ skipped=1
 skip_len=0
 prob_access=t
 
-#rep=5
-#parts=28
 rep=5
-parts=20
+parts=28
 
 #MBIG=60000
 #MSML=6000
