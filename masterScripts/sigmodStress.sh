@@ -31,14 +31,20 @@ prob_access=t
 
 #rep=5
 #parts=28
-rep=2
-parts=8
+rep=3
+parts=16
 
-MBIG=60000
-MSML=6000
+#MBIG=60000
+#MSML=6000
 
-CBIG=15000
-CSML=1500
+#CBIG=15000
+#CSML=1500
+
+MBIG=10000
+MSML=1000
+
+CBIG=3000
+CSML=300
 
 MR=$MBIG 
 CR=$CBIG
