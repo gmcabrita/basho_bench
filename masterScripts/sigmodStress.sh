@@ -23,7 +23,7 @@ seq="1 2"
 #threads="1 2 4 8 16 32 64 128"
 #threads="32 64 96 128 160 192 224 256"
 #threads="128 96 64 32"
-threads="16 32 64 128"
+threads="128"
 #threads="16"
 #threads="1 2 4 8 16"
 #threads="1 2 4 8 16"
@@ -33,7 +33,7 @@ skipped=1
 skip_len=0
 prob_access=t
 
-rep=2
+rep=1
 parts=4
 
 MBIG=50000
@@ -53,25 +53,24 @@ MN=80
 SN=20
 CN=0
 
-if [ 1 == 2 ];
-then
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
 
 clock="old"
+#specula_read=false
+#do_specula=false
 specula_read=false
-do_specula=false
-len=0
-length="0"
+do_specula=true
+len=1
+length="1"
 
 rm -rf ./config
 echo micro duration 120 >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 200 $do_specula 0 $rep $parts $specula_read
+sudo ./script/configBeforeRestart.sh 200 $do_specula $len $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
 
-### SP1 
 for t in $threads
 do
 for len in $length
@@ -88,7 +87,7 @@ do
     done
 done
 done
-fi
+exit
 
 do_specula=true
 specula_read=true
