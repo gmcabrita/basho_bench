@@ -45,7 +45,7 @@ def get_lists(root_folder, config_str):
 #input_folder='./stat/2016-09-26-230722/'
 #input_folder='./stat/2016-09-30-150417/'
 #input_folder='./stat/2016-09-29-184315/'
-input_folder='./stat/2016-10-09-203848/'
+input_folder='./stat/2016-10-11-122145/'
 time=datetime.now().strftime("%Y%m%d-%H:%M:%S")
 output_folder='./figures/icde/macro/' + time
 os.mkdir(output_folder)

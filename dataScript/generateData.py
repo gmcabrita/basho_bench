@@ -55,8 +55,8 @@ def add_throughput(my_dict, my_file):
     all_abort = 0
     duration=0
     
-    SKIP_FIRST=3
-    SKIP_LAST=3
+    SKIP_FIRST=6
+    SKIP_LAST=2
     
     with open(my_file) as stream:
         oldlines = stream.read().splitlines() 

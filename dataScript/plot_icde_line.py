@@ -49,7 +49,7 @@ def plot_multi_bars(input_folder, output_folder, bench_type, data_multi_list, le
     markers=["^", "8", "s", "h", ".", "1", "v"]
     line_index=0
     barwidth = 0.6/max(len(data_multi_list), 1)
-    colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#eeeecc']
+    colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#eeeecc', '#000000']
     num_xticks = 0
     start_pos = 0
 
@@ -246,6 +246,9 @@ def plot_multi_bars(input_folder, output_folder, bench_type, data_multi_list, le
     fig.savefig(output_folder+'/'+name+legend_type+'.png')
 
 def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, legend_index, plot_dict):
+    plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, legend_index, plot_dict, false)
+
+def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, legend_index, plot_dict, Reverse):
     plt.clf()
     ncols=7
     fig = plt.figure()
@@ -260,7 +263,6 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     xticks_entry = dict() 
     
     fsize=15
-    lsize=20
     labsize=18
     maxv=0
     max_latency = 0
@@ -271,7 +273,9 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     line_index=0
     barwidth = 0.6/len(data_multi_list)
     #colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#ffffcc']
-    colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#0000cc']
+    colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#0000cc', '#eeeeee']
+    marker_size=10
+    line_width=3
     num_xticks = 0
     start_pos = 0
 
@@ -285,7 +289,6 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
 
     for data_list in data_multi_list: 
         data_list = sort_by_num(data_list)
-        #print(data_list)
             
         index = 0
         specula_abort=[]
@@ -309,7 +312,7 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
             final_lat_e.append(0)
             
         minvalue = 1000000000 
-        num_xticks = len(data_multi_list[0])
+        num_xticks = len(xticks_entry)
         offset = len(data_multi_list)/2*barwidth
 
         for f in data_list:
@@ -339,32 +342,14 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
         #    h, = ax1.bar(i+line_index*barwidth-offset, v/1000,  barwidth, yerr= data1_e[i]/1000, color=colors[line_index])
         data1 = [x/1000 for x in data1]
         data1_e = [x/1000 for x in data1_e]
+             
         print("Plotting "+str(data1))
-        print(data_list)
-        h = ax1.errorbar([i for i in range(0, num_xticks)], data1, yerr=data1_e, color=colors[line_index], marker=markers[line_index], markersize=13, linewidth=4)
+        h = ax1.errorbar([i for i in range(0, len(data1))], data1, yerr=data1_e, color=colors[line_index], marker=markers[line_index], markersize=marker_size, linewidth=line_width)
         
         handlers.append(h)
 
-        ax2.errorbar([i for i in range(0, num_xticks)], data2, yerr=data2_e, color=colors[line_index], marker=markers[line_index], markersize=13, linewidth=4)
+        ax2.errorbar([i for i in range(0, num_xticks)], data2, yerr=data2_e, color=colors[line_index], marker=markers[line_index], markersize=marker_size, linewidth=line_width)
 
-        #if data2 != []:
-        #   for i, v in enumerate(data2):
-        #        #h, = ax2.bar(i+line_index*0.2-0.2, v, 0.2, yerr=data2_e[i], color=colors[line_index])
-        #        xx = i+line_index*barwidth-offset
-        #        sv = specula_abort[i]
-                #hlt1 = ax2.add_patch(Polygon([[xx,sv], [xx,v], [xx+barwidth,v], [xx+barwidth, sv]], hatch=hatches[line_index], color=colors[line_index], fill=False))
-                #hlt2 = ax2.add_patch(Polygon([[xx,0], [xx,sv], [xx+barwidth,sv], [xx+barwidth, 0]], color=colors[line_index]))
-        #        hlt2 = ax2.bar(xx, sv, width=barwidth, hatch=hatches[line_index], color=colors[line_index])
-        #        hlt1 = ax2.bar(xx, v-sv, width=barwidth, bottom=sv, yerr=data2_e[i], color=colors[line_index])
-        #abort_handlers.append(hlt1)
-        #abort_handlers.append(hlt2)
-        #if final_lat != []:
-        #    for i, v in enumerate(final_lat):
-        #        #h, = ax2.bar(i+line_index*0.2-0.2, v, 0.2, yerr=data2_e[i], color=colors[line_index])
-        #        xx = i+line_index*barwidth-offset
-        #        sv = specula_lat[i]
-        #        hlt2 = ax3.bar(xx, sv, width=barwidth, yerr=specula_lat_e[i], hatch=hatches[line_index], color=colors[line_index])
-        #        hlt1 = ax3.bar(xx, v-sv, width=barwidth, bottom=sv, yerr=final_lat_e[i], color=colors[line_index])
         ax3.errorbar([i for i in range(0, num_xticks)], final_lat, yerr=final_lat_e[i], color=colors[line_index], marker=markers[line_index], markersize=13, linewidth=4)
 
         line_index += 1
@@ -376,26 +361,21 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     labels = [i for j, i in enumerate(labels) if j not in handler_idx]
     if 'big' in plot_dict:
         fsize=21
-        lsize=18
+        lsize=12
         labs=0.1
     else:
         fsize=17
-        lsize=17
+        lsize=12
         labs=True
-
-    #plt.yticks(fontsize=fsize)
-    #plt.subplot(211)
-    ### For plt1
-    #if plot_dict['x_labels'] != False:
-    #    ax1.xlabel(plot_dict['x_labels'], fontsize=fsize)
-    
 
     if  'no_title' not in plot_dict:
         fig.suptitle(plot_dict['title'], fontsize=fsize)
 
-    ax1.set_xlim([-0.5,num_xticks-1+0.5])
-    ax2.set_xlim([-0.5,num_xticks-1+0.5])
-    ax3.set_xlim([-0.5,num_xticks-1+0.5])
+    ax1.set_xlim([-0.2,num_xticks-1+0.2])
+    ax1.set_xticks([])
+    ax2.set_xlim([-0.2,num_xticks-1+0.2])
+    ax.set_xticks([])
+    ax3.set_xlim([-0.2,num_xticks-1+0.2])
 
     ax3.set_xticks([i for i in range(num_xticks)])
     ax3.set_xticklabels(xticks_entry, minor=False, fontsize=fsize)
@@ -420,7 +400,8 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
         ax2.yaxis.set_major_formatter(NullFormatter())
         ax3.yaxis.set_major_formatter(NullFormatter())
 
-    ax1.legend(handlers, plot_dict['commit_legend'], fontsize=lsize, loc=2, labelspacing=0.0, handletextpad=0.2, borderpad=0.2)
+    #ax1.legend(handlers, plot_dict['commit_legend'], fontsize=lsize, loc=2, labelspacing=0.0, handletextpad=0.2, borderpad=0.2)
+    ax3.legend(handlers, plot_dict['commit_legend'], fontsize=lsize, loc=2, labelspacing=0.0, handletextpad=0.2, borderpad=0.2)
         
     if 'has_legend' in plot_dict and plot_dict['has_legend']:
         if 'out_legend' in plot_dict:
