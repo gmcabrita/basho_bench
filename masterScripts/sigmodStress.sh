@@ -50,6 +50,7 @@ SN=20
 CN=0
 
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo micro duration 100 >> config
