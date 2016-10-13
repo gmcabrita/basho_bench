@@ -29,14 +29,16 @@ skipped=1
 skip_len=0
 prob_access=t
 
-rep=5
-parts=28
+#rep=5
+#parts=28
+rep=2
+parts=8
 
-MBIG=40000
-MSML=4000
+MBIG=60000
+MSML=6000
 
-CBIG=10000
-CSML=1000
+CBIG=15000
+CSML=1500
 
 MR=$MBIG 
 CR=$CBIG
@@ -127,7 +129,7 @@ specula_read=true
 clock=new
 length="8 4 1 0"
 len=8
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
 
 rm -rf ./config
 echo micro duration 100 >> config
