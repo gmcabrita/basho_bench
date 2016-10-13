@@ -1,3 +1,3 @@
 #!/bin/bash
 
-sudo pkill -f basho 
+sudo ./script/parallel_command.sh "`cat ./script/exceptme`" "sudo pkill -f basho"
