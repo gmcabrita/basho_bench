@@ -32,7 +32,7 @@ prob_access=t
 #rep=5
 #parts=28
 rep=5
-parts=16
+parts=20
 
 #MBIG=60000
 #MSML=6000
@@ -135,7 +135,8 @@ specula_read=true
 clock=new
 length="8 4 1 0"
 len=8
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo micro duration 100 >> config
@@ -145,8 +146,8 @@ echo micro all_nodes replace >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
