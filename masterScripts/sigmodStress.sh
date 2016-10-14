@@ -23,7 +23,7 @@ seq="1"
 #threads="1 2 4 8 16 32 64 128"
 #threads="32 64 96 128 160 192 224 256"
 threads="128 64 32 16 8"
-contentions="4 3 2 1"
+contentions="1 2"
 start_ind=1
 skipped=1
 skip_len=0
@@ -39,10 +39,10 @@ parts=28
 #CSML=1500
 
 MBIG=50000
-MSML=5000
+MSML=1000
 
-CBIG=10000
-CSML=1000
+CBIG=20000
+CSML=500
 
 MR=$MBIG 
 CR=$CBIG
@@ -55,8 +55,6 @@ MN=80
 SN=20
 CN=0
 
-if [ 1 == 2 ];
-then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
@@ -93,6 +91,8 @@ do
 done
 done
 
+if [ 1 == 2 ];
+then
 # PLANET
 clock="old"
 specula_read=false
@@ -131,27 +131,27 @@ fi
 do_specula=true
 specula_read=true
 clock=new
-length="8 4 1 0"
-len=8
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+length="4 1 0"
+len=4
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
-echo micro duration 100 >> config
+echo micro duration 80 >> config
 echo micro auto_tune false >> config
 echo micro centralized false >> config
 echo micro all_nodes replace >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
 for len in $length
 do
-    #sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
@@ -163,6 +163,7 @@ do
     done
 done
 done
+exit
 
 # Dist tune
 len=0
