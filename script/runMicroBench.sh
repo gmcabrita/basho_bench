@@ -78,6 +78,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #sudo kill 15 $pid
 ./script/gatherThroughput.sh $Folder &
 ./script/gatherLatency.sh $Folder &
+cp ./tests/current/console.log $Folder
 #./script/copyFromAll.sh console.log ./basho_bench/tests/current/ $Folder & 
 wait
 
