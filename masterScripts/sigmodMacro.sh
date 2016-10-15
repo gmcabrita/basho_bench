@@ -60,8 +60,8 @@ tpcc_length="0 4"
 rubis_length="0 4"
 len=0
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -73,13 +73,10 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
 
-
-if [ 1 == 2 ];
-then
-tpcc_threads="400 200 100 50"
+tpcc_threads="800 400 200 100 50"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -96,7 +93,10 @@ do
             done
         done
 done
+exit
 
+if [ 1 == 2 ];
+then
 tpcc_threads="600 300 150 80"
 workloads="2"
 for t in $tpcc_threads
