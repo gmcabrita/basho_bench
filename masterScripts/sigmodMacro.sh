@@ -40,12 +40,12 @@ warehouse="5"
 
 #rep=8
 #parts=28
-rep=5
-parts=28
+#rep=5
+#parts=28
 ##rep=3
 #parts=20
-#rep=1
-#parts=12
+rep=1
+parts=8
 
 start_ind=1
 skip_len=0
@@ -87,7 +87,8 @@ do
 		for len in $tpcc_length
 		do
 		sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
-                think_time="tpcc"
+                #think_time="tpcc"
+                think_time="0"
                 runTpccNTimes 
 		done
             done
