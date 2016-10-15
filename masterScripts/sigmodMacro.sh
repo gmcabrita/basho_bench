@@ -51,7 +51,7 @@ start_ind=1
 skip_len=0
 skipped=1
 AM=80
-AS=0
+AS=20
 
 specula_read=true
 do_specula=true
