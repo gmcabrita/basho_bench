@@ -267,7 +267,7 @@ execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf,
 		{_, OpTag} = ToDoOp,
 		T = tpcc_tool:get_think_time(OpTag),
     		timer:sleep(round(T*random:uniform()));
-	      _ ->timer:sleep(round(ThinkTime*random:uniform()))
+	      _ -> ok
     end,
     worker_next_op(State#state{store_cdf={Count, os:timestamp(), Period}});
 
