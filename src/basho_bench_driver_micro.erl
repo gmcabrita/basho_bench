@@ -25,7 +25,7 @@
         terminate/2,
         get_stat/1,
         run/5,
-        run/6]).
+        run/7]).
 
 -include("basho_bench.hrl").
 
@@ -195,9 +195,9 @@ get_stat(#state{target_node=TargetNode}) ->
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
 run(txn, TxnSeq, MsgId, Seed, State) ->
-    run(txn, TxnSeq, MsgId, Seed, ignore, State).
+    run(txn, TxnSeq, MsgId, Seed, ignore, ignore, State).
 
-run(txn, TxnSeq, MsgId, Seed, SpeculaLength, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter, total_key=TotalKey,
+run(txn, TxnSeq, MsgId, Seed, SpeculaLength, SpeculaRead, State=#state{part_list=PartList, tx_server=TxServer, deter=Deter, total_key=TotalKey,
         dc_rep_ids=DcRepIds, node_id=MyNodeId,  hash_dict=HashDict, no_rep_ids=NoRepIds, 
         local_hot_rate=LocalHotRate, local_hot_range=LocalHotRange, remote_hot_rate=RemoteHotRate, remote_hot_range=RemoteHotRange,
         cache_hot_range=CacheHotRange, cache_range=CRange, cache_hot_rate=CacheHotRate,
@@ -220,7 +220,7 @@ run(txn, TxnSeq, MsgId, Seed, SpeculaLength, State=#state{part_list=PartList, tx
                     case Rand =< MNum of
                         true -> 
                             Key = hot_or_not(1, LocalHotRange, MRange, LocalHotRate),
-                            V = read_from_node(TxServer, TxId, Key, MyNodeId, MyNodeId, PartList, HashDict),
+                            V = read_from_node(TxServer, TxId, Key, MyNodeId, MyNodeId, PartList, HashDict, SpeculaRead),
                             case is_number(V) of false -> lager:warning("WTF, V is not number!", [V]), V=1; true -> ok end,
                             {Ind, dict:store({MyNodeId, Key}, V+Add, WS)};
                         false -> 
@@ -230,11 +230,11 @@ run(txn, TxnSeq, MsgId, Seed, SpeculaLength, State=#state{part_list=PartList, tx
                                     Deter = false,
                                     Rand1 = random:uniform(DcRepLen),
                                     DcNode = lists:nth(Rand1, DcRepIds),
-                                    V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict),
+                                    V = read_from_node(TxServer, TxId, Key, DcNode, MyNodeId, PartList, HashDict, SpeculaRead),
                                     {Ind+1, dict:store({DcNode, Key}, V+Add, WS)};
                                 false -> OtherDcNode = lists:nth(Rand rem NoRepLen +1, NoRepIds),
                                     Key = hot_or_not(MRange+SRange+1, CacheHotRange, CRange, CacheHotRate),
-                                    V = read_from_node(TxServer, TxId, Key, OtherDcNode, MyNodeId, PartList, HashDict),
+                                    V = read_from_node(TxServer, TxId, Key, OtherDcNode, MyNodeId, PartList, HashDict, SpeculaRead),
                                     {Ind, dict:store({OtherDcNode, Key}, V+Add, WS)} 
                             end
                     end
@@ -274,14 +274,19 @@ index(E, [E|_], N) ->
 index(E, [_|L], N) ->
     index(E, L, N+1).
 
-read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
+read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict, SpeculaRead) ->
     {ok, V} = case DcId of
         MyDcId ->
             {_, L} = lists:nth(DcId, PartList),
             %Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
             Index = Key rem length(L) + 1,
             Part = lists:nth(Index, L),
-            gen_server:call(TxServer, {read, Key, TxId, Part}, ?READ_TIMEOUT);
+            case SpeculaRead of
+                ignore ->
+                    gen_server:call(TxServer, {read, Key, TxId, Part}, ?READ_TIMEOUT);
+                _ ->
+                    gen_server:call(TxServer, {read, Key, TxId, Part, SpeculaRead}, ?READ_TIMEOUT)
+            end;
         _ ->
             case dict:find(DcId, HashDict) of
                 error ->
@@ -290,13 +295,23 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
                     Index = Key rem length(L) + 1,
                     Part = lists:nth(Index, L),
                     CacheServName = dict:fetch(cache, HashDict),
-                    gen_server:call(CacheServName, {read, Key, TxId, Part}, ?READ_TIMEOUT);
+                    case SpeculaRead of
+                        ignore ->
+                            gen_server:call(CacheServName, {read, Key, TxId, Part}, ?READ_TIMEOUT);
+                        _ ->
+                            gen_server:call(CacheServName, {read, Key, TxId, Part, SpeculaRead}, ?READ_TIMEOUT)
+                    end;
                 {ok, N} ->
                     {_, L} = lists:nth(DcId, PartList),
                     %Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Index = Key rem length(L) + 1,
                     Part = lists:nth(Index, L),
-                    gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT)
+                    case SpeculaRead of
+                        ignore ->
+                            gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT);
+                        _ ->
+                            gen_server:call(N, {read, Key, TxId, Part, SpeculaRead}, ?READ_TIMEOUT)
+                    end
             end
     end,
     case V of

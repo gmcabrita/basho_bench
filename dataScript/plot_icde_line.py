@@ -246,9 +246,6 @@ def plot_multi_bars(input_folder, output_folder, bench_type, data_multi_list, le
     fig.savefig(output_folder+'/'+name+legend_type+'.png')
 
 def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, legend_index, plot_dict):
-    plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, legend_index, plot_dict, false)
-
-def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, legend_index, plot_dict, Reverse):
     plt.clf()
     ncols=7
     fig = plt.figure()
@@ -259,7 +256,6 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     ax1 = plt.subplot(gs[0, 0])
     ax2 = plt.subplot(gs[1, 0]) 
     ax3 = plt.subplot(gs[2, 0]) 
-    hatches = ['+++', '///', '\\\\\\', '...', '---', 'xxx']
     xticks_entry = dict() 
     
     fsize=15
@@ -269,11 +265,12 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
     handlers = []
     abort_handlers = []
     legend_type = plot_dict['legend_type'] 
-    markers=["^", "8", "s", "h", ".", "1", "v"]
+    markers=["^", "8", "s", "h", ".", "1", "v", "v", "v"]
+    colors=['#253494', '#2c7fb8', '#41b6c4', '#0000cc', '#0000cc', '#0000cc', '#a1dab4']
+    ls = ['-','-','-',':', '-.', '--', '-']
     line_index=0
     barwidth = 0.6/len(data_multi_list)
     #colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#ffffcc']
-    colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#0000cc', '#eeeeee']
     marker_size=10
     line_width=3
     num_xticks = 0
@@ -344,13 +341,13 @@ def plot_multi_lines(input_folder, output_folder, bench_type, data_multi_list, l
         data1_e = [x/1000 for x in data1_e]
              
         print("Plotting "+str(data1))
-        h = ax1.errorbar([i for i in range(0, len(data1))], data1, yerr=data1_e, color=colors[line_index], marker=markers[line_index], markersize=marker_size, linewidth=line_width)
+        h = ax1.errorbar([i for i in range(0, len(data1))], data1, yerr=data1_e, color=colors[line_index], marker=markers[line_index], ls=ls[line_index], markersize=marker_size, linewidth=line_width)
         
         handlers.append(h)
 
-        ax2.errorbar([i for i in range(0, num_xticks)], data2, yerr=data2_e, color=colors[line_index], marker=markers[line_index], markersize=marker_size, linewidth=line_width)
+        ax2.errorbar([i for i in range(0, num_xticks)], data2, yerr=data2_e, color=colors[line_index], marker=markers[line_index], markersize=marker_size, ls=ls[line_index], linewidth=line_width)
 
-        ax3.errorbar([i for i in range(0, num_xticks)], final_lat, yerr=final_lat_e[i], color=colors[line_index], marker=markers[line_index], markersize=13, linewidth=4)
+        ax3.errorbar([i for i in range(0, num_xticks)], final_lat, yerr=final_lat_e[i], color=colors[line_index], marker=markers[line_index], markersize=13, ls=ls[line_index], linewidth=4)
 
         line_index += 1
 
