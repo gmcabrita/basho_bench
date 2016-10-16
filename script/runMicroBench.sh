@@ -71,14 +71,15 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 
 ./script/clean_data.sh
 
-sleep $((MasterToSleep/1000)) && vmstat 2 > $Folder/cpu_info &
-pid=$!
+#sleep $((MasterToSleep/1000)) && vmstat 2 > $Folder/cpu_info &
+#pid=$!
 ./script/parallel_command.sh "cd basho_bench && sudo mkdir -p tests && sudo ./basho_bench examples/micro.config"
 
-sudo kill 15 $pid
+#sudo kill 15 $pid
 ./script/gatherThroughput.sh $Folder &
 ./script/gatherLatency.sh $Folder &
-./script/copyFromAll.sh console.log ./basho_bench/tests/current/ $Folder & 
+cp ./tests/current/console.log $Folder
+#./script/copyFromAll.sh console.log ./basho_bench/tests/current/ $Folder & 
 wait
 
 #./script/getAbortStat.sh `head -1 ./script/allnodes` $Folder 

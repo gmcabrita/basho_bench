@@ -255,7 +255,7 @@ init([Id, Name]) ->
 
     {ok, execute, State1#state{driver_state=DriverState, mode=Mode, rate_sleep=RateSleep}}.
 
-execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf, id=Id}) ->
+execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf, id=Id, think_time=ThinkTime, todo_op=ToDoOp}) ->
     {Count, ignore, Period} = StoreCdf, 
     case Mode of
         max -> ok; 
@@ -264,6 +264,12 @@ execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf,
     case Id of
         1 -> ets:insert(final_cdf, {start_time, os:timestamp()});
         _ -> ok
+    end,
+    case ThinkTime of tpcc ->
+		{_, OpTag} = ToDoOp,
+		T = tpcc_tool:get_think_time(OpTag),
+    		timer:sleep(round(T*random:uniform()));
+	      _ -> ok
     end,
     worker_next_op(State#state{store_cdf={Count, os:timestamp(), Period}});
 
