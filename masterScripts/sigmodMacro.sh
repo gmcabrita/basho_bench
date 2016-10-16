@@ -35,7 +35,7 @@ function runRubis {
 
 
 ## Just to test.. 
-seq="1"
+seq="1 2 3"
 warehouse="5"
 
 #rep=8
@@ -60,6 +60,8 @@ tpcc_length="0"
 rubis_length="0"
 len=0
 
+if [ 1 == 2 ];
+then
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
@@ -76,7 +78,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
 #sudo ./script/restartAndConnect.sh
 
-tpcc_threads="800 1000"
+tpcc_threads="100"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -86,7 +88,7 @@ do
             do
 		for len in $tpcc_length
 		do
-		#sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
+		sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
                 #think_time="tpcc"
                 think_time="tpcc"
                 runTpccNTimes 
@@ -95,7 +97,7 @@ do
         done
 done
 
-tpcc_threads="600 500 400"
+tpcc_threads="1500 1200"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -105,7 +107,7 @@ do
             do
 		for len in $tpcc_length
 		do
-		#sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
+		sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
                 think_time="tpcc"
                 runTpccNTimes 
 		done
@@ -146,6 +148,7 @@ do
         runRubis
 done
 done
+fi
 
 
 do_specula=false
@@ -210,16 +213,14 @@ do
             done
         done
 done
+fi
 
-if [ 1 == 2 ];
-then
-rubis_threads="3000 4000"
+rubis_threads="5000 4000 3000 2000 1000"
 for t in $rubis_threads
 do  
         think_time="rubis"
         runRubis
 done
-fi
 
 
 do_specula=true
@@ -228,7 +229,7 @@ len=1
 
 sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read 
 
-tpcc_threads="1000 500 250 120 60"
+tpcc_threads="1000 800 600 400 200"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -242,7 +243,7 @@ do
         done
 done
 
-tpcc_threads="1200 600 300 150 80"
+tpcc_threads="1500 1200 900 600 300"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -256,7 +257,7 @@ do
         done
 done
 
-tpcc_threads="3000 1500 750 400 200"
+tpcc_threads="3000 2400 1800 1200 600"
 workloads="3"
 for t in $tpcc_threads
 do  
@@ -269,9 +270,8 @@ do
             done
         done
 done
-fi
 
-rubis_threads="6000 3000 1500 750 400"
+rubis_threads="5000 4000 3000 2000 1000"
 for t in $rubis_threads
 do  
         think_time="rubis"
