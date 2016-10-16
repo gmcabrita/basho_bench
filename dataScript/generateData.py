@@ -39,6 +39,7 @@ def init_dict(folder):
     nodefiles = glob.glob(folder+"/summary.csv-*")
     for f in nodefiles:
         node = f.split('/')[-1].split('-')[-1] 
+        #print(node)
         dict['nodes'][node] = {}
     return dict
 
@@ -55,8 +56,15 @@ def add_throughput(my_dict, my_file):
     all_abort = 0
     duration=0
     
-    SKIP_FIRST=6
-    SKIP_LAST=2
+    with open(my_file) as f:
+        for i, l in enumerate(f):
+            pass
+    line_num = i + 1
+    if line_num > 15:
+        SKIP_FIRST=10
+    else:
+        SKIP_FIRST=2
+    SKIP_LAST=1
     
     with open(my_file) as stream:
         oldlines = stream.read().splitlines() 
@@ -103,8 +111,8 @@ def add_real_latency(tag, total_entry, node_entry, folder):
                 if lat != '':
                     tmp_sum += lat
                     tmp_cnt += 1
-        node = file.split('/')[-1].split('-')[-1] 
-        node_entry[node][tag] = tmp_sum / max(1, tmp_cnt) 
+        #node = file.split('/')[-1].split('-')[-1] 
+        #node_entry[node][tag] = tmp_sum / max(1, tmp_cnt) 
         total_sum += tmp_sum
         total_cnt += tmp_cnt
     total_entry.append([total_sum/max(1, total_cnt)])
@@ -141,6 +149,7 @@ for f in sub_folders:
     input_folder = f #os.path.join(root, f)
     if os.path.isdir(input_folder):
         files = os.listdir(input_folder)
+        print(input_folder)
         
         config_path = os.path.join(input_folder, "config")
         o = open(config_path)
@@ -152,9 +161,9 @@ for f in sub_folders:
             dict[config] = init_dict(input_folder)
 
         add_throughput(dict[config]['total_throughput'], os.path.join(input_folder, 'specula_out'))
-        for node in dict[config]['nodes']: 
-            dict[config]['nodes'][node]['throughput'] = []
-            add_throughput(dict[config]['nodes'][node]['throughput'], os.path.join(input_folder, 'summary.csv-'+node))
+        #for node in dict[config]['nodes']: 
+        #    dict[config]['nodes'][node]['throughput'] = []
+        #    add_throughput(dict[config]['nodes'][node]['throughput'], os.path.join(input_folder, 'summary.csv-'+node))
         add_real_latency('percv_latency', dict[config]['percv_latency'], dict[config]['nodes'], input_folder)
         add_real_latency('final_latency', dict[config]['final_latency'], dict[config]['nodes'], input_folder)
         dict[config]['files'].append(input_folder)
@@ -185,13 +194,13 @@ for config in dict:
 
     write_to_file(total_throughput, entry, ['total_throughput'], 'N/A committed all_abort immediate_abort specula_abort abort_rate specula_abort_rate') 
     write_std(total_throughput, entry['total_throughput'])
-    node_file = open(output_fold+'/'+config+'/node_info', 'w')
-    node_file.write('nodes committed all_abort immediate_abort specula_abort abort_rate specula_abort_rate percv_lat real_lat\n')
-    for node in entry['nodes']:
-        print(entry['nodes'][node])
-        throughput = entry['nodes'][node]['throughput']
-        percv_lat = entry['nodes'][node]['percv_latency']
-        final_lat = entry['nodes'][node]['final_latency']
-        node_file.write(node+' '+' '.join(map(str, throughput))+' '+str(percv_lat)+' '+str(final_lat)+'\n')
-    node_file.close()
+    #node_file = open(output_fold+'/'+config+'/node_info', 'w')
+    #node_file.write('nodes committed all_abort immediate_abort specula_abort abort_rate specula_abort_rate percv_lat real_lat\n')
+    #for node in entry['nodes']:
+    #    #print(entry['nodes'][node])
+    #    throughput = entry['nodes'][node]['throughput']
+    #    percv_lat = entry['nodes'][node]['percv_latency']
+    #    final_lat = entry['nodes'][node]['final_latency']
+    #    node_file.write(node+' '+' '.join(map(str, throughput))+' '+str(percv_lat)+' '+str(final_lat)+'\n')
+    #node_file.close()
     

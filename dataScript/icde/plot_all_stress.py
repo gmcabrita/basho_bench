@@ -48,26 +48,28 @@ def get_lists(root_folder, config_str):
 #input_folder='./stat/2016-10-05-130734/'
 #input_folder='./stat/2016-10-05-165257/'
 #input_folder='./stat/2016-10-05-232558/'
-input_folder='./stat/2016-10-12-160111/'
+#input_folder='./stat/2016-10-12-160111/'
+#input_folder='./stat/2016-10-15-144134/'
+input_folder='./stat/2016-10-16-181658merge/'
 time=datetime.now().strftime("%Y%m%d-%H:%M:%S")
-output_folder='./figures/icde/stress_merged_test/' + time
+output_folder='./figures/eurosys/test/' + time
 os.mkdir(output_folder)
-ss1=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 40000, 20000, 'true', 'true', 8])
-ns1=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 40000, 20000, 'false', 'false', 8])
-print(ss1)
-print(ns1)
-dict1={'title':'low low abort', 'no_title':True, 'x_labels':False, 'y_labels':False, 'y_lim':1.5, 'legend_type':'warehouse', 'legend_loc':'upper center', 'commit_legend':['SL0', 'SL1', 'SL2', 'SL8', 'Cent', 'Dist'], 'abort_legend':['2W: UC', '2W: AC', '4W: UC', '4W: AC'], 'has_legend':True}
+ss1=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 30000, 15000, 'true', 'true', 'noauto', 8])
+ns1=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 30000, 15000, 'false', 'false', 'noauto', 8])
+dist1=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 30000, 15000, 'true', 'true', 'distauto', 8])
+planet1=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 30000, 15000, 'true', 'false', 8])
+dict1={'title':'low low abort', 'no_title':True, 'x_labels':False, 'y_labels':False, 'y_lim':1.5, 'legend_type':'warehouse', 'legend_loc':'upper center', 'commit_legend':['Baseline', 'Dist', 'SL0', 'SL1', 'SL4', 'SL8', 'Planet'], 'abort_legend':['2W: UC', '2W: AC', '4W: UC', '4W: AC'], 'has_legend':True}
+#planet
 ss1.reverse()
+plot_multi_lines(input_folder, output_folder, 'micro', ns1+dist1+ss1+planet1, 6, dict1)
 
-plot_multi_bars(input_folder, output_folder, 'micro', ns1+ss1, 6, dict1)
-
-ss2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 2000, 500, 'true', 'true', 'no', 8])
-ss3=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 2000, 500, 'true', 'true', 'centauto', 8])
-ss4=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 2000, 500, 'true', 'true', 'distauto', 8])
+ss2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 1000, 500, 'true', 'true', 'noauto', 8])
+#ss4=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 2000, 500, 'true', 'true', 'distauto', 8])
 print(ss2)
-print(ss3)
-print(ss4)
-ns2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 2000, 500, 'false', 'false', 8])
+#ns2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 5000, 1000, 'false', 'false', 8])
+ns2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 1000, 500, 'false', 'false', 'noauto', 8])
+planet2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 1000, 500, 'true', 'false', 8])
+dist2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 1000, 500, 'true', 'true', 'distauto', 8])
 dict1['title']='highhigh'
 ss2.reverse()
 for i, ss in enumerate(ss2):
@@ -76,10 +78,13 @@ for i, ss in enumerate(ss2):
     s_ns1 = sort_by_num(ns2)
     spec_length = get_field(s_ss1[0], 8)
     plot_stress(s_ss1, s_ns1, input_folder, output_folder, 'highhigh'+str(spec_length))
-plot_multi_lines(input_folder, output_folder, 'micro', ns2+ss2+ss3+ss4, 6, dict1)
+plot_multi_lines(input_folder, output_folder, 'micro', ns2+dist2+ss2+planet2, 6, dict1)
 
-ss2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 40000, 500, 'true', 'true', 8])
-ns2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 40000, 500, 'false', 'false', 8])
+ss2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 30000, 500, 'true', 'true', 'noauto', 8])
+#ns2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 50000, 1000, 'false', 'false', 8])
+ns2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 30000, 500, 'false', 'false', 'noauto', 8])
+planet2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 30000, 500, 'true', 'false', 8])
+dist2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 30000, 500, 'true', 'true', 'distauto', 8])
 dict1['title']='lowhigh'
 ss2.reverse()
 for i, ss in enumerate(ss2):
@@ -88,10 +93,13 @@ for i, ss in enumerate(ss2):
     s_ns1 = sort_by_num(ns2)
     spec_length = get_field(s_ss1[0], 8)
     plot_stress(s_ss1, s_ns1, input_folder, output_folder, 'lowhigh'+str(spec_length))
-plot_multi_bars(input_folder, output_folder, 'micro', ns2+ss2, 6, dict1)
+plot_multi_lines(input_folder, output_folder, 'micro', ns2+dist2+planet2+ss2, 6, dict1)
 
-ss2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 2000, 20000, 'true', 'true', 8])
-ns2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 2000, 20000, 'false', 'false', 8])
+ss2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 1000, 15000, 'true', 'true', 'noauto', 8])
+#ns2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 5000, 10000, 'false', 'false', 8])
+ns2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 1000, 15000, 'false', 'false', 'noauto', 8])
+planet2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 1000, 15000, 'true', 'false', 8])
+dist2=get_matching_series([input_folder, 'micro', 4, 6, 7, 9, 14, 1000, 15000, 'true', 'true', 'distauto', 8])
 dict1['title']='highlow'
 ss2.reverse()
 for i, ss in enumerate(ss2):
@@ -100,4 +108,4 @@ for i, ss in enumerate(ss2):
     s_ns1 = sort_by_num(ns2)
     spec_length = get_field(s_ss1[0], 8)
     plot_stress(s_ss1, s_ns1, input_folder, output_folder, 'highlow'+str(spec_length))
-plot_multi_bars(input_folder, output_folder, 'micro', ns2+ss2, 6, dict1)
+plot_multi_lines(input_folder, output_folder, 'micro', ns2+dist2+ss2+planet2, 6, dict1)

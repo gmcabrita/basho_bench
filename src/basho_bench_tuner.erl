@@ -23,7 +23,8 @@
 
 -behaviour(gen_fsm).
 
--define(BIG, 8).
+%% 0 means no spec read + SL0, 1 means spec read +SL1...
+-define(BIG, 9).
 -define(SML, 0).
 %% API
 -export([start_link/0]).
