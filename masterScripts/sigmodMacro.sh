@@ -56,12 +56,12 @@ AS=20
 specula_read=true
 do_specula=true
 
-tpcc_length="0 4"
-rubis_length="0 4"
+tpcc_length="0"
+rubis_length="0"
 len=0
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -73,10 +73,10 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 
-tpcc_threads="800 400 200 100 50"
+tpcc_threads="800 1000"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -86,19 +86,16 @@ do
             do
 		for len in $tpcc_length
 		do
-		sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
+		#sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
                 #think_time="tpcc"
-                think_time="0"
+                think_time="tpcc"
                 runTpccNTimes 
 		done
             done
         done
 done
-exit
 
-if [ 1 == 2 ];
-then
-tpcc_threads="600 300 150 80"
+tpcc_threads="600 500 400"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -108,7 +105,7 @@ do
             do
 		for len in $tpcc_length
 		do
-		sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
+		#sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
                 think_time="tpcc"
                 runTpccNTimes 
 		done
@@ -116,7 +113,7 @@ do
         done
 done
 
-tpcc_threads="1500 750 400 200"
+tpcc_threads="3000 2400 1800"
 workloads="3"
 for t in $tpcc_threads
 do  
@@ -136,13 +133,12 @@ do
 	    done
         done
 done
-fi
 
 
 for len in $rubis_length
 do
 #rubis_threads="500 1000 2000 3000 4000"
-rubis_threads="6000 5000 4000 3000 2000 1000"
+rubis_threads="6000 5000 4000"
 for t in $rubis_threads
 do  
 	sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
