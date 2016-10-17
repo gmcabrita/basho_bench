@@ -331,9 +331,9 @@ get_random_param_new(Key, Dict, Type, Value, Obj, SetSize) ->
                binary_to_list(Value)
            end,
   case Type of
-    riak_dt_pncounter ->
+      crdt_pncounter ->
       [{{BKey, Type, <<"bucket">>}, lists:nth(Num, Params), 1}];
-    riak_dt_lwwreg ->
+      antidote_crdt_lwwreg ->
       [{{BKey, Type, <<"bucket">>}, assign, NewVal}];
     Type when Type == riak_dt_orset; Type == crdt_orset ->
       Set =
