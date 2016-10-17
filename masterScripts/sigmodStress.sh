@@ -176,18 +176,19 @@ done
 fi
 
 # Dist tune
-seq="1 2"
+seq="1 2 3"
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_tune_read 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+contentions="1 4"
 folder="specula_tests/dist_tune"
 clock=new
 do_specula=true
 specula_read=false
-threads="40 20"
+threads="10"
 length="0"
 len=0
 rm -rf ./config
-echo micro duration 160 >> config
+echo micro duration 200 >> config
 echo micro auto_tune true >> config
 echo micro centralized false >> config
 echo micro all_nodes replace >> config
@@ -203,7 +204,7 @@ for t in $threads
 do
 for len in $length
 do
-    #sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
