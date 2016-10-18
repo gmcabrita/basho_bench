@@ -94,23 +94,41 @@ new({int_to_bin, InputGen}, Id) ->
     ?WARN("The int_to_bin key generator wrapper is deprecated, please use the "
           "int_to_bin_bigendian or int_to_bin_littleendian wrapper instead\n",
           []),
-    Gen = new(InputGen, Id),
-    fun() -> <<(Gen()):32/native>> end;
+    timer:sleep(1000),
+    exit({attempt_to_use_deprecated_key_generator,int_to_bin});
 new({int_to_bin_bigendian, InputGen}, Id) ->
+    new({{int_to_bin_bigendian, 32}, InputGen}, Id);
+new({{int_to_bin_bigendian, Bits}, InputGen}, Id) ->
     Gen = new(InputGen, Id),
-    fun() -> <<(Gen()):32/big>> end;
+    fun() -> <<(Gen()):Bits/big>> end;
 new({int_to_bin_littleendian, InputGen}, Id) ->
+    new({{int_to_bin_littleendian, 32}, InputGen}, Id);
+new({{int_to_bin_littleendian, Bits}, InputGen}, Id) ->
     Gen = new(InputGen, Id),
-    fun() -> <<(Gen()):32/little>> end;
+    fun() -> <<(Gen()):Bits/little>> end;
 new({int_to_str, InputGen}, Id) ->
     Gen = new(InputGen, Id),
     fun() -> integer_to_list(Gen()) end;
+new({str_to_bin, InputGen}, Id) ->
+    Gen = new(InputGen, Id),
+    fun() -> list_to_binary(Gen()) end;
+new({bin_to_str, InputGen}, Id) ->
+    Gen = new(InputGen, Id),
+    fun() -> binary_to_list(Gen()) end;
 new({to_binstr, FmtStr, InputGen}, Id) ->
     Gen = new(InputGen, Id),
     fun() -> list_to_binary(io_lib:format(FmtStr, [Gen()])) end;
+new({to_str, FmtStr, InputGen}, Id) ->
+    Gen = new(InputGen, Id),
+    fun() -> lists:flatten(io_lib:format(FmtStr, [Gen()])) end;
 new({base64, InputGen}, Id) ->
     Gen = new(InputGen, Id),
     fun() -> base64:encode(Gen()) end;
+new({{crypto_hash, Type}, InputGen}, Id)
+  when Type == md4; Type == md5; Type == ripemd160; Type == sha; Type == sha224;
+       Type == sha256; Type == sha384; Type == sha512 ->
+    Gen = new(InputGen, Id),
+    fun() -> crypto:hash(Type, Gen()) end;
 new({concat_binary, OneGen, TwoGen}, Id) ->
     Gen1 = new(OneGen, Id),
     Gen2 = new(TwoGen, Id),
@@ -119,6 +137,8 @@ new({concat_binary, OneGen, TwoGen}, Id) ->
     end;
 new({sequential_int, MaxKey}, Id)
   when is_integer(MaxKey), MaxKey > 0 ->
+    ?WARN("Are you sure that you want to use 'sequential_int'?\n"
+          "For most use cases, 'partitioned_sequential_int' is the better choice.\n", []),
     Ref = make_ref(),
     DisableProgress =
         basho_bench_config:get(disable_sequential_int_progress_report, false),
@@ -154,7 +174,7 @@ new({truncated_pareto_int, MaxKey}, Id) ->
     Pareto = new({pareto_int, MaxKey}, Id),
     fun() -> erlang:min(MaxKey, Pareto()) end;
 new(uuid_v4, _Id) ->
-    fun() -> uuid:v4() end;
+    fun() -> basho_uuid:v4() end;
 new({function, Module, Function, Args}, Id)
   when is_atom(Module), is_atom(Function), is_list(Args) ->
     case code:ensure_loaded(Module) of
@@ -163,12 +183,66 @@ new({function, Module, Function, Args}, Id)
         _Error ->
             ?FAIL_MSG("Could not find keygen function: ~p:~p\n", [Module, Function])
     end;
+new({file_line_bin, Path}, Id) ->
+    new({file_line_bin, Path, repeat}, Id);
+new({file_line_bin, Path, DoRepeat}, Id) ->
+    Open = fun() ->
+                   Opts = [read, raw, binary,
+                           {read_ahead, 16*1024*1024}],
+                   {ok, FileH} = file:open(Path, Opts),
+                   FileH
+           end,
+    Chomp = fun(LineBin) ->
+                    WantedLen = byte_size(LineBin) - 1,
+                    <<Chomped:WantedLen/binary, _/binary>>
+                        = LineBin,
+                    Chomped
+            end,
+    Loop = fun(L, FH) ->
+                   {Line, FH2}  = case file:read_line(FH) of
+                                      {ok, LineBin} ->
+                                          {Chomp(LineBin), FH};
+                                      eof when DoRepeat /= repeat ->
+                                          {empty_keygen, FH};
+                                      eof ->
+                                          ?INFO("EOF", []),
+                                          file:close(FH),
+                                          FH_ = Open(),
+                                          {ok, LineBin} = file:read_line(FH_),
+                                          {Chomp(LineBin), FH_}
+                                  end,
+                   receive
+                       {key_req, From} ->
+                           From ! {key_reply, Line}
+                   end,
+                   L(L, FH2)
+           end,
+    if Id == 1 ->
+            spawn(fun() ->
+                          register(file_keygen, self()),
+                          FH = Open(),
+                          Loop(Loop, FH)
+                  end);
+       true ->
+            ok
+    end,
+    fun() ->
+            file_keygen ! {key_req, self()},
+            receive
+                {key_reply, empty_keygen} ->
+                    throw({stop, empty_keygen});
+                {key_reply, Bin} ->
+                    Bin
+            end
+    end;
 %% Adapt a value generator. The function keygen would work if Id was added as 
 %% the last parameter. But, alas, it is added as the first.
 new({valgen, ValGen}, Id) ->
     basho_bench_valgen:new(ValGen, Id);
 new(Bin, _Id) when is_binary(Bin) ->
     fun() -> Bin end;
+new(List, _Id) when is_list(List) ->
+    fun() -> List end;
 new(Other, _Id) ->
     ?FAIL_MSG("Invalid key generator requested: ~p\n", [Other]).
 
