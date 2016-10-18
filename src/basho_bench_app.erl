@@ -144,7 +144,7 @@ write_cdf(Stat) ->
                       {TSum+Sum, Count+TCount}
                       end, {0,0}, AbortStat), 
     
-    file:write(PercvLatFile,  io_lib:format("Avg wait ~w, waited ~w\n", [SSum div SCount, SCount])), 
+    file:write(PercvLatFile,  io_lib:format("Avg wait ~w, waited ~w\n", [SSum div max(SCount,1), SCount])), 
     lists:foreach(fun({_, {Sum, Count}}) ->
                 file:write(PercvLatFile, io_lib:format("~w, ~w\n", [Sum, Count]))
                 end, AbortStat),
