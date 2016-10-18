@@ -128,7 +128,7 @@ get_key_type(Key) ->
 get_random_param(Dict, Type, Actor, Value) ->
     Params = dict:fetch(Type, Dict),
     random:seed(now()),
-    Num = random:uniform(length(Params)),
+    Num = rand:uniform(length(Params)),
     case Type of
         riak_dt_gcounter ->
            {riak_dt_gcounter, {lists:nth(Num, Params), Actor}};

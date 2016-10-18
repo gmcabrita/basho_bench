@@ -334,7 +334,7 @@ should_disconnect_secs(Seconds, Url) ->
             erlang:put(Key, erlang:now()),
             false;
         Time when is_tuple(Time) andalso size(Time) == 3 ->
-            Diff = timer:now_diff(erlang:now(), Time),
+            Diff = timer:now_diff(erlang:system_time(micro_seconds), Time),
             if
                 Diff >= Seconds * 1000000 ->
                     erlang:put(Key, erlang:now()),

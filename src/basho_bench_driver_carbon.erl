@@ -50,11 +50,11 @@ concat(0, _Keygen, _Ts, List) ->
     List;
 
 concat(Size, KeyGen, Ts, List) ->
-    Msg = io_lib:format("pim.pam.poum.~p ~p ~p~n", [KeyGen(), Ts,  random:uniform(1000)]),
+    Msg = io_lib:format("pim.pam.poum.~p ~p ~p~n", [KeyGen(), Ts,  rand:uniform(1000)]),
     concat(Size -1, KeyGen, Ts, [Msg | List]).
 
 run(set, KeyGen, _ValueGen, State = #state{batch_size=BatchSize}) ->
-    {Mega, Sec, _Micro} = now(),
+    {Mega, Sec, _Micro} = erlang:system_time(micro_seconds),
     Msg = concat(BatchSize, KeyGen, Mega * 1000 + Sec, []),
 
     case carbon(State, Msg) of

@@ -81,7 +81,7 @@ new(Id) ->
     Targets = basho_bench_config:normalize_ips(Ips, DefaultPort),
     BaseUrls = list_to_tuple([#url{host=IP, port=Port}
                               || {IP, Port} <- Targets]),
-    BaseUrlsIndex = random:uniform(tuple_size(BaseUrls)),
+    BaseUrlsIndex = rand:uniform(tuple_size(BaseUrls)),
 
     UserCount = basho_bench_config:get(cs2_user_count, 5),
     HostBase  = list_to_binary(basho_bench_config:get(cs2_host_base, "s3.amazonaws.com")),
@@ -492,7 +492,7 @@ should_disconnect_secs(Seconds, Url) ->
             erlang:put(Key, erlang:now()),
             false;
         Time when is_tuple(Time) andalso size(Time) == 3 ->
-            Diff = timer:now_diff(erlang:now(), Time),
+            Diff = timer:now_diff(erlang:system_time(micro_seconds), Time),
             if
                 Diff >= Seconds * 1000000 ->
                     erlang:put(Key, erlang:now()),

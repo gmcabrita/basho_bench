@@ -150,12 +150,12 @@ generate_list_of_ops(NumOps, Mode, Dict, Acc) ->
     case Mode of
 	0 ->
 	    random:seed(now()),
-	    Key = random:uniform(2000),
+	    Key = rand:uniform(2000),
 	    Type = get_key_type(Key, Dict),
 	    generate_list_of_ops(NumOps-1, Mode, Dict, [{read, Key,Type}|Acc]);
 	1 ->
 	    random:seed(now()),
-	    Key = random:uniform(2000),
+	    Key = rand:uniform(2000),
 	    Type = get_key_type(Key, Dict),
 	    {Type, Param} = get_random_param(Dict, Type, 5, 10),
 	    generate_list_of_ops(NumOps-1, Mode, Dict, [{update, Key,Type, Param}|Acc])
@@ -169,7 +169,7 @@ get_key_type(Key, Dict) ->
 get_random_param(Dict, Type, Actor, Value) ->
     Params = dict:fetch(Type, Dict),
     random:seed(now()),
-    Num = random:uniform(length(Params)),
+    Num = rand:uniform(length(Params)),
     case Type of
         riak_dt_gcounter ->
            {riak_dt_gcounter, {lists:nth(Num, Params), Actor}};

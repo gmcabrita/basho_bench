@@ -92,7 +92,7 @@ init([SupChild, Id]) ->
     {A1, A2, A3} =
         case basho_bench_config:get(rng_seed, {42, 23, 12}) of
             {Aa, Ab, Ac} -> {Aa, Ab, Ac};
-            now -> now()
+            now -> erlang:system_time(micro_seconds)
         end,
 
     RngSeed = {A1+Id, A2+Id, A3+Id},
@@ -252,7 +252,7 @@ worker_next_op2(State, OpTag) ->
    catch (State#state.driver):run(OpTag, State#state.keygen, State#state.valgen,
                                   State#state.driver_state).
 worker_next_op(State) ->
-    Next = element(random:uniform(State#state.ops_len), State#state.ops),
+    Next = element(rand:uniform(State#state.ops_len), State#state.ops),
     {_Label, OpTag} = Next,
     Start = os:timestamp(),
     Result = worker_next_op2(State, OpTag),

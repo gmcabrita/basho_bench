@@ -322,7 +322,7 @@ multi_get_random_param_new([Key|Rest], Dict, Value, Objects, SetSize, Acc)->
 
 get_random_param_new(Key, Dict, Type, Value, Obj, SetSize) ->
   Params = dict:fetch(Type, Dict),
-  Num = random:uniform(length(Params)),
+  Num = rand:uniform(length(Params)),
   BKey = list_to_binary(integer_to_list(Key)),
   NewVal = case Value of
              Value when is_integer(Value) ->
@@ -356,7 +356,7 @@ get_random_param_new(Key, Dict, Type, Value, Obj, SetSize) ->
             [] ->
               [{{BKey, Type, <<"bucket">>}, add_all, [NewVal]}];
             Set ->
-              [{{BKey, Type, <<"bucket">>}, remove_all, [lists:nth(random:uniform(length(Set)), Set)]}]
+              [{{BKey, Type, <<"bucket">>}, remove_all, [lists:nth(rand:uniform(length(Set)), Set)]}]
           end;
         _ ->
           [{{BKey, Type, <<"bucket">>}, add_all, [NewVal]}]
@@ -366,7 +366,7 @@ get_random_param_new(Key, Dict, Type, Value, Obj, SetSize) ->
 get_random_param(Dict, Type, Value) ->
   Params = dict:fetch(Type, Dict),
   random:seed(now()),
-  Num = random:uniform(length(Params)),
+  Num = rand:uniform(length(Params)),
   case Type of
     riak_dt_pncounter ->
       {antidotec_counter, lists:nth(Num, Params), 1};
@@ -376,7 +376,7 @@ get_random_param(Dict, Type, Value) ->
 
 get_random_param(Dict, Type, Value, Obj, SetSize) ->
   Params = dict:fetch(Type, Dict),
-  Num = random:uniform(length(Params)),
+  Num = rand:uniform(length(Params)),
   case Type of
     riak_dt_pncounter ->
       {antidotec_counter, lists:nth(Num, Params), 1};
@@ -439,7 +439,7 @@ k_unique_numes(Num, Range) ->
     sets:to_list(S).
 
 uninum(Range, Set) ->
-    R = random:uniform(Range),
+    R = rand:uniform(Range),
     case sets:is_element(R, Set) of
         true ->
             uninum(Range, Set);
@@ -471,5 +471,5 @@ unikey(KeyGen, Set) ->
 random_string(Len) ->
     Chrs = list_to_tuple("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"),
     ChrsSize = size(Chrs),
-    F = fun(_, R) -> [element(random:uniform(ChrsSize), Chrs) | R] end,
+    F = fun(_, R) -> [element(rand:uniform(ChrsSize), Chrs) | R] end,
     lists:foldl(F, "", lists:seq(1, Len)).

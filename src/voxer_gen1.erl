@@ -15,7 +15,7 @@ do_inserter2(Id, InsertsPerSec) ->
                           {Ts0, R0} ->
                               {Ts0, R0}
                       end,
-    Suffix = random:uniform(InsertsPerSec * 10000),
+    Suffix = rand:uniform(InsertsPerSec * 10000),
     erlang:put(insert_ts, {Ts, Remaining-Workers}),
     [integer_to_list(Ts), $_, integer_to_list(Suffix)].
 
@@ -33,6 +33,6 @@ do_inserter(_Id, InsertsPerSec) ->
                           {Ts0, R0} ->
                               {Ts0, R0}
                       end,
-    Suffix = random:uniform(InsertsPerSec * 10000),
+    Suffix = rand:uniform(InsertsPerSec * 10000),
     erlang:put(insert_ts, {Ts, Remaining-1}),
     [integer_to_list(Ts), $_, integer_to_list(Suffix)].

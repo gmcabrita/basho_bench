@@ -72,7 +72,7 @@ call(State, Op, Args) ->
     (catch thrift_client:call(State#state.client, Op, Args)).
 
 tstamp() ->
-    {Mega, Sec, _Micro} = now(),
+    {Mega, Sec, _Micro} = erlang:system_time(micro_seconds),
     (Mega * 1000000) + Sec.
 
 
