@@ -206,7 +206,7 @@ make_riak_object_maybe(Bucket, Key, Value, #state{store_riak_obj = true,
 
 new_object(EncodedKey, Bucket, Key, Value) ->
     %% MD stuff stolen from riak_kv_put_fsm.erl
-    Now = erlang:now(),
+    Now = erlang:system_time(micro_seconds),
     <<HashAsNum:128/integer>> = basho_bench:md5(term_to_binary({node(), Now})),
     VT = riak_core_util:integer_to_list(HashAsNum,62),
     NewMD = dict:store(<<"X-Riak-VTag">>, VT,
