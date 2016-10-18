@@ -60,6 +60,8 @@ tpcc_length="0"
 rubis_length="0"
 len=0
 
+if [ 1 == 2 ];
+then
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
@@ -124,14 +126,14 @@ do
 	    done
         done
 done
+fi
 
-rubis_threads="500 50"
+rubis_threads="500"
 for t in $rubis_threads
 do  
         think_time="rubis"
         runRubis
 done
-exit
 
 
 do_specula=false
@@ -155,7 +157,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 
 if [ 1 == 2 ];
 then
-tpcc_threads="1000 500 250 120 60"
+tpcc_threads="100 10"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -169,7 +171,7 @@ do
         done
 done
 
-tpcc_threads="1200 600 300 150 80"
+tpcc_threads="100 10"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -183,7 +185,7 @@ do
         done
 done
 
-tpcc_threads="3000 1500 750 400 200"
+tpcc_threads="300 30"
 workloads="3"
 for t in $tpcc_threads
 do  
@@ -196,14 +198,14 @@ do
             done
         done
 done
+fi
 
-rubis_threads="1000"
+rubis_threads="500 50"
 for t in $rubis_threads
 do  
         think_time="rubis"
         runRubis
 done
-fi
 
 
 do_specula=true
@@ -211,13 +213,9 @@ specula_read=false
 len=1
 
 sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read 
-#sudo ./script/restartAndConnect.sh
+sudo ./script/restartAndConnect.sh
 
-
-if [ 1 == 2 ];
-then
-
-tpcc_threads="1000 800 600 400 200"
+tpcc_threads="100 10"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -231,7 +229,7 @@ do
         done
 done
 
-tpcc_threads="10 100"
+tpcc_threads="100 10"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -245,7 +243,7 @@ do
         done
 done
 
-tpcc_threads="20 200"
+tpcc_threads="300 30"
 workloads="3"
 for t in $tpcc_threads
 do  
@@ -258,13 +256,10 @@ do
             done
         done
 done
-fi
 
-rubis_threads="5000 4000 3000 2000"
+rubis_threads="500 50"
 for t in $rubis_threads
 do  
         think_time="rubis"
-	sudo pkill -f basho
-	sudo ./masterScripts/killBasho.sh
         runRubis
 done
