@@ -748,10 +748,16 @@ commit_updates(FinalCdf, SpeculaCdf, [{TxnSeq, EndTime}|Rest], [{TxnSeq, OpName,
     PercvTime = timer:now_diff(SpecTime, StartTime),
     basho_bench_stats:op_complete({OpName, OpName}, ok),
     commit_updates([{Now, UsedTime}|FinalCdf], [{Now, PercvTime}|SpeculaCdf], Rest, SpeculaRest, PreviousSpecula, Now); 
-commit_updates(FinalCdf, SpeculaCdf, List, [_Entry|SpeculaRest]=SpeculaList, PreviousSpecula, Now) ->
+commit_updates(FinalCdf, SpeculaCdf, [H|T]=List, [{TxnSeq, _OpName, _StartTime, _SpecTime}|SpeculaRest]=SpeculaList, PreviousSpecula, Now) ->
     lager:error("List is ~w, Specula list is ~w", [List, SpeculaList]),
     %Now = error,
-    commit_updates(FinalCdf, SpeculaCdf, List, SpeculaRest, PreviousSpecula, Now).
+    MySeq = case H of {Seq, _} -> Seq; {tx_id, _A, _B, _C, Seq} -> Seq end,
+    case MySeq < TxnSeq of
+        true -> lager:error("Committing old txn!"),
+            commit_updates(FinalCdf, SpeculaCdf, T, SpeculaRest, PreviousSpecula, Now);
+        false ->
+            commit_updates(FinalCdf, SpeculaCdf, List, SpeculaRest, PreviousSpecula, Now)
+    end.
 
 finalize_reads([], ReadTxs, Previous, _Result) ->
     lists:reverse(Previous)++ReadTxs;
