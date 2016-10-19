@@ -35,7 +35,7 @@ function runRubis {
 
 
 ## Just to test.. 
-seq="1 2 3"
+seq="1 2"
 warehouse="5"
 
 #rep=8
@@ -78,7 +78,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
 #sudo ./script/restartAndConnect.sh
 
-tpcc_threads="100"
+tpcc_threads="10 100"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -86,18 +86,13 @@ do
         do
             for wh in $warehouse
             do
-		for len in $tpcc_length
-		do
-		sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
-                #think_time="tpcc"
                 think_time="tpcc"
                 runTpccNTimes 
-		done
             done
         done
 done
 
-tpcc_threads="1500 1200"
+tpcc_threads="100 10"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -105,17 +100,13 @@ do
         do
             for wh in $warehouse
             do
-		for len in $tpcc_length
-		do
-		sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
                 think_time="tpcc"
                 runTpccNTimes 
-		done
             done
         done
 done
 
-tpcc_threads="3000 2400 1800"
+tpcc_threads="300 30"
 workloads="3"
 for t in $tpcc_threads
 do  
@@ -136,17 +127,11 @@ do
         done
 done
 
-
-for len in $rubis_length
-do
-#rubis_threads="500 1000 2000 3000 4000"
-rubis_threads="6000 5000 4000"
+rubis_threads="500"
 for t in $rubis_threads
 do  
-	sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
         think_time="rubis"
         runRubis
-done
 done
 fi
 
@@ -167,12 +152,12 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 10 $do_specula 0 $rep $parts $specula_read 
+#sudo ./script/configBeforeRestart.sh 500 $do_specula 0 $rep $parts $specula_read 
 #sudo ./script/restartAndConnect.sh
 
 if [ 1 == 2 ];
 then
-tpcc_threads="1000 500 250 120 60"
+tpcc_threads="100 10"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -186,7 +171,7 @@ do
         done
 done
 
-tpcc_threads="1200 600 300 150 80"
+tpcc_threads="100 10"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -200,7 +185,7 @@ do
         done
 done
 
-tpcc_threads="3000 1500 750 400 200"
+tpcc_threads="300 30"
 workloads="3"
 for t in $tpcc_threads
 do  
@@ -214,7 +199,7 @@ do
         done
 done
 
-rubis_threads="1000"
+rubis_threads="500 50"
 for t in $rubis_threads
 do  
         think_time="rubis"
@@ -228,13 +213,11 @@ specula_read=false
 len=1
 
 sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read 
-#sudo ./script/restartAndConnect.sh
-
+sudo ./script/restartAndConnect.sh
 
 if [ 1 == 2 ];
 then
-
-tpcc_threads="1000 800 600 400 200"
+tpcc_threads="100 10"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -248,7 +231,7 @@ do
         done
 done
 
-tpcc_threads="1500 1200 900 600 300"
+tpcc_threads="100 10"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -262,7 +245,7 @@ do
         done
 done
 
-tpcc_threads="3000 2400 1800 1200 600"
+tpcc_threads="300 30"
 workloads="3"
 for t in $tpcc_threads
 do  
@@ -277,11 +260,9 @@ do
 done
 fi
 
-rubis_threads="5000 4000 3000 2000"
+rubis_threads="500 50"
 for t in $rubis_threads
 do  
         think_time="rubis"
-	sudo pkill -f basho
-	sudo ./masterScripts/killBasho.sh
         runRubis
 done
