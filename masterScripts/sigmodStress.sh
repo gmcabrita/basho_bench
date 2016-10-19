@@ -176,7 +176,7 @@ done
 fi
 
 # Dist tune
-seq="1 2 3"
+seq="1 2"
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_tune_read 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 contentions="1 4"
@@ -184,12 +184,12 @@ folder="specula_tests/dist_tune"
 clock=new
 do_specula=true
 specula_read=false
-threads="10"
+threads="80"
 length="0"
 len=0
 rm -rf ./config
-echo micro duration 200 >> config
-echo micro auto_tune true >> config
+echo micro duration 80 >> config
+echo micro auto_tune false >> config
 echo micro centralized false >> config
 echo micro all_nodes replace >> config
 echo micro tune_period 2 >> config
