@@ -412,7 +412,6 @@ worker_next_op(State) ->
 						{UpdateSeq0+1, State#state.specula_txs ++ [{UpdateSeq0+1, CurOpName, os:timestamp(), ignore}]};
 					true -> {UpdateSeq0, State#state.specula_txs}
 				end,
-	lager:warning("Spec txs are ~w", [SpeculaTxs]),
     {Cnt, ExprStart, Period} = State#state.store_cdf,
     Result = worker_next_op2(State#state{update_seq=UpdateSeq}, OpTag, Seed, CurrentOpType),
     case Result of crash -> lager:warning("***************WTF, CRASHED!!!!************");
