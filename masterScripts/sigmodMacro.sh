@@ -60,8 +60,10 @@ tpcc_length="0"
 rubis_length="0"
 len=4
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+if [ 1 == 2];
+then
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -130,15 +132,15 @@ do
         think_time="rubis"
         runRubis
 done
-exit
+fi
 
 
 do_specula=false
 specula_read=false
 len=0
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat 
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat 
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -152,6 +154,9 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 sudo ./script/configBeforeRestart.sh 1000 $do_specula 0 $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
 
+
+if [ 1 == 2 ];
+then
 tpcc_threads="100 10 200 400 600 800 1000"
 workloads="1"
 for t in $tpcc_threads
@@ -193,6 +198,7 @@ do
             done
         done
 done
+fi
 
 rubis_threads="500 50 1000 2000 3000 4000 5000"
 for t in $rubis_threads
