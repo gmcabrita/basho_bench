@@ -605,7 +605,6 @@ pick_warehouse(MyId, RepIds, SlaveRepIds, WPerNode, AccessMaster, AccessRep) ->
                                 WPerNode*(lists:nth(F, RepIds)-1)+S+1
                     end;
                 false ->
-	   	    lager:warning("R is ~w, AM is ~w, AR is ~w", [R, AccessMaster, AccessRep]),
                     L = length(SlaveRepIds),
                     case L of 0 ->
                                 N = R rem (length(RepIds) * WPerNode),
