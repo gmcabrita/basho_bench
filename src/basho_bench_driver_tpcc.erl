@@ -203,15 +203,12 @@ run(new_order, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=T
     TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     %lager:info("TxId is ~w", [TxId]),
     CustomerKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId, CustomerId}, customer), 
-	lager:warning("1"),
     _Customer = read_from_node(TxServer, TxId, CustomerKey, to_dc(WarehouseId, WPerNode), DcId, PartList, HashDict), 
     WarehouseKey = tpcc_tool:get_key_by_param({WarehouseId}, warehouse),
 
-	lager:warning("1"),
     _Warehouse = read_from_node(TxServer, TxId, WarehouseKey, to_dc(WarehouseId, WPerNode), DcId, PartList, HashDict),
 
     DistrictKey = tpcc_tool:get_key_by_param({WarehouseId, DistrictId}, district),
-	lager:warning("1"),
     District = read_from_node(TxServer, TxId, DistrictKey, to_dc(WarehouseId, WPerNode), DcId, PartList, HashDict),
     OId = District#district.d_next_o_id,
 
@@ -335,9 +332,7 @@ run(payment, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxS
 	%							true -> {N+1, RId};  false -> {N, RId}
 	%						end
 	%			  	end,
-   lager:warning("Before picking warehouse, pm is ~w, ps is ~w", [PaymentMaster, PaymentSlave]),
     CWId = pick_warehouse(DcId, OtherMasterIds, DcRepIds, WPerNode, PaymentMaster, PaymentSlave),
-       	    lager:warning("Picked ~w", [CWId]),
     CDId = DistrictId,
 	PaymentAmount = tpcc_tool:random_num(100, 500000) / 100.0,
 
@@ -347,19 +342,15 @@ run(payment, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxS
     TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
     %lager:warning("TxId is ~w", [TxId]),
 	WarehouseKey = tpcc_tool:get_key_by_param({TWarehouseId}, warehouse),
-	lager:warning("1"),
     Warehouse = read_from_node(TxServer, TxId, WarehouseKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
 	WYtdKey = WarehouseKey++":w_ytd",
-	lager:warning("1"),
 	WYtd = read_from_node(TxServer, TxId, WYtdKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
     case is_number(WYtd) of true -> ok;  false -> lager:warning("TxId is ~w, WTyd is ~w", [TxId, WYtd]), WYtd=haah end,
 	WYtd1 = WYtd+ PaymentAmount,
 	WS1 = dict:store({TWarehouseId, WYtdKey}, WYtd1, WS),
 	DistrictKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId}, district),
-	lager:warning("1"),
     District = read_from_node(TxServer, TxId, DistrictKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
 	DYtdKey = DistrictKey++":d_ytd",
-	lager:warning("1"),
 	DYtd = read_from_node(TxServer, TxId, DYtdKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
     case is_number(DYtd) of true -> ok;  false -> lager:warning("TxId is ~w, DTyd is ~w", [TxId, DYtd]), DYtd=haah end,
 	DYtd1 = DYtd+ PaymentAmount,
@@ -371,12 +362,10 @@ run(payment, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxS
 				Rand = trunc(tpcc_tool:non_uniform_random(C_C_LAST, ?A_C_LAST, 0, ?MAX_C_LAST)),
 	         	CLastName = tpcc_tool:last_name(Rand),
 				CustomerLookupKey = tpcc_tool:get_key_by_param({CWId, CDId, CLastName}, customer_lookup),
-	lager:warning("1"),
 				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, to_dc(CWId, WPerNode), DcId, PartList, HashDict),
                 Ids = CustomerLookup#customer_lookup.ids,
                 Customers= lists:foldl(fun(Id, Acc) ->
                             CKey = tpcc_tool:get_key_by_param({CWId, CDId, Id}, customer),
-	lager:warning("1"),
                             C = read_from_node(TxServer, TxId, CKey, to_dc(CWId, WPerNode), DcId, PartList, HashDict),
                             case C of
                                 error -> Acc;  _ -> [C|Acc]
@@ -387,11 +376,9 @@ run(payment, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxS
 	       	false ->
 	         	CustomerID = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
 				CKey = tpcc_tool:get_key_by_param({CWId, CDId, CustomerID}, customer),
-	lager:warning("1"),
 				read_from_node(TxServer, TxId, CKey, to_dc(CWId, WPerNode), DcId, PartList, HashDict)
 		end,
     CWBalanceKey = tpcc_tool:get_key(CW)++":c_balance",
-	lager:warning("1"),
     CWBalance = read_from_node(TxServer, TxId, CWBalanceKey, to_dc(CWId, WPerNode), DcId, PartList, HashDict),
     CWBalance1 = CWBalance + PaymentAmount,
     WS3 = dict:store({CWId, CWBalanceKey}, CWBalance1, WS2),
@@ -440,7 +427,6 @@ run(order_status, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_serve
 				Rand = trunc(tpcc_tool:non_uniform_random(C_C_LAST, ?A_C_LAST, 0, ?MAX_C_LAST)),
 	         	CLastName = tpcc_tool:last_name(Rand),
 				CustomerLookupKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, CLastName}, customer_lookup),
-	lager:warning("1"),
 				CustomerLookup = read_from_node(TxServer, TxId, CustomerLookupKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
                 case CustomerLookup of
                     error ->
@@ -450,7 +436,6 @@ run(order_status, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_serve
                         Ids = CustomerLookup#customer_lookup.ids,
                         Customers= lists:foldl(fun(Id, Acc) ->
                                     CKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, Id}, customer),
-	lager:warning("1"),
                                     C = read_from_node(TxServer, TxId, CKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
                                     case C of
                                         error -> Acc;  _ -> [C|Acc]
@@ -463,12 +448,10 @@ run(order_status, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_serve
 	       	false ->
 	         	CustomerID = tpcc_tool:non_uniform_random(C_C_ID, ?A_C_ID, 1, ?NB_MAX_CUSTOMER),
 				CKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, CustomerID}, customer),
-	lager:warning("1"),
 				read_from_node(TxServer, TxId, CKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict)
 		end,
     CWLastOrder = CW#customer.c_last_order,
     OrdKey = tpcc_tool:get_key_by_param({TWarehouseId, DistrictId, CWLastOrder}, order),
-	lager:warning("1"),
     LastOne = read_from_node(TxServer, TxId, OrdKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict),
     %lager:info("CWId is ~w, length of orderlist is ~w", [CWId, length(OrderList)]),
     NumLines = LastOne#order.o_ol_cnt,
@@ -479,7 +462,6 @@ run(order_status, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_serve
     OId = LastOne#order.o_id,
     lists:foreach(fun(Number) ->
             OlKey = tpcc_tool:get_key_by_param({OWId, ODId, OId, Number}, orderline),
-	lager:warning("1"),
             _Ol = read_from_node(TxServer, TxId, OlKey, to_dc(TWarehouseId, WPerNode), DcId, PartList, HashDict)
             end, Seq2),
     case Specula of 
@@ -534,13 +516,11 @@ read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict) ->
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
                     CacheServName = dict:fetch(cache, HashDict), 
-		    lager:warning("Going to cache ~w, dCiD IS ~w", [CacheServName, DcId]), 
                     gen_server:call(CacheServName, {read, Key, TxId, Part}, ?READ_TIMEOUT);
                 {ok, N} ->
                     {_, L} = lists:nth(DcId, PartList),
                     Index = crypto:bytes_to_integer(erlang:md5(Key)) rem length(L) + 1,
                     Part = lists:nth(Index, L),
-		    lager:warning("Going to ~w, ~w", [DcId, Part]), 
                     gen_server:call(N, {read, Key, TxId, Part}, ?READ_TIMEOUT)
             end
     end,
@@ -564,9 +544,7 @@ read_from_cache_or_node(ReadSet, TxServer, TxId, Key, DcId, MyDcId, PartList, Ha
             %lager:info("In read set..Key ~p, V ~p, Readset ~p", [Key, V, ReadSet]),
             {V, ReadSet};
         error ->
-		lager:warning("Before"),
             V = read_from_node(TxServer, TxId, Key, DcId, MyDcId, PartList, HashDict),
-		lager:warning("After"),
             ReadSet1 = dict:store(Key, V, ReadSet),
             %lager:info("Not in read set..Key ~p, V ~p, Readset ~p", [Key, V, ReadSet1]),
             {V, ReadSet1}
@@ -608,23 +586,19 @@ add_to_writeset(Key, Value, {_, PartList}, WSet) ->
 
 pick_warehouse(MyId, RepIds, SlaveRepIds, WPerNode, AccessMaster, AccessRep) ->
     R = random:uniform(100),
-    lager:info("~w ~w ~w ~w ~w ~w R is ~w", [MyId, RepIds, SlaveRepIds, WPerNode, AccessMaster, AccessRep, R]),
     case R =< AccessMaster of
         true ->
-       	    lager:warning("Picked ~w", [WPerNode*(MyId-1) + R rem WPerNode +1]),
             WPerNode*(MyId-1) + R rem WPerNode +1;
         false ->
             case R =< AccessMaster + AccessRep of
                 true ->
                     L = length(RepIds),
                     case L of 0 ->
-				lager:warning("Going 1"),
                                 N = R rem (length(SlaveRepIds) * WPerNode) + 1,
                                 F = (N-1) div WPerNode +1,
                                 S = N rem WPerNode,
                                 WPerNode*(lists:nth(F, SlaveRepIds)-1)+S+1;
                             _ ->
-				lager:warning("Going here 2"),
                                 N = R rem (L * WPerNode),
                                 F = N div WPerNode +1, 
                                 S = N rem WPerNode,
@@ -633,13 +607,11 @@ pick_warehouse(MyId, RepIds, SlaveRepIds, WPerNode, AccessMaster, AccessRep) ->
                 false ->
                     L = length(SlaveRepIds),
                     case L of 0 ->
-				lager:warning("Going 3"),
                                 N = R rem (length(RepIds) * WPerNode),
                                 F = N div WPerNode +1,    
                                 S = N rem WPerNode,
                                 WPerNode*(lists:nth(F, SlaveRepIds)-1)+S+1;
                             _ ->
-				lager:warning("Going 4"),
                                 N = R rem (L * WPerNode) + 1,
                                 F = (N-1) div WPerNode +1, 
                                 S = N rem WPerNode,

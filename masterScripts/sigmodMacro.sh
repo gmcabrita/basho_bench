@@ -60,8 +60,8 @@ tpcc_length="0"
 rubis_length="0"
 len=4
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
