@@ -126,7 +126,6 @@ do
 	    done
         done
 done
-fi
 
 rubis_threads="500"
 for t in $rubis_threads
@@ -134,6 +133,7 @@ do
         think_time="rubis"
         runRubis
 done
+fi
 
 
 do_specula=false
@@ -152,7 +152,7 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 10 $do_specula 0 $rep $parts $specula_read 
+#sudo ./script/configBeforeRestart.sh 500 $do_specula 0 $rep $parts $specula_read 
 #sudo ./script/restartAndConnect.sh
 
 if [ 1 == 2 ];
@@ -198,7 +198,6 @@ do
             done
         done
 done
-fi
 
 rubis_threads="500 50"
 for t in $rubis_threads
@@ -206,6 +205,7 @@ do
         think_time="rubis"
         runRubis
 done
+fi
 
 
 do_specula=true
@@ -215,6 +215,8 @@ len=1
 sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
 
+if [ 1 == 2 ];
+then
 tpcc_threads="100 10"
 workloads="1"
 for t in $tpcc_threads
@@ -256,6 +258,7 @@ do
             done
         done
 done
+fi
 
 rubis_threads="500 50"
 for t in $rubis_threads
