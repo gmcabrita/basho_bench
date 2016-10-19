@@ -177,16 +177,16 @@ fi
 
 # Dist tune
 seq="1 2"
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_tune_read 
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_tune_read 
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 contentions="2 3"
 folder="specula_tests/dist_tune"
 clock=new
 do_specula=true
-specula_read=false
+specula_read=true
 threads="10 160"
-length="0"
-len=0
+length="2"
+len=2
 rm -rf ./config
 echo micro duration 80 >> config
 echo micro auto_tune false >> config
@@ -198,13 +198,13 @@ sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
 for len in $length
 do
-    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
