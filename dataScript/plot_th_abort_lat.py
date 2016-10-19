@@ -27,7 +27,6 @@ def get_path(input_folders, name):
 # input data
 def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_index, plot_dict):
     plt.clf()
-    ncols=11
     fig = plt.figure()
     gs = gridspec.GridSpec(3, 1)
     gs.update(hspace=0.001)
@@ -36,7 +35,18 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
     ax1 = plt.subplot(gs[0, 0])
     ax2 = plt.subplot(gs[1, 0]) 
     ax3 = plt.subplot(gs[2, 0]) 
-    hatches = ['+++', '///', '\\\\\\', '...', '---', 'xxx']
+
+
+    markers=["^", "v", "s", "o", "D", "v"]
+    #colors=['#253494', '#2c7fb8', '#41b6c4', '#1111cc', '#1111cc', '#0000cc']
+    colors=['#31a354', '#e34a33', '#045a8d', '#a6bddb', '#d0d1e6', '#f6eff7']
+    dashed_ls = ['--', '-.', ':']
+    #if 'base_line' in plot_dict:
+    #    colors=['#000000', '#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#ffffcc']
+    #else:
+    #    colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#ffffcc']
+    #markers=["^", "8", "s", "h", ".", "1", "v"]
+    #hatches = ['+++', '///', '\\\\\\', '...', '---', 'xxx']
     ax1.set_xticklabels([])
     
     fsize=15
@@ -48,26 +58,15 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
     abort_handlers = []
     latency_handlers = []
     legend_type = plot_dict['legend_type'] 
-    markers=["^", "8", "s", "h", ".", "1", "v"]
     line_index=0
     barwidth = max(0.15, 0.6/len(data_multi_list))
-    #colors=['#000000', '#397fb8', '#4fb04c', '#ed7e7e','#944fa1', '#e31b1b', '#e37f1b']
-    #colors=['#000000', '#9E9FDB', '#01c07c', '#8D1010','#944fa1', '#e31b1b', '#e37f1b']
-    #colors=['#000000','#ffffcc','#a1dab4','#41b6c4','#2c7fb8','#253494']
-    if 'base_line' in plot_dict:
-        colors=['#000000', '#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#ffffcc']
-    else:
-        colors=['#253494', '#2c7fb8', '#41b6c4', '#a1dab4', '#ffffcc']
     start_pos = 0
     ## Draw baseline
     #print(data_multi_list)
     num_xticks = len(max(data_multi_list, key=len))
     offset = len(data_multi_list)/2*barwidth
 
-    if 'not_reverse' not in plot_dict:
-        data_multi_list.reverse()
-
-    #print(data_multi_list)
+    print(data_multi_list)
     for data_list in data_multi_list: 
         data_list = sort_by_num(data_list)
             
@@ -85,20 +84,27 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
         minvalue = 1000000000 
         for f in data_list:
             path = get_path(input_folder, f+'/total_throughput')
+            ncols = np.loadtxt(path, dtype='str').shape[1]
             data = np.loadtxt(path, skiprows=1, usecols=range(1,ncols))
-            #print(data)
-            maxv=max(maxv, data[0,0], data[0,5])
-            minvalue = min(minvalue, float(data[0,0]))
-            data1.append(data[0,0])
-            data1_e.append(data[1,0])
-            #data2.append(data[0,5]/(data[0,0]+data[0,5]))
-            data2.append(data[0,8])
-            data2_e.append(data[1,8])
-            #if len(data) < 8:
-            #    specula_abort.append((data[0,5]-data[0,1])/(data[0,0]+data[0,5]))
-            #else:
-            specula_abort.append(data[0,9])
-            s_abort_e.append(data[1,9])
+            if ncols == 11:
+                maxv=max(maxv, data[0,0], data[0,5])
+                minvalue = min(minvalue, float(data[0,0]))
+                data1.append(data[0,0])
+                data1_e.append(data[1,0])
+                data2.append(data[0,8])
+                data2_e.append(data[1,8])
+                specula_abort.append(data[0,9])
+                s_abort_e.append(data[1,9])
+            else:
+                maxv=max(maxv, data[0,0], data[0,1])
+                minvalue = min(minvalue, float(data[0,0]))
+                data1.append(data[0,0])
+                data1_e.append(data[1,0])
+                data2.append(data[0,4])
+                data2_e.append(data[1,4])
+                specula_abort.append(data[0,5])
+                s_abort_e.append(data[1,5])
+                
 
             lat_path = get_path(input_folder, f+'/real_latency')
             lat_data = np.loadtxt(lat_path, skiprows=1, usecols=range(1,2))
@@ -138,8 +144,6 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
                 #hlt2 = ax2.add_patch(Polygon([[xx,0], [xx,sv], [xx+barwidth,sv], [xx+barwidth, 0]], color=colors[line_index]))
                 #hlt1, = ax2.bar(xx, v-sv, barwidth, yerr=data2_e[i], bottom=sv,color=colors[line_index]) 
                 #hlt2, = ax2.bar(xx, sv, barwidth, yerr=s_abort_e[i], bottom=0,color=colors[line_index-1]) 
-        print(specula_abort)
-        print(s_abort_e)
         hlt1 = ax2.errorbar(x, data2, color=colors[line_index], yerr=data2_e, marker=markers[line_index], markersize=10, linewidth=3.5)
         hlt2 = ax2.errorbar(x, specula_abort, color=colors[line_index], yerr=s_abort_e, marker=markers[line_index], markersize=10, linewidth=3.5, ls='dashed')
 
@@ -195,9 +199,9 @@ def plot_three(input_folder, output_folder, bench_type, data_multi_list, legend_
 
     ax2.set_ylim([0.01,0.99])
     if '3y_lim' in plot_dict:
-        ax3.set_ylim([1, plot_dict['3y_lim']])
+        ax3.set_ylim([100, plot_dict['3y_lim']])
     else:
-        ax3.set_ylim([1, 10])
+        ax3.set_ylim([100, 10])
     ax3.set_yscale('log')
 
     ax1.yaxis.grid(True)

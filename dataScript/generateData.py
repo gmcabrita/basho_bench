@@ -60,7 +60,9 @@ def add_throughput(my_dict, my_file):
         for i, l in enumerate(f):
             pass
     line_num = i + 1
-    if line_num > 15:
+    if line_num > 18:
+        SKIP_FIRST=13
+    elif line_num > 15:
         SKIP_FIRST=10
     else:
         SKIP_FIRST=2
