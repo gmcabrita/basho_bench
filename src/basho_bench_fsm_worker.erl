@@ -720,6 +720,7 @@ commit_updates(FinalCdf, SpeculaCdf, [], SpeculaTxs, PreviousSpecula, _) ->
     {FinalCdf, SpeculaCdf, lists:reverse(PreviousSpecula)++SpeculaTxs};
 commit_updates(FinalCdf, SpeculaCdf, [{{tx_id, _A, _B, _C, TxnSeq}, EndTime}|Rest], [{TxnSeq, OpName, StartTime, SpecTime}|SpeculaRest], PreviousSpecula, Now)->
     %case EndTime of ignore -> lager:warning("End Time is ~w, SpecTime is ~w, TxId is ~w", [EndTime, SpecTime, TxId]); _ -> ok end, 
+    lager:warning("StartTime is ~w, SpecTime is ~w, EndTime is ~w, diff is ~w", [StartTime, SpecTime, EndTime, timer:now_diff(EndTime, StartTime)]),
     UsedTime = timer:now_diff(EndTime, StartTime),
     %case SpecTime of ignore -> lager:warning("End Time is ~w, SpecTime is ~w, TxId is ~w", [EndTime, SpecTime, TxId]); _ -> ok end, 
     PercvTime = timer:now_diff(SpecTime, StartTime),
@@ -743,7 +744,7 @@ commit_updates(FinalCdf, SpeculaCdf, [{TxnSeq, EndTime}|Rest], [{TxnSeq, OpName,
     commit_updates([{Now, UsedTime}|FinalCdf], [{Now, PercvTime}|SpeculaCdf], Rest, SpeculaRest, PreviousSpecula, Now); 
 commit_updates(FinalCdf, SpeculaCdf, List, [Entry|SpeculaRest]=SpeculaList, PreviousSpecula, Now) ->
     lager:error("List is ~w, Specula list is ~w", [List, SpeculaList]),
-    Now = error,
+    %Now = error,
     commit_updates(FinalCdf, SpeculaCdf, List, SpeculaRest, [Entry|PreviousSpecula], Now).
 
 finalize_reads([], ReadTxs, Previous, _Result) ->

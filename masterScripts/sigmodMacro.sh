@@ -40,12 +40,12 @@ warehouse="5"
 
 #rep=8
 #parts=28
-rep=5
-parts=28
+#rep=5
+#parts=28
 ##rep=3
 #parts=20
-#rep=1
-#parts=8
+rep=1
+parts=8
 
 start_ind=1
 skip_len=0
@@ -76,7 +76,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
 
-tpcc_threads="10 100"
+tpcc_threads="1"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -89,6 +89,7 @@ do
             done
         done
 done
+exit
 
 tpcc_threads="10 100"
 workloads="2"
