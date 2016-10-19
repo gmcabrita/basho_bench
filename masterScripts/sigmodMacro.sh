@@ -212,8 +212,8 @@ do_specula=true
 specula_read=false
 len=1
 
-#sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read 
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read 
+sudo ./script/restartAndConnect.sh
 
 if [ 1 == 2 ];
 then
