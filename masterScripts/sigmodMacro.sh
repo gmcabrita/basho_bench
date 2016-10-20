@@ -139,8 +139,8 @@ do_specula=false
 specula_read=false
 len=0
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat 
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat 
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -214,6 +214,7 @@ len=1
 
 sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
+exit
 
 if [ 1 == 2 ];
 then
