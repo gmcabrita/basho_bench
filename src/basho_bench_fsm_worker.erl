@@ -771,7 +771,10 @@ finalize_reads(List, [Entry|SpeculaRest], PreviousSpecula, Result) ->
     finalize_reads(List, SpeculaRest, [Entry|PreviousSpecula], Result);
 finalize_reads(List, [], Previous, Result) ->
     lager:error("List is ~p, Previous is ~p, result is ~p", [List, Previous, Result]),
-    List = 1.
+	lists:foreach(fun(Txn) -> 
+	 	basho_bench_stats:op_complete({not_found, not_found}, Result)
+	end, List),
+	lists:reverse(Previous).
 
 get_op_type(_, true) ->
     update;
