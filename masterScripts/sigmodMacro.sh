@@ -60,8 +60,6 @@ tpcc_length="0"
 rubis_length="0"
 len=4
 
-if [ 1 == 2];
-then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
@@ -78,7 +76,7 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
 
-tpcc_threads="10 100"
+tpcc_threads="200 400 600 800 1000"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -92,7 +90,7 @@ do
         done
 done
 
-tpcc_threads="10 100"
+tpcc_threads="300 600 900 1200 1500"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -106,7 +104,7 @@ do
         done
 done
 
-tpcc_threads="30 300"
+tpcc_threads="600 1200 1800 2400 3000"
 workloads="3"
 for t in $tpcc_threads
 do  
@@ -126,21 +124,21 @@ do
         done
 done
 
-rubis_threads="500 50"
+rubis_threads="1000 2000 3000 4000 5000"
 for t in $rubis_threads
 do  
         think_time="rubis"
         runRubis
 done
-fi
+exit
 
 
 do_specula=false
 specula_read=false
 len=0
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat 
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat 
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -212,9 +210,8 @@ do_specula=true
 specula_read=false
 len=1
 
-sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read 
-sudo ./script/restartAndConnect.sh
-exit
+#sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read 
+#sudo ./script/restartAndConnect.sh
 
 if [ 1 == 2 ];
 then
@@ -245,7 +242,6 @@ do
             done
         done
 done
-fi
 
 tpcc_threads="300 30 600 1200 1800 2400 3000"
 workloads="3"
@@ -260,8 +256,9 @@ do
             done
         done
 done
+fi
 
-rubis_threads="500 50 1000 2000 3000 4000 5000"
+rubis_threads="4000"
 for t in $rubis_threads
 do  
         think_time="rubis"
