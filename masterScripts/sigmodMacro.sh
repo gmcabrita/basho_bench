@@ -60,6 +60,8 @@ tpcc_length="0"
 rubis_length="0"
 len=4
 
+if [ 1 == 2 ];
+then
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat 
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
@@ -123,8 +125,9 @@ do
 	    done
         done
 done
+fi
 
-rubis_threads="1000 2000 3000 4000 5000"
+rubis_threads="3000 4000 5000"
 for t in $rubis_threads
 do  
         think_time="rubis"
