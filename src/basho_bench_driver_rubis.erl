@@ -719,6 +719,7 @@ run(view_bid_history, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, all_
             part_list=PartList, prev_state=PrevState, node_id=MyNode, hash_dict=HashDict, specula=Specula}) ->
     random:seed(Seed),
     ItemId = PrevState#prev_state.item_id,
+    LastUserId = PrevState#prev_state.last_user_id,
     {ItemNode, _} = ItemId,
     ItemKey = rubis_tool:get_key(ItemId, item), 
     TxId = gen_server:call(TxServer, {start_tx, TxnSeq}),
@@ -763,10 +764,13 @@ run(view_bid_history, TxnSeq, MsgId, Seed, State=#state{tx_server=TxServer, all_
                         %UserKey = rubis_tool:get_key(Bid#bid.b_user_id, user),
                         %lager:warning("Trying to read from user key ~w", [UserKey]),
                         %_ = read_from_node(TxServer, TxId, UserKey, MyNode, MyNode, PartList, HashDict),
-                        case RandBidId of B -> Bid#bid.b_user_id;
+                        case RandBidId of B -> 
+                                case Bid of [] -> A;
+                                            _ -> Bid#bid.b_user_id
+                                end;
                                  _ -> A
                         end
-                        end, undef, ItemBids),
+                        end, LastUserId, ItemBids),
             case Specula of
                 true ->
                     Response =  certify_read(TxServer, TxId, MsgId, AllUpdate),
