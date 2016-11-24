@@ -527,7 +527,7 @@ worker_next_op(State) ->
             %lager:warning("Finall commit updates are ~w, FinallComm Reads are ~w, spec txs are ~w", [FinalCommitUpdates, FinalCommitReads, SpeculaTxs]),
             ReadTxs1 = finalize_reads(lists:sort(FinalCommitReads), ReadTxs, [], ok),
             ReadTxs2 = finalize_reads(lists:sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
-            %case FinalCommitUpdates of [] -> ok; _ ->%lager:warning("FinalComm is ~w", [FinalCommitUpdates]) end,
+            %case FinalCommitUpdates of [] -> ok; _ ->lager:warning("FinalComm is ~w, specula_txs are ~w", [FinalCommitUpdates, SpeculaTxs]) end,
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], Now),
             %% If I am update: add my specula-commit time to the list
             %% If I am read: add my txid to the list
@@ -753,7 +753,7 @@ commit_updates(FinalCdf, SpeculaCdf, [{TxnSeq, EndTime}|Rest], [{TxnSeq, OpName,
     commit_updates([{Now, UsedTime}|FinalCdf], [{Now, PercvTime}|SpeculaCdf], Rest, SpeculaRest, PreviousSpecula, Now); 
 commit_updates(FinalCdf, SpeculaCdf, [H|T]=List, [{TxnSeq, _OpName, _StartTime, _SpecTime}|SpeculaRest]=SpeculaList, PreviousSpecula, Now) ->
     lager:error("List is ~w, Specula list is ~w", [List, SpeculaList]),
-    %Now = error,
+    Now = error,
     MySeq = case H of {Seq, _} -> Seq; {tx_id, _A, _B, _C, Seq} -> Seq end,
     case MySeq < TxnSeq of
         true -> lager:error("Committing old txn!"),
@@ -774,9 +774,10 @@ finalize_reads(List, [Entry|SpeculaRest], PreviousSpecula, Result) ->
     finalize_reads(List, SpeculaRest, [Entry|PreviousSpecula], Result);
 finalize_reads(List, [], Previous, Result) ->
     lager:error("List is ~p, Previous is ~p, result is ~p", [List, Previous, Result]),
-	lists:foreach(fun(Txn) -> 
+	lists:foreach(fun(_Txn) -> 
 	 	basho_bench_stats:op_complete({not_found, not_found}, Result)
 	end, List),
+    List = 1,
 	lists:reverse(Previous).
 
 get_op_type(_, true) ->
