@@ -29,8 +29,8 @@
 -include("basho_bench.hrl").
 -include("rubis.hrl").
 
--define(TIMEOUT, 20000).
--define(READ_TIMEOUT, 20000).
+-define(TIMEOUT, 30000).
+-define(READ_TIMEOUT, 30000).
 
 -record(prev_state, {last_user_id = undef :: {integer(), integer()},
                      item_id = undef :: {integer(), integer()},

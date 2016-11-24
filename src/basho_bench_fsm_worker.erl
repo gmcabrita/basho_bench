@@ -363,15 +363,15 @@ suspended(_Msg, State) ->
     {next_state, suspended, State, 50}.
 
 handle_info(Info, _StateName, StateData) ->
-   lager:warning("Info is ~w", [Info]),
+    lager:info("Info is ~w", [Info]),
     {stop, badmsg, StateData}.
 
 handle_event(Event, _StateName, StateData) ->
-   lager:warning("Event is ~w", [Event]),
+    lager:info("Event is ~w", [Event]),
     {stop, badmsg, StateData}.
 
 handle_sync_event(Event, _From, _StateName, StateData) ->
-   lager:warning("Sync Event is ~w", [Event]),
+    lager:info("Sync Event is ~w", [Event]),
     {stop, badmsg, StateData}.
 
 terminate(_Reason, _, _State) ->
@@ -398,6 +398,7 @@ worker_next_op2(State, OpTag, Seed, update) ->
                                   State#state.driver_state)
     end;
 worker_next_op2(State, OpTag, Seed, read) ->
+   %lager:warning("Going to read with seq ~w", [State#state.read_seq]),
     catch (State#state.driver):run(OpTag, {read,State#state.read_seq}, State#state.msg_id, Seed,
                           State#state.driver_state).
 
@@ -441,6 +442,7 @@ worker_next_op(State) ->
               end,
     case Result of
         {prev_state, DriverState} ->
+	    %lager:warning("Go to previous"),
             case PreviousOps of
                 [] ->
                     case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time({1,1}, Transition));
@@ -475,13 +477,14 @@ worker_next_op(State) ->
                     NextReadSeq = ReadSeq + 1,
                     timer:sleep(OpThinkTime),
                     ReadTxs2 = ReadTxs1 ++ [{NextReadSeq, Now, NextOpName}],
+		   %lager:warning("Next read seq is ~w, read txs are ~w", [NextReadSeq, ReadTxs2]),
                     {next_state, execute, State#state{driver_state=DriverState, todo_op=NextOp, read_seq=NextReadSeq, update_seq=UpdateSeq,
                           read_txs=ReadTxs2, specula_cdf=SpeculaCdf, specula_txs=SpeculaTxs, final_cdf=FinalCdf, store_cdf=StoreCdf, last_inserted=LastInserted, seed=Now, op_type=read}, 0}
             end;
         %% Committed! Means all previous update txns are committed. So just start a new txn
         {Res, {AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} when Res == ok orelse element(1, Res) == ok ->
             %case CurrentOpType of  update ->lager:warning("Op ~p committed", [UpdateSeq]); read -> ok end,
-              %lager:warning("Op ~w finished, op type is ~w, specula txs are ~w", [OpTag, CurrentOpType, SpeculaTxs]),
+            %lager:warning("Op ~w finished, op type is ~w, specula txs are ~w", [OpTag, CurrentOpType, SpeculaTxs]),
             ReadTxs1 = finalize_reads(lists:sort(FinalCommitReads), ReadTxs, [], ok),
             ReadTxs2 = finalize_reads(lists:sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], Now),
@@ -524,7 +527,7 @@ worker_next_op(State) ->
         %% Wait for msg. Either retrying some ops if final abort msg is received or continue 
         {specula_commit, {AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
             %case CurrentOpType of  update ->lager:warning("Op ~p specula-committed", [UpdateSeq]); read -> ok end,
-            %lager:warning("Finall commit updates are ~w, FinallComm Reads are ~w, spec txs are ~w", [FinalCommitUpdates, FinalCommitReads, SpeculaTxs]),
+            %lager:warning("Finall commit updates are ~w, FinallComm Reads are ~w, spec txs are ~w, read txs are ~w", [FinalCommitUpdates, FinalCommitReads, SpeculaTxs, ReadTxs]),
             ReadTxs1 = finalize_reads(lists:sort(FinalCommitReads), ReadTxs, [], ok),
             ReadTxs2 = finalize_reads(lists:sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
             %case FinalCommitUpdates of [] -> ok; _ ->lager:warning("FinalComm is ~w, specula_txs are ~w", [FinalCommitUpdates, SpeculaTxs]) end,
@@ -555,6 +558,7 @@ worker_next_op(State) ->
                         read ->
                             NextReadSeq = ReadSeq + 1,
                             ReadTxs3 = ReadTxs2 ++ [{NextReadSeq, Now, NextOpName}],
+			   %lager:warning("Next read seq is ~w, read txs are ~w", [NextReadSeq, ReadTxs3]),
                             {next_state, execute, State#state{driver_state=DriverState, todo_op=NextOp, read_seq=NextReadSeq, 
                                   specula_txs=SpeculaTxs2, read_txs=ReadTxs3, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1
                                 , store_cdf=StoreCdf, op_type=read, seed=Now, last_inserted=LastInserted, update_seq=UpdateSeq}, OpThinkTime}
@@ -568,7 +572,7 @@ worker_next_op(State) ->
         %% Retry txns from the aborted one.
         {cascade_abort, {AbortedTxId, AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
             %case CurrentOpType of  update ->lager:warning("Op ~p cascade-aborted", [UpdateSeq]); read -> ok end,
-             %lager:warning("Cascade abort!!! Specula txs are ~w, abortedtx id is ~w, op aborted ~w, AbortedReads are ~w, FinalCommUpates ~w, FinalCommReads ~w", [SpeculaTxs, AbortedTxId, OpTag, AbortedReads, FinalCommitUpdates, FinalCommitReads]),
+              %lager:warning("Cascade abort!!! Specula txs are ~w, abortedtx id is ~w, op aborted ~w, AbortedReads are ~w, FinalCommUpates ~w, FinalCommReads ~w", [SpeculaTxs, AbortedTxId, OpTag, AbortedReads, FinalCommitUpdates, FinalCommitReads]),
             State#state.shutdown_on_error andalso
                 erlang:send_after(500, basho_bench,
                                   {shutdown, "Shutdown on errors requested", 1}),
@@ -581,6 +585,7 @@ worker_next_op(State) ->
             AbortStat1 = {timer:now_diff(Now, StartTime)+Sum, Count+1},
             {next_state, execute, State#state{driver_state=DriverState, todo_op={RetryOpSeq, NextOpName}, last_inserted=LastInserted,update_seq=RetryOpSeq, op_type=update, specula_txs=SpeculaTxs1, read_txs=ReadTxs2, abort_stat=AbortStat1, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, seed=StartTime, store_cdf=StoreCdf}, 0};
         {aborted, {AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
+	    %lager:warning("Op aborted!"),
             State#state.shutdown_on_error andalso
                 erlang:send_after(500, basho_bench,
                                   {shutdown, "Shutdown on errors requested", 1}),
