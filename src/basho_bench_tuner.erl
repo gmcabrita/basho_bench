@@ -158,7 +158,7 @@ index_of(Node, [_|Rest], Index) ->
     index_of(Node, Rest, Index+1).
 
 get_real_node() ->
-    remove(node()).
+    list_to_atom((remove(atom_to_list(node())))).
 
 remove(['@'|T]) ->
     T;
