@@ -193,6 +193,7 @@ gather_stat({master_gather, CurrentRound, Throughput}, State=#state{remain_num=R
       end;
 gather_stat({master_gather, Round, Throughput}, State=#state{centralized=true, 
                 current_round=CurrentRound, round_dict=RoundDict}) ->
+    lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, CurrentRound]),
     case Round > CurrentRound of
         true ->
             RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict)  ,
@@ -219,6 +220,7 @@ gather_stat({inter_gather, CurrentRound, Throughput}, State=#state{remain_num=Re
     end;
 gather_stat({inter_gather, Round, Throughput}, State=#state{centralized=true, 
                 current_round=CurrentRound, round_dict=RoundDict}) ->
+    lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, CurrentRound]),
     case Round > CurrentRound of
         true ->
             RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict)  ,
@@ -252,7 +254,7 @@ gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, 
                     {next_state, gather_stat, State#state{previous=Current, current_round=CurrentRound+1, current=Current1, prev_throughput=PrevTh1, my_workers=Workers}}
             end;
         true ->
-    	    lager:warning("Received ~w for round ~w, sending to inter ~w", [Throughput, Round, RemainNum, InterNode]),
+    	    lager:warning("Received ~w for round ~w, sending to inter ~w", [Throughput, Round, InterNode]),
             gen_fsm:send_event({global, InterNode}, {inter_gather, Round, Throughput}),
             {next_state, gather_stat, State#state{current_round=CurrentRound+1}}
     end;
