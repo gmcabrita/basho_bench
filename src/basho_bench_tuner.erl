@@ -51,6 +51,8 @@
                  %mid,
                  inter_node,
                  inter_gather,
+                 all_inter_nodes,
+                 inter_range_nodes,
                  previous,
                  current,
                  num_nodes,
@@ -89,6 +91,7 @@ init([Name]) ->
     PrevThroughput = lists:foldl(fun(N, D) ->
                 dict:store(N, inf, D)
                 end, dict:new(), lists:seq(-1, ?BIG)),
+
     case Centralized of
         false ->
             MyWorkers = basho_bench_sup:workers(),
@@ -111,10 +114,18 @@ init([Name]) ->
             {ok, Device} = file:open("../../script/num_dcs", [read]),
             {ok, Line} = file:read_line(Device),
             NumDc = erlang:list_to_integer(Line--"\n"),
+            NodesPerDc = length(AllNodes) div NumDc,
             AllTuners = [ list_to_atom( get_ip(atom_to_list(Node), []) ++"auto_tuner") || Node <- AllNodes],
             RealNode = get_real_node(),
             MyIndex = index_of(RealNode, AllNodes, 1),
-            MyInterNode = lists:nth(((MyIndex-1) div NumDc + 1)*3, AllNodes) ++ "auto_tuner",
+            MyInterIndex = ((MyIndex-1) div NodesPerDc * NodesPerDc) +1,
+            MyInterNode = lists:nth(MyInterIndex, AllNodes) ++ "auto_tuner",
+            AllInterNodes = lists:foldl(fun(I, AN) -> 
+                                [lists:nth(1+(I-1)*NodesPerDc, AllTuners)|AN] end, 
+                            [], lists:seq(1, length(AllNodes) div NumDc)),
+            InterRangeNodes = lists:foldl(fun(I, AN) ->
+                                  [lists:nth(I, AllTuners)|AN] end,
+                              [], lists:seq(MyInterIndex, MyInterIndex+NodesPerDc-1)), 
             NumNodes = length(AllNodes),
             [MasterNode|_] = AllNodes, 
             Master = list_to_atom( atom_to_list(MasterNode) ++ "auto_tuner"),
@@ -127,6 +138,8 @@ init([Name]) ->
                             num_dcs = NumDc,
                             my_workers=MyWorkers,
                             inter_node=MyInterNode,
+                            all_inter_nodes=AllInterNodes,
+                            inter_range_nodes=InterRangeNodes,
                             inter_gather=length(AllNodes) div NumDc,
                             centralized = Centralized,
                             num_nodes=NumNodes,
@@ -153,8 +166,8 @@ remove([_H|T]) ->
     remove(T).
 
 gather_stat({master_gather, CurrentRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
-                all_nodes=AllNodes, prev_throughput=PrevTh, current_round=CurrentRound, round_dict=RoundDict, 
-                num_dcs=NumDcs, sum_throughput=SumThroughput, previous=Prev, current=Current}) ->
+                prev_throughput=PrevTh, current_round=CurrentRound, round_dict=RoundDict, 
+                num_dcs=NumDcs, sum_throughput=SumThroughput, all_inter_nodes=AllInterNodes,  previous=Prev, current=Current}) ->
     case RemainNum of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
@@ -162,7 +175,7 @@ gather_stat({master_gather, CurrentRound, Throughput}, State=#state{remain_num=R
             {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, SumThroughput1),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
             lager:warning("Centralized: Previous length is ~w, current length is ~w", [Prev, Current1]),
-            lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, Current1}) end, AllNodes),
+            lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {inter_new_length, Current1}) end, AllInterNodes),
             {Prev1, Current2} = case Current1 of Current -> {Prev, Current}; _ -> {Current, Current1} end,
             ets:insert(stat, {{auto_tune, CurrentRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
             case dict:find(CurrentRound+1, RoundDict) of
@@ -240,6 +253,10 @@ gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, 
             gen_fsm:send_event({global, InterNode}, {inter_gather, CurrentRound, Throughput}),
             {next_state, gather_stat, State#state{current_round=CurrentRound+1}}
     end;
+
+gather_stat({inter_new_length, NewLength} , State=#state{inter_range_nodes=InterRangeNodes}) ->
+    lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, NewLength}) end, InterRangeNodes),
+    {next_state, gather_stat, State};
 
 gather_stat({new_length, NewLength} , State=#state{my_workers=MyWorkers}) ->
     Workers = case MyWorkers of [] -> basho_bench_sup:workers();
