@@ -40,6 +40,7 @@
 
 -record(state, { id,
     		 name,
+                 specula_read,
                  keygen,
                  valgen,
                  think_time,
@@ -190,6 +191,7 @@ init([Id, Name]) ->
                      specula_txs=[],
                      specula_length = 0,
                      seed=Now,
+                     specula_read=false,
                      read_txs=[],
                      abort_stat={0,0},
                      read_seq=0,
@@ -273,7 +275,12 @@ execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf,
     worker_next_op(State#state{store_cdf={Count, os:timestamp(), Period}});
 
 execute({specula_length, NewLength}, State) ->
-    worker_next_op(State#state{specula_length=NewLength});
+    case NewLength of
+        0 ->
+            worker_next_op(State#state{specula_length=0, specula_read=false});
+        _ -> 
+            worker_next_op(State#state{specula_length=NewLength-1, specula_read=true})
+    end;
 
 execute(timeout, State=#state{mode=Mode, rate_sleep=RateSleep}) ->
     case Mode of
@@ -380,9 +387,10 @@ code_change(_OldVsn, _, State, _Extra) ->
 worker_next_op2(State, OpTag, Seed, update) ->
     AutoTune = State#state.auto_tune,
     SpeculaLength = State#state.specula_length,
+    SpeculaRead = State#state.specula_read,
     case AutoTune of
         true -> 
-           catch (State#state.driver):run(OpTag, {up,State#state.update_seq}, State#state.msg_id, Seed, SpeculaLength, 
+           catch (State#state.driver):run(OpTag, {up,State#state.update_seq}, State#state.msg_id, Seed, SpeculaLength, SpeculaRead, 
                                   State#state.driver_state);
         false ->
            catch (State#state.driver):run(OpTag, {up,State#state.update_seq}, State#state.msg_id, Seed, 
