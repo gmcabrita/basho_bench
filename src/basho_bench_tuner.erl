@@ -59,6 +59,8 @@
                  all_nodes,
                  num_dcs,
 	    	 current_round,
+	         inter_round,
+		 master_round,
 		 round_dict,
                  remain_num,
                  sum_throughput = 0
@@ -106,6 +108,8 @@ init([Name]) ->
                             current = 0,
                             num_nodes=1,
                             current_round=1,
+			    inter_round=1,
+			    master_round=1,
                             remain_num=1,
                             my_workers = MyWorkers,
                             all_nodes = [],
@@ -148,6 +152,8 @@ init([Name]) ->
                             current = 0,
                             remain_num=NumNodes,
                             current_round=1,
+			    inter_round=1,
+			    master_round=1,
                             round_dict=RoundDict,
                             all_nodes = AllTuners,
                             sum_throughput = 0}}
@@ -166,8 +172,8 @@ remove([64|T]) ->
 remove([_H|T]) ->
     remove(T).
 
-gather_stat({master_gather, CurrentRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
-                prev_throughput=PrevTh, current_round=CurrentRound, round_dict=RoundDict, 
+gather_stat({master_gather, InterRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
+                prev_throughput=PrevTh, master_round=MasterRound, round_dict=RoundDict, 
                 num_dcs=NumDcs, sum_throughput=SumThroughput, all_inter_nodes=AllInterNodes,  previous=Prev, current=Current}) ->
     lager:warning("Master ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, CurrentRound, RemainNum]),
     case RemainNum of
@@ -180,19 +186,19 @@ gather_stat({master_gather, CurrentRound, Throughput}, State=#state{remain_num=R
             lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {inter_new_length, Current1}) end, AllInterNodes),
             {Prev1, Current2} = case Current1 of Current -> {Prev, Current}; _ -> {Current, Current1} end,
             ets:insert(stat, {{auto_tune, CurrentRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
-            case dict:find(CurrentRound+1, RoundDict) of
+            case dict:find(MasterRound+1, RoundDict) of
                 {ok, {Sum, Replied}} ->
                     {next_state, gather_stat, State#state{remain_num=NumDcs-Replied, sum_throughput=Sum,
-                        previous=Prev1, current=Current2, prev_throughput=PrevTh1, current_round=CurrentRound+1}};
+                        previous=Prev1, current=Current2, prev_throughput=PrevTh1, master_round=MasterRound+1}};
                 error ->
                     {next_state, gather_stat, State#state{remain_num=NumDcs, sum_throughput=0,
-                        previous=Prev1, current=Current2, prev_throughput=PrevTh1, current_round=CurrentRound+1}}
+                        previous=Prev1, current=Current2, prev_throughput=PrevTh1, master_round=MasterRound+1}}
             end;
         _ ->
             {next_state, gather_stat, State#state{remain_num=RemainNum-1, sum_throughput=SumThroughput+Throughput}}
       end;
 gather_stat({master_gather, Round, Throughput}, State=#state{centralized=true, 
-                current_round=CurrentRound, round_dict=RoundDict}) ->
+                master_round=MasterRound, round_dict=RoundDict}) ->
     lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, CurrentRound]),
     case Round > CurrentRound of
         true ->
@@ -203,8 +209,8 @@ gather_stat({master_gather, Round, Throughput}, State=#state{centralized=true,
             {next_state, gather_stat, State}
     end;
 
-gather_stat({inter_gather, CurrentRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
-                current_round=CurrentRound, inter_gather=InterGather, 
+gather_stat({inter_gather, InterRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
+                inter_round=InterRound, inter_gather=InterGather, 
                 master=Master, sum_throughput=SumThroughput}) ->
     lager:warning("Inter ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, CurrentRound, RemainNum]),
     case RemainNum of
@@ -214,12 +220,12 @@ gather_stat({inter_gather, CurrentRound, Throughput}, State=#state{remain_num=Re
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
             gen_fsm:send_event({global, Master}, {master_gather, CurrentRound, SumThroughput1}),
-            {next_state, gather_stat, State#state{remain_num=InterGather, sum_throughput=0, current_round=CurrentRound+1}};
+            {next_state, gather_stat, State#state{remain_num=InterGather, sum_throughput=0, inter_round=InterRound+1}};
         _ ->
             {next_state, gather_stat, State#state{remain_num=RemainNum-1, sum_throughput=SumThroughput+Throughput}}
     end;
 gather_stat({inter_gather, Round, Throughput}, State=#state{centralized=true, 
-                current_round=CurrentRound, round_dict=RoundDict}) ->
+                inter_round=InterRound, round_dict=RoundDict}) ->
     lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, CurrentRound]),
     case Round > CurrentRound of
         true ->
