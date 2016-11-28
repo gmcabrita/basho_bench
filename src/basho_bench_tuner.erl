@@ -172,10 +172,10 @@ remove([64|T]) ->
 remove([_H|T]) ->
     remove(T).
 
-gather_stat({master_gather, InterRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
+gather_stat({master_gather, MasterRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
                 prev_throughput=PrevTh, master_round=MasterRound, round_dict=RoundDict, 
                 num_dcs=NumDcs, sum_throughput=SumThroughput, all_inter_nodes=AllInterNodes,  previous=Prev, current=Current}) ->
-    lager:warning("Master ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, CurrentRound, RemainNum]),
+    lager:warning("Master ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, MasterRound, RemainNum]),
     case RemainNum of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
@@ -185,7 +185,7 @@ gather_stat({master_gather, InterRound, Throughput}, State=#state{remain_num=Rem
             lager:warning("Master ~w Centralized: Previous length is ~w, current length is ~w, all inter nodes ~w", [node(), Prev, Current1, AllInterNodes]),
             lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {inter_new_length, Current1}) end, AllInterNodes),
             {Prev1, Current2} = case Current1 of Current -> {Prev, Current}; _ -> {Current, Current1} end,
-            ets:insert(stat, {{auto_tune, CurrentRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
+            ets:insert(stat, {{auto_tune, MasterRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
             case dict:find(MasterRound+1, RoundDict) of
                 {ok, {Sum, Replied}} ->
                     {next_state, gather_stat, State#state{remain_num=NumDcs-Replied, sum_throughput=Sum,
@@ -199,46 +199,46 @@ gather_stat({master_gather, InterRound, Throughput}, State=#state{remain_num=Rem
       end;
 gather_stat({master_gather, Round, Throughput}, State=#state{centralized=true, 
                 master_round=MasterRound, round_dict=RoundDict}) ->
-    lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, CurrentRound]),
-    case Round > CurrentRound of
+    lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, MasterRound]),
+    case Round > MasterRound of
         true ->
             RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict)  ,
             {next_state, gather_stat, State#state{round_dict=RoundDict1}};
         false ->
-            true = Round < CurrentRound,
+            true = Round < MasterRound,
             {next_state, gather_stat, State}
     end;
 
 gather_stat({inter_gather, InterRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
                 inter_round=InterRound, inter_gather=InterGather, 
                 master=Master, sum_throughput=SumThroughput}) ->
-    lager:warning("Inter ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, CurrentRound, RemainNum]),
+    lager:warning("Inter ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, InterRound, RemainNum]),
     case RemainNum of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
     	    lager:warning("Inter ~w sending ~w to master ~w", [node(), SumThroughput1, Master]),
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
-            gen_fsm:send_event({global, Master}, {master_gather, CurrentRound, SumThroughput1}),
+            gen_fsm:send_event({global, Master}, {master_gather, InterRound, SumThroughput1}),
             {next_state, gather_stat, State#state{remain_num=InterGather, sum_throughput=0, inter_round=InterRound+1}};
         _ ->
             {next_state, gather_stat, State#state{remain_num=RemainNum-1, sum_throughput=SumThroughput+Throughput}}
     end;
 gather_stat({inter_gather, Round, Throughput}, State=#state{centralized=true, 
                 inter_round=InterRound, round_dict=RoundDict}) ->
-    lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, CurrentRound]),
-    case Round > CurrentRound of
+    lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, InterRound]),
+    case Round > InterRound of
         true ->
             RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict)  ,
             {next_state, gather_stat, State#state{round_dict=RoundDict1}};
         false ->
-            true = Round < CurrentRound,
+            true = Round < InterRound,
             {next_state, gather_stat, State}
     end;
 
 gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, num_nodes=NumNodes, centralized=Centralized, 
                 my_workers=MyWorkers, prev_throughput=PrevTh, current_round=CurrentRound, 
-                master=Master, sum_throughput=SumThroughput, inter_node=InterNode, previous=Prev, current=Current}) ->
+                sum_throughput=SumThroughput, inter_node=InterNode, previous=Prev, current=Current}) ->
     case Centralized of
         false ->
             SumThroughput = 0,
