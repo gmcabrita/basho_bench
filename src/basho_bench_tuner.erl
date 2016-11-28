@@ -72,6 +72,7 @@
 
 start_link() ->
     Name = tuner_name(), 
+    lager:warning("Tuner name is ~w", [Name]),
     gen_fsm:start_link({global, Name}, ?MODULE, [Name], []).
 
 %% ====================================================================
@@ -391,4 +392,4 @@ get_ip([C|T], Prev) ->
     end.
 
 tuner_name() ->
-    list_to_atom( get_ip(atom_to_list(node()), [])  ++ "auto_tuner").
+    list_to_atom( get_ip(atom_to_list(node()), [])  ++ "@auto_tuner").
