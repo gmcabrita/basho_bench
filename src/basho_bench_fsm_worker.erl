@@ -275,6 +275,7 @@ execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf,
     worker_next_op(State#state{store_cdf={Count, os:timestamp(), Period}});
 
 execute({specula_length, NewLength}, State) ->
+    lager:warning("~w got new length is ~w", [self(), NewLength]),
     case NewLength of
         0 ->
             worker_next_op(State#state{specula_length=0, specula_read=false});

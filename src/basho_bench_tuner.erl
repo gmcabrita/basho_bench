@@ -168,13 +168,14 @@ remove([_H|T]) ->
 gather_stat({master_gather, CurrentRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
                 prev_throughput=PrevTh, current_round=CurrentRound, round_dict=RoundDict, 
                 num_dcs=NumDcs, sum_throughput=SumThroughput, all_inter_nodes=AllInterNodes,  previous=Prev, current=Current}) ->
+    lager:warning("Master ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, Round, RemainNum]),
     case RemainNum of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
             {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, SumThroughput1),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
-            lager:warning("Centralized: Previous length is ~w, current length is ~w", [Prev, Current1]),
+            lager:warning("Master ~w Centralized: Previous length is ~w, current length is ~w, all inter nodes ~w", [node(), Prev, Current1, AllInterNodes]),
             lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {inter_new_length, Current1}) end, AllInterNodes),
             {Prev1, Current2} = case Current1 of Current -> {Prev, Current}; _ -> {Current, Current1} end,
             ets:insert(stat, {{auto_tune, CurrentRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
@@ -203,9 +204,11 @@ gather_stat({master_gather, Round, Throughput}, State=#state{centralized=true,
 gather_stat({inter_gather, CurrentRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
                 current_round=CurrentRound, inter_gather=InterGather, 
                 master=Master, sum_throughput=SumThroughput}) ->
+    lager:warning("Inter ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, Round, RemainNum]),
     case RemainNum of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
+    	    lager:warning("Inter ~w sending ~w to master ~w", [node(), SumThroughput1, Master]),
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
             gen_fsm:send_event({global, Master}, {master_gather, CurrentRound, SumThroughput1}),
@@ -248,9 +251,8 @@ gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, 
                     {next_state, gather_stat, State#state{previous=Current, current_round=CurrentRound+1, current=Current1, prev_throughput=PrevTh1, my_workers=Workers}}
             end;
         true ->
-    	    lager:warning("Received ~w for round ~w, remain is ~w", [Throughput, Round, RemainNum]),
-            lager:warning("Sending to master ~w, current round is ~w", [Master, CurrentRound]),
-            gen_fsm:send_event({global, InterNode}, {inter_gather, CurrentRound, Throughput}),
+    	    lager:warning("Received ~w for round ~w, sending to inter ~w", [Throughput, Round, RemainNum, InterNode]),
+            gen_fsm:send_event({global, InterNode}, {inter_gather, Round, Throughput}),
             {next_state, gather_stat, State#state{current_round=CurrentRound+1}}
     end;
 
@@ -262,7 +264,7 @@ gather_stat({new_length, NewLength} , State=#state{my_workers=MyWorkers}) ->
     Workers = case MyWorkers of [] -> basho_bench_sup:workers();
                                 _ -> MyWorkers
               end,
-        lists:foreach(fun(Worker) -> gen_fsm:send_event(Worker, {specula_length, NewLength}) end, Workers),
+    lists:foreach(fun(Worker) -> gen_fsm:send_event(Worker, {specula_length, NewLength}) end, Workers),
     {next_state, gather_stat, State#state{my_workers=Workers}}.
 
 handle_info(_Info, _StateName, StateData) ->
