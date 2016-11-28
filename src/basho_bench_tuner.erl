@@ -311,6 +311,7 @@ linear_stay(Prev, Current, Dict, Throughput) ->
                     case Current > Prev of
                         true ->
                             Next = min(Current+1, ?BIG),
+			    lager:warning("Should to here, next is ~w", [Next]),
                             to_next_or_not(Current, Next, Dict1, Throughput);
                         false -> 
                             Next = max(Current-1, ?SML),
