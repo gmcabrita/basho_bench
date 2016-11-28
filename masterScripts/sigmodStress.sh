@@ -15,7 +15,7 @@ function runNTimes {
     done
 } 
 
-seq="1 2"
+seq="1"
 #threads="32 64 96 128 160 192"
 #threads="32 64 96 128 160 192 224 256"
 #threads="64 128 192 256 320 384 448 512"
@@ -23,15 +23,18 @@ seq="1 2"
 #threads="1 2 4 8 16 32 64 128"
 #threads="32 64 96 128 160 192 224 256"
 #threads="128 64 32 16 8"
-threads="160 80 40 20 10"
+#threads="160 80 40 20 10"
+threads="80 10"
 contentions="1 2 3 4"
 start_ind=1
 skipped=1
 skip_len=0
 prob_access=t
 
-rep=5
-parts=28
+#rep=5
+#parts=28
+rep=1
+parts=4
 
 #MBIG=60000
 #MSML=6000
@@ -176,28 +179,30 @@ done
 fi
 
 # Dist tune
-seq="1 2"
+seq="1"
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_tune_read 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward 
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 contentions="2 3"
-folder="specula_tests/dist_tune"
+folder="specula_tests/cent_tune"
 clock=new
 do_specula=true
 specula_read=true
 threads="10 160"
-length="2"
-len=2
+length="1"
+len=1
 rm -rf ./config
-echo micro duration 80 >> config
-echo micro auto_tune false >> config
-echo micro centralized false >> config
+echo micro duration 160 >> config
+echo micro auto_tune true >> config
+echo micro centralized true >> config
 echo micro all_nodes replace >> config
 echo micro tune_period 2 >> config
 echo micro tune_sleep 1 >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
+#sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
 #sudo ./script/restartAndConnect.sh
 
 for t in $threads
