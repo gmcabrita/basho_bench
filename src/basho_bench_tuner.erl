@@ -62,7 +62,8 @@
 	         inter_round,
 		 master_round,
 		 round_dict,
-                 remain_num,
+                 inter_remain,
+		 master_remain,
                  sum_throughput = 0
                }).
 
@@ -110,7 +111,8 @@ init([Name]) ->
                             current_round=1,
 			    inter_round=1,
 			    master_round=1,
-                            remain_num=1,
+                            master_remain=1,
+			    inter_remain=1,
                             my_workers = MyWorkers,
                             all_nodes = [],
                             sum_throughput = 0}};
@@ -149,8 +151,9 @@ init([Name]) ->
                             centralized = Centralized,
                             num_nodes=NumNodes,
                             previous = -1,
+			    master_remain=NumDc,
+			    inter_remain=length(AllNodes) div NumDc,
                             current = 0,
-                            remain_num=NumNodes,
                             current_round=1,
 			    inter_round=1,
 			    master_round=1,
@@ -172,11 +175,11 @@ remove([64|T]) ->
 remove([_H|T]) ->
     remove(T).
 
-gather_stat({master_gather, MasterRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
+gather_stat({master_gather, MasterRound, Throughput}, State=#state{master_remain=MasterRemain, centralized=true, 
                 prev_throughput=PrevTh, master_round=MasterRound, round_dict=RoundDict, 
                 num_dcs=NumDcs, sum_throughput=SumThroughput, all_inter_nodes=AllInterNodes,  previous=Prev, current=Current}) ->
-    lager:warning("Master ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, MasterRound, RemainNum]),
-    case RemainNum of
+    lager:warning("Master ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, MasterRound, MasterRemain]),
+    case MasterRemain of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
@@ -188,14 +191,14 @@ gather_stat({master_gather, MasterRound, Throughput}, State=#state{remain_num=Re
             ets:insert(stat, {{auto_tune, MasterRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
             case dict:find(MasterRound+1, RoundDict) of
                 {ok, {Sum, Replied}} ->
-                    {next_state, gather_stat, State#state{remain_num=NumDcs-Replied, sum_throughput=Sum,
+                    {next_state, gather_stat, State#state{master_remain=NumDcs-Replied, sum_throughput=Sum,
                         previous=Prev1, current=Current2, prev_throughput=PrevTh1, master_round=MasterRound+1}};
                 error ->
-                    {next_state, gather_stat, State#state{remain_num=NumDcs, sum_throughput=0,
+                    {next_state, gather_stat, State#state{master_remain=NumDcs, sum_throughput=0,
                         previous=Prev1, current=Current2, prev_throughput=PrevTh1, master_round=MasterRound+1}}
             end;
         _ ->
-            {next_state, gather_stat, State#state{remain_num=RemainNum-1, sum_throughput=SumThroughput+Throughput}}
+            {next_state, gather_stat, State#state{master_remain=MasterRemain-1, sum_throughput=SumThroughput+Throughput}}
       end;
 gather_stat({master_gather, Round, Throughput}, State=#state{centralized=true, 
                 master_round=MasterRound, round_dict=RoundDict}) ->
@@ -209,20 +212,20 @@ gather_stat({master_gather, Round, Throughput}, State=#state{centralized=true,
             {next_state, gather_stat, State}
     end;
 
-gather_stat({inter_gather, InterRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
+gather_stat({inter_gather, InterRound, Throughput}, State=#state{inter_remain=InterRemain, centralized=true, 
                 inter_round=InterRound, inter_gather=InterGather, 
                 master=Master, sum_throughput=SumThroughput}) ->
-    lager:warning("Inter ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, InterRound, RemainNum]),
-    case RemainNum of
+    lager:warning("Inter ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, InterRound, InterRemain]),
+    case InterRemain of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
     	    lager:warning("Inter ~w sending ~w to master ~w", [node(), SumThroughput1, Master]),
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
             gen_fsm:send_event({global, Master}, {master_gather, InterRound, SumThroughput1}),
-            {next_state, gather_stat, State#state{remain_num=InterGather, sum_throughput=0, inter_round=InterRound+1}};
+            {next_state, gather_stat, State#state{inter_remain=InterGather, sum_throughput=0, inter_round=InterRound+1}};
         _ ->
-            {next_state, gather_stat, State#state{remain_num=RemainNum-1, sum_throughput=SumThroughput+Throughput}}
+            {next_state, gather_stat, State#state{inter_remain=InterRemain-1, sum_throughput=SumThroughput+Throughput}}
     end;
 gather_stat({inter_gather, Round, Throughput}, State=#state{centralized=true, 
                 inter_round=InterRound, round_dict=RoundDict}) ->
@@ -236,13 +239,12 @@ gather_stat({inter_gather, Round, Throughput}, State=#state{centralized=true,
             {next_state, gather_stat, State}
     end;
 
-gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, num_nodes=NumNodes, centralized=Centralized, 
+gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, centralized=Centralized, 
                 my_workers=MyWorkers, prev_throughput=PrevTh, current_round=CurrentRound, 
                 sum_throughput=SumThroughput, inter_node=InterNode, previous=Prev, current=Current}) ->
     case Centralized of
         false ->
             SumThroughput = 0,
-            RemainNum = 1,
             NumNodes = 1,
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, Throughput),
             {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, Throughput),
