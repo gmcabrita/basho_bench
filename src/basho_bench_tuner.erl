@@ -115,11 +115,11 @@ init([Name]) ->
             {ok, Line} = file:read_line(Device),
             NumDc = erlang:list_to_integer(Line--"\n"),
             NodesPerDc = length(AllNodes) div NumDc,
-            AllTuners = [ list_to_atom( get_ip(atom_to_list(Node), []) ++"auto_tuner") || Node <- AllNodes],
+            AllTuners = [ list_to_atom( get_ip(atom_to_list(Node), []) ++"@auto_tuner") || Node <- AllNodes],
             RealNode = get_real_node(),
             MyIndex = index_of(RealNode, AllNodes, 1),
             MyInterIndex = ((MyIndex-1) div NodesPerDc * NodesPerDc) +1,
-            MyInterNode = lists:nth(MyInterIndex, AllNodes) ++ "auto_tuner",
+            MyInterNode = list_to_atom(atom_to_list(lists:nth(MyInterIndex, AllNodes)) ++ "@auto_tuner"),
             AllInterNodes = lists:foldl(fun(I, AN) -> 
                                 [lists:nth(1+(I-1)*NodesPerDc, AllTuners)|AN] end, 
                             [], lists:seq(1, length(AllNodes) div NumDc)),
@@ -128,7 +128,7 @@ init([Name]) ->
                               [], lists:seq(MyInterIndex, MyInterIndex+NodesPerDc-1)), 
             NumNodes = length(AllNodes),
             [MasterNode|_] = AllNodes, 
-            Master = list_to_atom( atom_to_list(MasterNode) ++ "auto_tuner"),
+            Master = list_to_atom( atom_to_list(MasterNode) ++ "@auto_tuner"),
             lager:warning("Master is ~w, InterNode is ~w, inter_gather is ~w, master_gather is ~w", [Master, MyInterNode, length(AllNodes) div NumDc, NumDc]),
             MyWorkers = basho_bench_sup:workers(),
 	        RoundDict = dict:store(1, {0, 0}, dict:new()),
@@ -160,7 +160,7 @@ index_of(Node, [_|Rest], Index) ->
 get_real_node() ->
     list_to_atom((remove(atom_to_list(node())))).
 
-remove(['@'|T]) ->
+remove([64|T]) ->
     T;
 remove([_H|T]) ->
     remove(T).
