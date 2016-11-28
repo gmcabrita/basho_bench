@@ -168,7 +168,7 @@ remove([_H|T]) ->
 gather_stat({master_gather, CurrentRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
                 prev_throughput=PrevTh, current_round=CurrentRound, round_dict=RoundDict, 
                 num_dcs=NumDcs, sum_throughput=SumThroughput, all_inter_nodes=AllInterNodes,  previous=Prev, current=Current}) ->
-    lager:warning("Master ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, Round, RemainNum]),
+    lager:warning("Master ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, CurrentRound, RemainNum]),
     case RemainNum of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
@@ -204,7 +204,7 @@ gather_stat({master_gather, Round, Throughput}, State=#state{centralized=true,
 gather_stat({inter_gather, CurrentRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
                 current_round=CurrentRound, inter_gather=InterGather, 
                 master=Master, sum_throughput=SumThroughput}) ->
-    lager:warning("Inter ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, Round, RemainNum]),
+    lager:warning("Inter ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, CurrentRound, RemainNum]),
     case RemainNum of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
