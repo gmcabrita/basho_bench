@@ -56,7 +56,6 @@ start_children(Sender, Sup, Start, End) ->
     lists:foreach(fun(Id) ->
          supervisor:start_child(Sup, [Id])
             end, lists:seq(Start, End)),
-    lager:warning("~w finished spawnning! Start is ~w, End is ~w", [self(), Start, End]),
     Sender ! done.
 
 %% ===================================================================
