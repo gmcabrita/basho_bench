@@ -189,15 +189,15 @@ folder="specula_tests/dist_tune"
 clock=new
 do_specula=true
 specula_read=true
-threads="10 80"
-length="0 8"
-len=0
+threads="10"
+length="8"
+len=8
 rm -rf ./config
 echo micro duration 100 >> config
 echo micro auto_tune true >> config
 echo micro centralized false >> config
 echo micro all_nodes replace >> config
-echo micro tune_period 2 >> config
+echo micro tune_period 1 >> config
 echo micro tune_sleep 1 >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
@@ -207,9 +207,9 @@ sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
-    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
 for len in $length
 do
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
