@@ -24,7 +24,7 @@
 -behaviour(gen_fsm).
 
 %% 0 means no spec read + SL0, 1 means spec read +SL1...
--define(BIG, 1).
+-define(BIG, 10).
 -define(SML, 0).
 %% API
 -export([start_link/0]).
@@ -42,28 +42,25 @@
 
 
 -record(state, { prev_throughput, 
-                 my_workers=[],
                  myself,
                  master,
                  centralized,
-                 %big,
-                 %sml,
-                 %mid,
                  inter_node,
                  inter_gather,
                  all_inter_nodes,
                  inter_range_nodes,
+                 target_node,
                  previous,
                  current,
                  num_nodes,
                  all_nodes,
                  num_dcs,
-	    	 current_round,
-	         inter_round,
-		 master_round,
-		 round_dict,
+	    	     current_round,
+	             inter_round,
+		         master_round,
+		         round_dict,
                  inter_remain,
-		 master_remain,
+		         master_remain,
                  sum_throughput = 0
                }).
 
@@ -98,22 +95,18 @@ init([Name]) ->
 
     case Centralized of
         false ->
-            MyWorkers = basho_bench_sup:workers(),
             {ok, gather_stat, #state{ prev_throughput=PrevThroughput,
                             myself = Myself,
                             centralized = Centralized,
-                            %sml = Sml,
-                            %big = Big,
-                            %mid = Mid,
+                            target_node= hd(basho_bench_config:get(antidote_pb_ips)),
                             previous = -1,
                             current = 0,
                             num_nodes=1,
                             current_round=1,
-			    inter_round=1,
-			    master_round=1,
+                            inter_round=1,
+                            master_round=1,
                             master_remain=1,
-			    inter_remain=1,
-                            my_workers = MyWorkers,
+                            inter_remain=1,
                             all_nodes = [],
                             sum_throughput = 0}};
         true ->
@@ -137,14 +130,13 @@ init([Name]) ->
             [MasterNode|_] = AllNodes, 
             Master = list_to_atom( atom_to_list(MasterNode) ++ "@auto_tuner"),
             lager:warning("Master is ~w, InterNode is ~w, inter_gather is ~w, master_gather is ~w", [Master, MyInterNode, length(AllNodes) div NumDc, NumDc]),
-            MyWorkers = basho_bench_sup:workers(),
 	        RoundDict = dict:store(1, {0, 0}, dict:new()),
             {ok, gather_stat, #state{ prev_throughput=PrevThroughput,
                             myself = Myself,
                             master = Master,
                             num_dcs = NumDc,
-                            my_workers=MyWorkers,
                             inter_node=MyInterNode,
+                            target_node= hd(basho_bench_config:get(antidote_pb_ips)),
                             all_inter_nodes=AllInterNodes,
                             inter_range_nodes=InterRangeNodes,
                             inter_gather=length(AllNodes) div NumDc,
@@ -240,7 +232,7 @@ gather_stat({inter_gather, Round, Throughput}, State=#state{centralized=true,
     end;
 
 gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, centralized=Centralized, 
-                my_workers=MyWorkers, prev_throughput=PrevTh, current_round=CurrentRound, 
+                target_node=TargetNode, prev_throughput=PrevTh, current_round=CurrentRound, 
                 sum_throughput=SumThroughput, inter_node=InterNode, previous=Prev, current=Current}) ->
     case Centralized of
         false ->
@@ -250,16 +242,13 @@ gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, ce
             {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, Throughput),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, Throughput),
             lager:warning("Distribute: Previous length is ~w, current is ~w, next length is ~w", [Prev, Current, Current1]),
+            rpc:call(TargetNode, tx_cert_sup, set_length, [Current1]),
             ets:insert(stat, {{auto_tune, CurrentRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
-            Workers = case MyWorkers of [] -> basho_bench_sup:workers();
-                                        _ -> MyWorkers
-                      end,
-            lists:foreach(fun(Worker) -> gen_fsm:send_event(Worker, {specula_length, Current1}) end, Workers),
             case Current of
                 Current1 ->
-                    {next_state, gather_stat, State#state{previous=Prev, current_round=CurrentRound+1, current=Current1, prev_throughput=PrevTh1, my_workers=Workers}};
+                    {next_state, gather_stat, State#state{previous=Prev, current_round=CurrentRound+1, current=Current1, prev_throughput=PrevTh1}};
                 _ ->
-                    {next_state, gather_stat, State#state{previous=Current, current_round=CurrentRound+1, current=Current1, prev_throughput=PrevTh1, my_workers=Workers}}
+                    {next_state, gather_stat, State#state{previous=Current, current_round=CurrentRound+1, current=Current1, prev_throughput=PrevTh1}}
             end;
         true ->
     	    lager:warning("Received ~w for round ~w, sending to inter ~w", [Throughput, Round, InterNode]),
@@ -271,12 +260,13 @@ gather_stat({inter_new_length, NewLength} , State=#state{inter_range_nodes=Inter
     lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, NewLength}) end, InterRangeNodes),
     {next_state, gather_stat, State};
 
-gather_stat({new_length, NewLength} , State=#state{my_workers=MyWorkers}) ->
-    Workers = case MyWorkers of [] -> basho_bench_sup:workers();
-                                _ -> MyWorkers
-              end,
-    lists:foreach(fun(Worker) -> gen_fsm:send_event(Worker, {specula_length, NewLength}) end, Workers),
-    {next_state, gather_stat, State#state{my_workers=Workers}}.
+gather_stat({new_length, NewLength} , State=#state{target_node=TargetNode}) ->
+    %Workers = case MyWorkers of [] -> basho_bench_sup:workers();
+    %                            _ -> MyWorkers
+    %          end,
+    %lists:foreach(fun(Worker) -> gen_fsm:send_event(Worker, {specula_length, NewLength}) end, Workers),
+    rpc:call(TargetNode, tx_cert_sup, set_length, [NewLength]),
+    {next_state, gather_stat, State}.
 
 handle_info(_Info, _StateName, StateData) ->
     {stop, badmsg, StateData}.

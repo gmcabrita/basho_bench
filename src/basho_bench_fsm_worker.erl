@@ -40,19 +40,16 @@
 
 -record(state, { id,
     		 name,
-                 specula_read,
                  keygen,
                  valgen,
                  think_time,
                  last_inserted,
                  driver,
-                 auto_tune,
                  driver_state,
                  shutdown_on_error,
                  ops,
                  all_update,
                  todo_op,
-                 specula_length,
                  mode,
                  rate_sleep,
                  seed,
@@ -157,11 +154,6 @@ init([Id, Name]) ->
                 Time -> Time
             end,
 
-    AutoTune = case basho_bench_config:get(auto_tune, false) of
-                true -> true;
-                false -> false
-            end,
-
     {ToDoOp, Transition} = case basho_bench_config:get(transition, false) of
                 true -> LoadTransition = rubis_tool:load_transition(), 
                      {{[], home}, LoadTransition}; 
@@ -183,15 +175,12 @@ init([Id, Name]) ->
                      ops = Ops, ops_len = size(Ops),
                      rng_seed = RngSeed,
                      think_time = ThinkTime,
-                     auto_tune = AutoTune,
                      do_specula = basho_bench_config:get(do_specula, false),
                      all_update = AllUpdate, 
                      op_type = get_op_type(ToDoOp, AllUpdate),
 	    	         name=Name,
                      specula_txs=[],
-                     specula_length = 0,
                      seed=Now,
-                     specula_read=false,
                      read_txs=[],
                      abort_stat={0,0},
                      read_seq=0,
@@ -273,15 +262,6 @@ execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf,
 	      _ -> ok
     end,
     worker_next_op(State#state{store_cdf={Count, os:timestamp(), Period}});
-
-execute({specula_length, NewLength}, State) ->
-    lager:warning("~w got new length is ~w", [self(), NewLength]),
-    case NewLength of
-        0 ->
-            worker_next_op(State#state{specula_length=0, specula_read=false});
-        _ -> 
-            worker_next_op(State#state{specula_length=NewLength-1, specula_read=true})
-    end;
 
 execute(timeout, State=#state{mode=Mode, rate_sleep=RateSleep}) ->
     case Mode of
@@ -386,20 +366,11 @@ code_change(_OldVsn, _, State, _Extra) ->
 %% ====================================================================
 
 worker_next_op2(State, OpTag, Seed, update) ->
-    AutoTune = State#state.auto_tune,
-    SpeculaLength = State#state.specula_length,
-    SpeculaRead = State#state.specula_read,
-    case AutoTune of
-        true -> 
-           catch (State#state.driver):run(OpTag, {up,State#state.update_seq}, State#state.msg_id, Seed, SpeculaLength, SpeculaRead, 
-                                  State#state.driver_state);
-        false ->
-           catch (State#state.driver):run(OpTag, {up,State#state.update_seq}, State#state.msg_id, Seed, 
-                                  State#state.driver_state)
-    end;
+   catch (State#state.driver):run(OpTag, {up,State#state.update_seq}, State#state.msg_id, Seed, 
+                          State#state.driver_state);
 worker_next_op2(State, OpTag, Seed, read) ->
    %lager:warning("Going to read with seq ~w", [State#state.read_seq]),
-    catch (State#state.driver):run(OpTag, {read,State#state.read_seq}, State#state.msg_id, Seed, State#state.specula_length,
+    catch (State#state.driver):run(OpTag, {read,State#state.read_seq}, State#state.msg_id, Seed, 
                           State#state.driver_state).
 
 worker_next_op(State) ->
