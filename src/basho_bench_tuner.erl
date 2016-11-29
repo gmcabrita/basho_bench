@@ -59,8 +59,11 @@
                  all_nodes,
                  num_dcs,
 	    	 current_round,
+	         inter_round,
+		 master_round,
 		 round_dict,
-                 remain_num,
+                 inter_remain,
+		 master_remain,
                  sum_throughput = 0
                }).
 
@@ -72,6 +75,7 @@
 
 start_link() ->
     Name = tuner_name(), 
+    lager:warning("Tuner name is ~w", [Name]),
     gen_fsm:start_link({global, Name}, ?MODULE, [Name], []).
 
 %% ====================================================================
@@ -105,7 +109,10 @@ init([Name]) ->
                             current = 0,
                             num_nodes=1,
                             current_round=1,
-                            remain_num=1,
+			    inter_round=1,
+			    master_round=1,
+                            master_remain=1,
+			    inter_remain=1,
                             my_workers = MyWorkers,
                             all_nodes = [],
                             sum_throughput = 0}};
@@ -115,11 +122,11 @@ init([Name]) ->
             {ok, Line} = file:read_line(Device),
             NumDc = erlang:list_to_integer(Line--"\n"),
             NodesPerDc = length(AllNodes) div NumDc,
-            AllTuners = [ list_to_atom( get_ip(atom_to_list(Node), []) ++"auto_tuner") || Node <- AllNodes],
+            AllTuners = [ list_to_atom( get_ip(atom_to_list(Node), []) ++"@auto_tuner") || Node <- AllNodes],
             RealNode = get_real_node(),
             MyIndex = index_of(RealNode, AllNodes, 1),
             MyInterIndex = ((MyIndex-1) div NodesPerDc * NodesPerDc) +1,
-            MyInterNode = lists:nth(MyInterIndex, AllNodes) ++ "auto_tuner",
+            MyInterNode = list_to_atom(atom_to_list(lists:nth(MyInterIndex, AllNodes)) ++ "@auto_tuner"),
             AllInterNodes = lists:foldl(fun(I, AN) -> 
                                 [lists:nth(1+(I-1)*NodesPerDc, AllTuners)|AN] end, 
                             [], lists:seq(1, length(AllNodes) div NumDc)),
@@ -128,7 +135,7 @@ init([Name]) ->
                               [], lists:seq(MyInterIndex, MyInterIndex+NodesPerDc-1)), 
             NumNodes = length(AllNodes),
             [MasterNode|_] = AllNodes, 
-            Master = list_to_atom( atom_to_list(MasterNode) ++ "auto_tuner"),
+            Master = list_to_atom( atom_to_list(MasterNode) ++ "@auto_tuner"),
             lager:warning("Master is ~w, InterNode is ~w, inter_gather is ~w, master_gather is ~w", [Master, MyInterNode, length(AllNodes) div NumDc, NumDc]),
             MyWorkers = basho_bench_sup:workers(),
 	        RoundDict = dict:store(1, {0, 0}, dict:new()),
@@ -144,9 +151,12 @@ init([Name]) ->
                             centralized = Centralized,
                             num_nodes=NumNodes,
                             previous = -1,
+			    master_remain=NumDc,
+			    inter_remain=length(AllNodes) div NumDc,
                             current = 0,
-                            remain_num=NumNodes,
                             current_round=1,
+			    inter_round=1,
+			    master_round=1,
                             round_dict=RoundDict,
                             all_nodes = AllTuners,
                             sum_throughput = 0}}
@@ -158,79 +168,83 @@ index_of(Node, [_|Rest], Index) ->
     index_of(Node, Rest, Index+1).
 
 get_real_node() ->
-    remove(node()).
+    list_to_atom((remove(atom_to_list(node())))).
 
-remove(['@'|T]) ->
+remove([64|T]) ->
     T;
 remove([_H|T]) ->
     remove(T).
 
-gather_stat({master_gather, CurrentRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
-                prev_throughput=PrevTh, current_round=CurrentRound, round_dict=RoundDict, 
+gather_stat({master_gather, MasterRound, Throughput}, State=#state{master_remain=MasterRemain, centralized=true, 
+                prev_throughput=PrevTh, master_round=MasterRound, round_dict=RoundDict, 
                 num_dcs=NumDcs, sum_throughput=SumThroughput, all_inter_nodes=AllInterNodes,  previous=Prev, current=Current}) ->
-    case RemainNum of
+    lager:warning("Master ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, MasterRound, MasterRemain]),
+    case MasterRemain of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
             {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, SumThroughput1),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
-            lager:warning("Centralized: Previous length is ~w, current length is ~w", [Prev, Current1]),
+            lager:warning("Master ~w Centralized: Previous length is ~w, current length is ~w, all inter nodes ~w", [node(), Prev, Current1, AllInterNodes]),
             lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {inter_new_length, Current1}) end, AllInterNodes),
             {Prev1, Current2} = case Current1 of Current -> {Prev, Current}; _ -> {Current, Current1} end,
-            ets:insert(stat, {{auto_tune, CurrentRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
-            case dict:find(CurrentRound+1, RoundDict) of
+            ets:insert(stat, {{auto_tune, MasterRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
+            case dict:find(MasterRound+1, RoundDict) of
                 {ok, {Sum, Replied}} ->
-                    {next_state, gather_stat, State#state{remain_num=NumDcs-Replied, sum_throughput=Sum,
-                        previous=Prev1, current=Current2, prev_throughput=PrevTh1, current_round=CurrentRound+1}};
+                    {next_state, gather_stat, State#state{master_remain=NumDcs-Replied, sum_throughput=Sum,
+                        previous=Prev1, current=Current2, prev_throughput=PrevTh1, master_round=MasterRound+1}};
                 error ->
-                    {next_state, gather_stat, State#state{remain_num=NumDcs, sum_throughput=0,
-                        previous=Prev1, current=Current2, prev_throughput=PrevTh1, current_round=CurrentRound+1}}
+                    {next_state, gather_stat, State#state{master_remain=NumDcs, sum_throughput=0,
+                        previous=Prev1, current=Current2, prev_throughput=PrevTh1, master_round=MasterRound+1}}
             end;
         _ ->
-            {next_state, gather_stat, State#state{remain_num=RemainNum-1, sum_throughput=SumThroughput+Throughput}}
+            {next_state, gather_stat, State#state{master_remain=MasterRemain-1, sum_throughput=SumThroughput+Throughput}}
       end;
 gather_stat({master_gather, Round, Throughput}, State=#state{centralized=true, 
-                current_round=CurrentRound, round_dict=RoundDict}) ->
-    case Round > CurrentRound of
+                master_round=MasterRound, round_dict=RoundDict}) ->
+    lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, MasterRound]),
+    case Round > MasterRound of
         true ->
             RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict)  ,
             {next_state, gather_stat, State#state{round_dict=RoundDict1}};
         false ->
-            true = Round < CurrentRound,
+            true = Round < MasterRound,
             {next_state, gather_stat, State}
     end;
 
-gather_stat({inter_gather, CurrentRound, Throughput}, State=#state{remain_num=RemainNum, centralized=true, 
-                current_round=CurrentRound, inter_gather=InterGather, 
+gather_stat({inter_gather, InterRound, Throughput}, State=#state{inter_remain=InterRemain, centralized=true, 
+                inter_round=InterRound, inter_gather=InterGather, 
                 master=Master, sum_throughput=SumThroughput}) ->
-    case RemainNum of
+    lager:warning("Inter ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, InterRound, InterRemain]),
+    case InterRemain of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
+    	    lager:warning("Inter ~w sending ~w to master ~w", [node(), SumThroughput1, Master]),
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
-            gen_fsm:send_event({global, Master}, {master_gather, CurrentRound, SumThroughput1}),
-            {next_state, gather_stat, State#state{remain_num=InterGather, sum_throughput=0, current_round=CurrentRound+1}};
+            gen_fsm:send_event({global, Master}, {master_gather, InterRound, SumThroughput1}),
+            {next_state, gather_stat, State#state{inter_remain=InterGather, sum_throughput=0, inter_round=InterRound+1}};
         _ ->
-            {next_state, gather_stat, State#state{remain_num=RemainNum-1, sum_throughput=SumThroughput+Throughput}}
+            {next_state, gather_stat, State#state{inter_remain=InterRemain-1, sum_throughput=SumThroughput+Throughput}}
     end;
 gather_stat({inter_gather, Round, Throughput}, State=#state{centralized=true, 
-                current_round=CurrentRound, round_dict=RoundDict}) ->
-    case Round > CurrentRound of
+                inter_round=InterRound, round_dict=RoundDict}) ->
+    lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, InterRound]),
+    case Round > InterRound of
         true ->
             RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict)  ,
             {next_state, gather_stat, State#state{round_dict=RoundDict1}};
         false ->
-            true = Round < CurrentRound,
+            true = Round < InterRound,
             {next_state, gather_stat, State}
     end;
 
-gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, num_nodes=NumNodes, centralized=Centralized, 
+gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, centralized=Centralized, 
                 my_workers=MyWorkers, prev_throughput=PrevTh, current_round=CurrentRound, 
-                master=Master, sum_throughput=SumThroughput, inter_node=InterNode, previous=Prev, current=Current}) ->
+                sum_throughput=SumThroughput, inter_node=InterNode, previous=Prev, current=Current}) ->
     case Centralized of
         false ->
             SumThroughput = 0,
-            RemainNum = 1,
             NumNodes = 1,
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, Throughput),
             {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, Throughput),
@@ -248,9 +262,8 @@ gather_stat({throughput, Round, Throughput}, State=#state{remain_num=RemainNum, 
                     {next_state, gather_stat, State#state{previous=Current, current_round=CurrentRound+1, current=Current1, prev_throughput=PrevTh1, my_workers=Workers}}
             end;
         true ->
-    	    lager:warning("Received ~w for round ~w, remain is ~w", [Throughput, Round, RemainNum]),
-            lager:warning("Sending to master ~w, current round is ~w", [Master, CurrentRound]),
-            gen_fsm:send_event({global, InterNode}, {inter_gather, CurrentRound, Throughput}),
+    	    lager:warning("Received ~w for round ~w, sending to inter ~w", [Throughput, Round, InterNode]),
+            gen_fsm:send_event({global, InterNode}, {inter_gather, Round, Throughput}),
             {next_state, gather_stat, State#state{current_round=CurrentRound+1}}
     end;
 
@@ -262,7 +275,7 @@ gather_stat({new_length, NewLength} , State=#state{my_workers=MyWorkers}) ->
     Workers = case MyWorkers of [] -> basho_bench_sup:workers();
                                 _ -> MyWorkers
               end,
-        lists:foreach(fun(Worker) -> gen_fsm:send_event(Worker, {specula_length, NewLength}) end, Workers),
+    lists:foreach(fun(Worker) -> gen_fsm:send_event(Worker, {specula_length, NewLength}) end, Workers),
     {next_state, gather_stat, State#state{my_workers=Workers}}.
 
 handle_info(_Info, _StateName, StateData) ->
@@ -298,6 +311,7 @@ linear_stay(Prev, Current, Dict, Throughput) ->
                     case Current > Prev of
                         true ->
                             Next = min(Current+1, ?BIG),
+			    lager:warning("Should to here, next is ~w", [Next]),
                             to_next_or_not(Current, Next, Dict1, Throughput);
                         false -> 
                             Next = max(Current-1, ?SML),
@@ -389,4 +403,4 @@ get_ip([C|T], Prev) ->
     end.
 
 tuner_name() ->
-    list_to_atom( get_ip(atom_to_list(node()), [])  ++ "auto_tuner").
+    list_to_atom( get_ip(atom_to_list(node()), [])  ++ "@auto_tuner").

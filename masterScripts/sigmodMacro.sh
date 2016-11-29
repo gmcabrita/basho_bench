@@ -65,9 +65,9 @@ len=8
 
 rm -rf ./config
 echo tpcc cdf true >> config
-echo tpcc duration 200 >> config
+echo tpcc duration 240 >> config
 echo rubis cdf true >> config
-echo rubis duration 200 >> config
+echo rubis duration 240 >> config
 echo rubis all_update true >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
@@ -133,10 +133,10 @@ done
 fi
 
 #rubis_threads="3000 4000 5000"
-rubis_threads="4000"
+rubis_threads="500"
 for t in $rubis_threads
 do  
-        think_time="rubis"
+        think_time="0"
         runRubis
 done
 exit
