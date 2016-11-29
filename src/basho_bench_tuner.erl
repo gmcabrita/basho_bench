@@ -122,7 +122,7 @@ init([Name]) ->
             MyInterNode = list_to_atom(atom_to_list(lists:nth(MyInterIndex, AllNodes)) ++ "@auto_tuner"),
             AllInterNodes = lists:foldl(fun(I, AN) -> 
                                 [lists:nth(1+(I-1)*NodesPerDc, AllTuners)|AN] end, 
-                            [], lists:seq(1, length(AllNodes) div NumDc)),
+                            [], lists:seq(1, NumDc)),
             InterRangeNodes = lists:foldl(fun(I, AN) ->
                                   [lists:nth(I, AllTuners)|AN] end,
                               [], lists:seq(MyInterIndex, MyInterIndex+NodesPerDc-1)), 
@@ -139,16 +139,16 @@ init([Name]) ->
                             target_node= hd(basho_bench_config:get(antidote_pb_ips)),
                             all_inter_nodes=AllInterNodes,
                             inter_range_nodes=InterRangeNodes,
-                            inter_gather=length(AllNodes) div NumDc,
+                            inter_gather=NodesPerDc,
                             centralized = Centralized,
                             num_nodes=NumNodes,
                             previous = -1,
-			    master_remain=NumDc,
-			    inter_remain=length(AllNodes) div NumDc,
+			                master_remain=NumDc,
+			                inter_remain=NodesPerDc,
                             current = 0,
                             current_round=1,
-			    inter_round=1,
-			    master_round=1,
+			                inter_round=1,
+			                master_round=1,
                             round_dict=RoundDict,
                             all_nodes = AllTuners,
                             sum_throughput = 0}}
@@ -257,6 +257,7 @@ gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, ce
     end;
 
 gather_stat({inter_new_length, NewLength} , State=#state{inter_range_nodes=InterRangeNodes}) ->
+    lager:warning("Sending new length to ~w", [InterRangeNodes]),
     lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, NewLength}) end, InterRangeNodes),
     {next_state, gather_stat, State};
 
@@ -265,6 +266,7 @@ gather_stat({new_length, NewLength} , State=#state{target_node=TargetNode}) ->
     %                            _ -> MyWorkers
     %          end,
     %lists:foreach(fun(Worker) -> gen_fsm:send_event(Worker, {specula_length, NewLength}) end, Workers),
+    lager:warning("~w sending new length to ~w", [node(), TargetNode]),
     rpc:call(TargetNode, tx_cert_sup, set_length, [NewLength]),
     {next_state, gather_stat, State}.
 
