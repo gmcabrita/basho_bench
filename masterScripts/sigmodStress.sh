@@ -182,28 +182,28 @@ fi
 seq="1"
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_tune_read 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward 
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-contentions="2 3"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_tune_read 
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+contentions="4"
 folder="specula_tests/cent_tune"
 clock=new
 do_specula=true
 specula_read=true
-threads="10 160"
-length="1"
-len=1
+threads="80"
+length="0"
+len=0
 rm -rf ./config
-echo micro duration 160 >> config
+echo micro duration 120 >> config
 echo micro auto_tune true >> config
-echo micro centralized true >> config
+echo micro centralized false >> config
 echo micro all_nodes replace >> config
 echo micro tune_period 2 >> config
 echo micro tune_sleep 1 >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
