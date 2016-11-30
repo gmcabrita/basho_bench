@@ -31,10 +31,10 @@ skipped=1
 skip_len=0
 prob_access=t
 
-#rep=5
-#parts=28
-rep=1
-parts=4
+rep=4
+parts=24
+#rep=1
+#parts=4
 
 #MBIG=60000
 #MSML=6000
@@ -182,43 +182,38 @@ fi
 seq="1"
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_tune_read 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward 
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
-contentions="2 3"
-folder="specula_tests/keys"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward 
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+folder="specula_tests/precise"
 clock=new
 do_specula=false
 specula_read=false
-threads="80"
+threads="40"
 length="0"
 len=0
-rm -rf ./config
-echo micro duration 60 >> config
-echo micro auto_tune false >> config
-echo micro centralized false >> config
-echo micro all_nodes replace >> config
-echo micro tune_period 2 >> config
-echo micro tune_sleep 1 >> config
-sudo ./script/copy_to_all.sh ./config ./basho_bench/
-sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+num_keys="10 20 50 100 200"
 
 sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
-exit
 sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
     sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
-for len in $length
-do
-    for cont in $contentions
+    for keys in $num_keys
     do
-        if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
-        elif [ $cont == 2 ]; then MR=$MSML CR=$CBIG
-        elif [ $cont == 3 ]; then  MR=$MBIG CR=$CSML
-        elif [ $cont == 4 ]; then  MR=$MSML CR=$CSML
-        fi
+	rm -rf ./config
+	echo micro duration 60 >> config
+	echo micro auto_tune false >> config
+	echo micro centralized false >> config
+	echo micro all_nodes replace >> config
+	echo micro tune_period 2 >> config
+	echo micro tune_sleep 1 >> config
+	echo micro total_key $keys >> config
+	sudo ./script/copy_to_all.sh ./config ./basho_bench/
+	sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+	MR=$((10*keys*keys))
+	CR=$((10*keys*keys))
+	echo $MR $CR
         runNTimes
     done
-done
 done
