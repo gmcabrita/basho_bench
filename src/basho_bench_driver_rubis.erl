@@ -95,7 +95,6 @@ new(Id) ->
     IPs = basho_bench_config:get(antidote_pb_ips),
     ToSleep = basho_bench_config:get(to_sleep),
     MasterToSleep = basho_bench_config:get(master_to_sleep),
-    Specula = basho_bench_config:get(specula),
    
     AccessMaster = basho_bench_config:get(access_master),
     AccessSlave = basho_bench_config:get(access_slave),
@@ -108,7 +107,7 @@ new(Id) ->
         _ -> ok
     end,
 
-    [{hash_fun, {PartList, ReplList, NumDcs}}] = ets:lookup(load_info, hash_fun),
+    [{hash_fun, {Specula, PartList, ReplList, NumDcs}}] = ets:lookup(load_info, hash_fun),
 %    case net_kernel:start(MyNode) of
 %        {ok, _} ->
 %	        ok;

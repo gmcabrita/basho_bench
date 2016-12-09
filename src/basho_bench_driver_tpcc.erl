@@ -76,7 +76,6 @@ new(Id) ->
     %_PbPorts = basho_bench_config:get(antidote_pb_port),
     IPs = basho_bench_config:get(antidote_pb_ips),
     MasterToSleep = basho_bench_config:get(master_to_sleep),
-    Specula = basho_bench_config:get(specula),
     Concurrent = basho_bench_config:get(concurrent),
    
     AccessMaster = basho_bench_config:get(access_master),
@@ -94,7 +93,7 @@ new(Id) ->
     end,
 
     %% Choose the node using our ID as a modulus
-    [{hash_fun, {PartList, ReplList, NumDcs}}] = ets:lookup(load_info, hash_fun), 
+    [{hash_fun, {Specula, PartList, ReplList, NumDcs}}] = ets:lookup(load_info, hash_fun), 
 
     %?INFO("Using target node ~p for worker ~p\n", [TargetNode, Id]),
 

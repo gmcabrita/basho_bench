@@ -44,7 +44,6 @@
                  keygen,
                  valgen,
                  think_time,
-                 last_inserted,
                  driver,
                  auto_tune,
                  driver_state,
@@ -57,7 +56,7 @@
                  rate_sleep,
                  seed,
                  %%
-                 last_update_cnt,
+                 latest_update,
                  update_seq,
                  read_seq,
                  op_type,
@@ -194,11 +193,10 @@ init([Id, Name]) ->
                      specula_read=false,
                      read_txs=[],
                      abort_stat={0,0},
-                     read_seq=0,
+                     read_seq=-1,
                      store_cdf = {1, ignore, basho_bench_config:get(store_to_table, 5000)*1000},
                      update_seq=0,
-                     last_update_cnt=0,
-                     last_inserted=0,
+                     latest_update=0,
                      msg_id=0,
                      specula_cdf=[],
                      final_cdf=[],
@@ -208,24 +206,10 @@ init([Id, Name]) ->
     {_, OpName} = ToDoOp,
 
     State1 = case get_op_type(ToDoOp, AllUpdate) of
-                update -> State#state{update_seq=0, last_update_cnt=1}; 
-                read -> State#state{read_txs=[{1, Now, OpName}], read_seq=1}
+                update -> State#state{update_seq=1,latest_update=1}; 
+                read -> State#state{read_txs=[{-1, Now, OpName}], read_seq=-1}
              end,
 
-    %% Use a dedicated sub-process to do the actual work. The work loop may need
-    %% to sleep or otherwise delay in a way that would be inappropriate and/or
-    %% inefficient for a gen_server. Furthermore, we want the loop to be as
-    %% tight as possible for peak load generation and avoid unnecessary polling
-    %% of the message queue.
-    %%
-    %% Link the worker and the sub-process to ensure that if either exits, the
-    %% other goes with it.
-    %WorkerPid = spawn_link(fun() -> worker_init(State1) end),
-    %WorkerPid ! {init_driver, self()},
-    %receive
-    %    driver_ready ->
-    %        ok
-    %end,
     Driver = State#state.driver,
     DriverState = case catch(Driver:new(State#state.id)) of
                   {ok, DState} ->
@@ -275,7 +259,7 @@ execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf,
     worker_next_op(State#state{store_cdf={Count, os:timestamp(), Period}});
 
 execute({specula_length, NewLength}, State) ->
-    lager:warning("~w got new length is ~w", [self(), NewLength]),
+   %lager:warning("~w got new length is ~w", [self(), NewLength]),
     case NewLength of
         0 ->
             worker_next_op(State#state{specula_length=0, specula_read=false});
@@ -292,14 +276,14 @@ execute(timeout, State=#state{mode=Mode, rate_sleep=RateSleep}) ->
 
 execute({final_abort, NewMsgId, TxId, AbortedReads, FinalCommitUpdates, FinalCommitReads}, 
         State=#state{msg_id=MsgId, final_cdf=FinalCdf, specula_cdf=SpeculaCdf, specula_txs=SpeculaTxs,
-         last_update_cnt=LastUpdateCnt, read_txs=ReadTxs, update_seq=PreviousSeq, abort_stat=AbortStat, todo_op=ToDoOp}) ->
+         latest_update=LatestUpdate, read_txs=ReadTxs, update_seq=PreviousSeq, abort_stat=AbortStat, todo_op=ToDoOp}) ->
     %lager:warning("Got final abort msg, NewMsgId is ~w, OldMsgId is ~w for ~w", [NewMsgId, MsgId, TxId]),
     NewMsgId = MsgId + 1,
     {FinalCdf1, SpeculaCdf1, SpeculaTxs1} =
         commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], os:timestamp()),
-    ReadTxs1 = finalize_reads(lists:sort(FinalCommitReads), ReadTxs, [], ok),
-    ReadTxs2 = finalize_reads(lists:sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
-    {tx_id, _, _, _, TxSeq, up} = TxId,
+    ReadTxs1 = finalize_reads(reverse_sort(FinalCommitReads), ReadTxs, [], ok),
+    ReadTxs2 = finalize_reads(reverse_sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
+    {tx_id, _, _, _, TxSeq} = TxId,
     {StartTime, {TxSeq, OpName}} = find_specula_tx(TxSeq, SpeculaTxs1),
     %lager:warning("previous seq is ~w, now seq is ~w", [PreviousSeq, TxSeq]),
     case (TxSeq =< PreviousSeq) of
@@ -307,12 +291,12 @@ execute({final_abort, NewMsgId, TxId, AbortedReads, FinalCommitUpdates, FinalCom
 	    {PreviousOps, _} = ToDoOp,
         {Sum, Cnt} = AbortStat,	
         AbortStat1 = {Sum+timer:now_diff(os:timestamp(), StartTime), Cnt+1},
-        case hd(lists:reverse(SpeculaTxs)) of 
-            {LastUpdateCnt, _, _, _} ->
+        case lists:last(SpeculaTxs) of 
+            {LatestUpdate, _, _, _} ->
                 {next_state, execute, State#state{final_cdf=FinalCdf1, specula_cdf=SpeculaCdf1, specula_txs=SpeculaTxs1, read_txs=ReadTxs2, 
                 msg_id=NewMsgId, update_seq=TxSeq, todo_op={PreviousOps, OpName}, abort_stat=AbortStat1, seed=StartTime, op_type=update}, 0};
             _ ->
-	            {next_state, execute, State#state{final_cdf=FinalCdf1, specula_cdf=SpeculaCdf1, last_update_cnt=LastUpdateCnt-1, specula_txs=SpeculaTxs1, read_txs=ReadTxs2, msg_id=NewMsgId, update_seq=TxSeq, todo_op={PreviousOps, OpName}, abort_stat=AbortStat1, seed=StartTime, op_type=update}, 0}
+	            {next_state, execute, State#state{final_cdf=FinalCdf1, specula_cdf=SpeculaCdf1, latest_update=LatestUpdate-1, specula_txs=SpeculaTxs1, read_txs=ReadTxs2, msg_id=NewMsgId, update_seq=TxSeq, todo_op={PreviousOps, OpName}, abort_stat=AbortStat1, seed=StartTime, op_type=update}, 0}
         end;
 	false ->
 	    {next_state, execute, State, 0}
@@ -391,15 +375,14 @@ worker_next_op2(State, OpTag, Seed, update) ->
     SpeculaRead = State#state.specula_read,
     case AutoTune of
         true -> 
-           catch (State#state.driver):run(OpTag, {up,State#state.update_seq}, State#state.msg_id, Seed, SpeculaLength, SpeculaRead, 
+           catch (State#state.driver):run(OpTag, State#state.update_seq, State#state.msg_id, Seed, SpeculaLength, SpeculaRead, 
                                   State#state.driver_state);
         false ->
-           catch (State#state.driver):run(OpTag, {up,State#state.update_seq}, State#state.msg_id, Seed, 
+           catch (State#state.driver):run(OpTag, State#state.update_seq, State#state.msg_id, Seed, 
                                   State#state.driver_state)
     end;
 worker_next_op2(State, OpTag, Seed, read) ->
-   %lager:warning("Going to read with seq ~w", [State#state.read_seq]),
-    catch (State#state.driver):run(OpTag, {read,State#state.read_seq}, State#state.msg_id, Seed, State#state.specula_length,
+    catch (State#state.driver):run(OpTag, State#state.read_seq, State#state.msg_id, Seed, 
                           State#state.driver_state).
 
 worker_next_op(State) ->
@@ -412,19 +395,32 @@ worker_next_op(State) ->
     SpeculaCdf0 = State#state.specula_cdf,
     AbortStat = State#state.abort_stat,
     ReadTxs = State#state.read_txs,
-    LastUpdateCnt = State#state.last_update_cnt,
+    LatestUpdate = State#state.latest_update,
     CurrentOpType = State#state.op_type,
-    UpdateSeq0 = State#state.update_seq,
+    UpdateSeq = State#state.update_seq,
     ReadSeq = State#state.read_seq,
-    LastInserted0 = State#state.last_inserted,
-    {UpdateSeq, LastInserted, SpeculaTxs} = 
-                case (LastInserted0 == LastUpdateCnt -1) and (UpdateSeq0 == LastUpdateCnt-1) of
-                    true -> {_, CurOpName} = ToDo,
-						  %lager:warning("UpdateSeq is ~w, LastUpdCnt is ~w, NewList is ~w", [UpdateSeq0, LastUpdateCnt, State#state.specula_txs ++ [{UpdateSeq0+1, CurOpName, os:timestamp(), ignore}]]),
-						CurrentOpType = update,
-						{UpdateSeq0+1, LastInserted0+1, State#state.specula_txs ++ [{UpdateSeq0+1, CurOpName, os:timestamp(), ignore}]};
-					false -> {UpdateSeq0, LastInserted0, State#state.specula_txs}
-				end,
+    SpeculaTxs0 = State#state.specula_txs,
+    SpeculaTxs = 
+            case CurrentOpType of
+                read -> State#state.specula_txs;
+                update ->
+                    case SpeculaTxs0 == [] of
+                        true -> 
+                            {_, CurOpName} = ToDo,
+                            CurrentOpType = update,
+                            State#state.specula_txs ++ [{UpdateSeq, CurOpName, os:timestamp(), ignore}];
+                        false ->
+                            {LastInserted, _, _, _} = lists:last(State#state.specula_txs),
+                            case LastInserted == UpdateSeq - 1 of
+                                true -> 
+                                    {_, CurOpName} = ToDo,
+                                    CurrentOpType = update,
+                                    State#state.specula_txs ++ [{UpdateSeq, CurOpName, os:timestamp(), ignore}]; 
+                                false -> State#state.specula_txs
+                            end
+                    end
+            end,
+   %lager:warning("Curent op type is ~w, specula_txs are ~w, updateseq ~w, read seq ~w", [CurrentOpType, SpeculaTxs, UpdateSeq, ReadSeq]),
     {Cnt, ExprStart, Period} = State#state.store_cdf,
     %case CurrentOpType of read -> ok; 
     %                        _ ->%lager:warning("Going to do op ~w", [UpdateSeq])
@@ -448,12 +444,12 @@ worker_next_op(State) ->
                     case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time({1,1}, Transition));
                                         _ -> timer:sleep(ThinkTime)
                     end, 
-                    {next_state, execute, State#state {driver_state = DriverState, todo_op={[], 1}, last_inserted=LastInserted, update_seq=UpdateSeq, final_cdf=FinalCdf, specula_cdf=SpeculaCdf, specula_txs=SpeculaTxs, store_cdf=StoreCdf}, 0};
+                    {next_state, execute, State#state {driver_state = DriverState, todo_op={[], 1}, update_seq=UpdateSeq, final_cdf=FinalCdf, specula_cdf=SpeculaCdf, specula_txs=SpeculaTxs, store_cdf=StoreCdf}, 0};
                 [H|T] ->
                     case ThinkTime of rubis -> timer:sleep(rubis_tool:get_think_time({H,H}, Transition));
                                         _ -> timer:sleep(ThinkTime)
                     end,
-                    {next_state, execute, State#state {driver_state = DriverState, todo_op={T, H}, update_seq=UpdateSeq, last_inserted=LastInserted, final_cdf=FinalCdf, specula_cdf=SpeculaCdf, store_cdf=StoreCdf, specula_txs=SpeculaTxs, seed=Now}, 0}
+                    {next_state, execute, State#state {driver_state = DriverState, todo_op={T, H}, update_seq=UpdateSeq, final_cdf=FinalCdf, specula_cdf=SpeculaCdf, store_cdf=StoreCdf, specula_txs=SpeculaTxs, seed=Now}, 0}
             end;
         %%% A no-op has finished
         {Res, DriverState} when Res == ok orelse element(1, Res) == ok ->
@@ -472,26 +468,25 @@ worker_next_op(State) ->
             case get_op_type(NextOpName, AllUpdate) of
                 update ->
                     timer:sleep(OpThinkTime),
-                    {next_state, execute, State#state{driver_state=DriverState, todo_op=NextOp, last_update_cnt=UpdateSeq+1, update_seq=UpdateSeq, store_cdf=StoreCdf, specula_cdf=SpeculaCdf, final_cdf=FinalCdf, read_txs=ReadTxs1, specula_txs=SpeculaTxs, op_type=update, last_inserted=LastInserted, seed=Now}, 0};
+                    LatestUpdate = UpdateSeq,
+                    {next_state, execute, State#state{driver_state=DriverState, todo_op=NextOp, latest_update=LatestUpdate+1, update_seq=LatestUpdate+1, store_cdf=StoreCdf, specula_cdf=SpeculaCdf, final_cdf=FinalCdf, read_txs=ReadTxs1, specula_txs=SpeculaTxs, op_type=update, seed=Now}, 0};
                 read ->
-                    NextReadSeq = ReadSeq + 1,
+                    NextReadSeq = ReadSeq - 1,
                     timer:sleep(OpThinkTime),
                     ReadTxs2 = ReadTxs1 ++ [{NextReadSeq, Now, NextOpName}],
-		   %lager:warning("Next read seq is ~w, read txs are ~w", [NextReadSeq, ReadTxs2]),
                     {next_state, execute, State#state{driver_state=DriverState, todo_op=NextOp, read_seq=NextReadSeq, update_seq=UpdateSeq,
-                          read_txs=ReadTxs2, specula_cdf=SpeculaCdf, specula_txs=SpeculaTxs, final_cdf=FinalCdf, store_cdf=StoreCdf, last_inserted=LastInserted, seed=Now, op_type=read}, 0}
+                          read_txs=ReadTxs2, specula_cdf=SpeculaCdf, specula_txs=SpeculaTxs, final_cdf=FinalCdf, store_cdf=StoreCdf, seed=Now, op_type=read}, 0}
             end;
         %% Committed! Means all previous update txns are committed. So just start a new txn
         {Res, {AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} when Res == ok orelse element(1, Res) == ok ->
-            %case CurrentOpType of  update ->lager:warning("Op ~p committed", [UpdateSeq]); read -> ok end,
-            %lager:warning("Op ~w finished, op type is ~w, specula txs are ~w", [OpTag, CurrentOpType, SpeculaTxs]),
-            ReadTxs1 = finalize_reads(lists:sort(FinalCommitReads), ReadTxs, [], ok),
-            ReadTxs2 = finalize_reads(lists:sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
+            %lager:warning("Op ~w finished, op type is ~w, speculaseq is ~w, specula txs are ~w, final committed are ~w", [OpTag, CurrentOpType, UpdateSeq, SpeculaTxs, FinalCommitUpdates]),
+            ReadTxs1 = finalize_reads(reverse_sort(FinalCommitReads), ReadTxs, [], ok),
+            ReadTxs2 = finalize_reads(reverse_sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], Now),
             CurrentOpType = update,
             {FinalCdf2, SpeculaCdf2, SpeculaTxs2} = commit_updates(FinalCdf1, SpeculaCdf1, [{UpdateSeq, Now}], SpeculaTxs1, [], Now),
 
-            case LastUpdateCnt of
+            case LatestUpdate of
                 UpdateSeq ->
                     SpeculaTxs2 = [],
                     NextOp = case Transition of
@@ -506,39 +501,27 @@ worker_next_op(State) ->
                     timer:sleep(OpThinkTime),
                     case get_op_type(NextOpName, AllUpdate) of 
                         update ->
-                            {next_state, execute, State#state { driver_state = DriverState, todo_op=NextOp, final_cdf=FinalCdf2, last_inserted=LastInserted, update_seq=UpdateSeq, 
-                                specula_cdf=SpeculaCdf2, specula_txs=[], read_txs=ReadTxs2, last_update_cnt=UpdateSeq+1
-                                , store_cdf=StoreCdf, op_type=update, seed=Now}, 0};
+                            {next_state, execute, State#state { driver_state = DriverState, todo_op=NextOp, final_cdf=FinalCdf2, specula_cdf=SpeculaCdf2, specula_txs=[], read_txs=ReadTxs2, update_seq=UpdateSeq+1, latest_update=UpdateSeq+1, store_cdf=StoreCdf, op_type=update, seed=Now}, 0};
                         read ->
-                            NextReadSeq = ReadSeq +1,
+                            NextReadSeq = ReadSeq -1,
                             ReadTxs3 = ReadTxs2 ++ [{NextReadSeq, Now, NextOpName}], 
-                            {next_state, execute, State#state { driver_state = DriverState, todo_op=NextOp, read_seq=NextReadSeq, read_txs=ReadTxs3, update_seq=UpdateSeq, 
-                                specula_txs=[], specula_cdf=SpeculaCdf2, final_cdf=FinalCdf2, store_cdf=StoreCdf, seed=Now, last_inserted=LastInserted, op_type=read}, 0}
+                            {next_state, execute, State#state { driver_state = DriverState, todo_op=NextOp, read_seq=NextReadSeq, read_txs=ReadTxs3, update_seq=UpdateSeq, specula_txs=[], specula_cdf=SpeculaCdf2, final_cdf=FinalCdf2, store_cdf=StoreCdf, seed=Now, op_type=read}, 0}
                     end;
                 _ ->
                     {NewSeed, NextOp} = get_next_op(SpeculaTxs, UpdateSeq+1, ToDo),
-                    {next_state, execute, State#state{driver_state=DriverState, todo_op=NextOp, update_seq=UpdateSeq+1, op_type=update, last_inserted=LastInserted, 
+                    {next_state, execute, State#state{driver_state=DriverState, todo_op=NextOp, update_seq=UpdateSeq+1, op_type=update, 
                                     specula_txs=SpeculaTxs2, read_txs=ReadTxs2, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, store_cdf=StoreCdf, seed=NewSeed}, 0}
             end;
-        {Res, DriverState} when Res == silent orelse element(1, Res) == silent ->
-            %% Not implemented here
-            {ok, State#state { driver_state = DriverState, todo_op=false, specula_txs=SpeculaTxs, last_inserted=LastInserted, update_seq=UpdateSeq}};
-        %% Report final committed and final aborted.
-        %% Wait for msg. Either retrying some ops if final abort msg is received or continue 
         {specula_commit, {AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
-            %case CurrentOpType of  update ->lager:warning("Op ~p specula-committed", [UpdateSeq]); read -> ok end,
-            %lager:warning("Final commit updates are ~w, FinallComm Reads are ~w, spec txs are ~w, read txs are ~w, update seq is ~w, lucnt is ~w", [FinalCommitUpdates, FinalCommitReads, SpeculaTxs, ReadTxs, UpdateSeq, LastUpdateCnt]),
-            ReadTxs1 = finalize_reads(lists:sort(FinalCommitReads), ReadTxs, [], ok),
-            ReadTxs2 = finalize_reads(lists:sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
-            %case FinalCommitUpdates of [] -> ok; _ ->lager:warning("FinalComm is ~w, specula_txs are ~w", [FinalCommitUpdates, SpeculaTxs]) end,
+            %lager:warning("Final commit updates are ~w, FinallComm Reads are ~w, spec txs are ~w, read txs are ~w, update seq is ~w, lucnt is ~w", [FinalCommitUpdates, FinalCommitReads, SpeculaTxs, ReadTxs, UpdateSeq, LatestUpdate]),
+            ReadTxs1 = finalize_reads(reverse_sort(FinalCommitReads), ReadTxs, [], ok),
+            ReadTxs2 = finalize_reads(reverse_sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], Now),
-            %% If I am update: add my specula-commit time to the list
-            %% If I am read: add my txid to the list
             SpeculaTxs2 = case CurrentOpType of read -> SpeculaTxs1; 
                                             update -> add_sctime_to_list(SpeculaTxs1, UpdateSeq, Now)
-                                      end,
+                          end,
             %% Decide new operations to perform
-            case LastUpdateCnt == UpdateSeq of
+            case LatestUpdate == UpdateSeq of
                 true -> %% Already performing the last operation, can choose new operation freely 
                     NextOp = case Transition of
                           undef ->
@@ -552,57 +535,57 @@ worker_next_op(State) ->
                     OpThinkTime = op_think_time(ToDo, NextOp, ThinkTime, Transition), 
                     case get_op_type(NextOpName, AllUpdate) of 
                         update ->  
-                            NextUpdateSeq = UpdateSeq + 1,
-                            {next_state, execute, State#state{driver_state=DriverState, todo_op=NextOp, update_seq=UpdateSeq, last_update_cnt=NextUpdateSeq, store_cdf=StoreCdf, seed=Now, last_inserted=LastInserted, 
-                                specula_txs=SpeculaTxs2, read_txs=ReadTxs2, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, op_type=update}, OpThinkTime};
+                            {next_state, execute, State#state{driver_state=DriverState, todo_op=NextOp, update_seq=UpdateSeq+1, latest_update=UpdateSeq+1, store_cdf=StoreCdf, seed=Now, specula_txs=SpeculaTxs2, read_txs=ReadTxs2, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, op_type=update}, OpThinkTime};
                         read ->
-                            NextReadSeq = ReadSeq + 1,
+                            NextReadSeq = ReadSeq - 1,
                             ReadTxs3 = ReadTxs2 ++ [{NextReadSeq, Now, NextOpName}],
 			               %lager:warning("Next read seq is ~w, read txs are ~w", [NextReadSeq, ReadTxs3]),
                             {next_state, execute, State#state{driver_state=DriverState, todo_op=NextOp, read_seq=NextReadSeq, 
                                   specula_txs=SpeculaTxs2, read_txs=ReadTxs3, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1
-                                , store_cdf=StoreCdf, op_type=read, seed=Now, last_inserted=LastInserted, update_seq=UpdateSeq}, OpThinkTime}
+                                , store_cdf=StoreCdf, op_type=read, seed=Now, update_seq=UpdateSeq}, OpThinkTime}
                     end;
                 false -> %% Should redo previous operations!!! 
                     {NewSeed, NextOp} = get_next_op(SpeculaTxs, UpdateSeq+1, ToDo),
                     {next_state, execute, State#state{driver_state=DriverState, todo_op=NextOp, update_seq=UpdateSeq+1, op_type=update, 
-                                    specula_txs=SpeculaTxs2, read_txs=ReadTxs2, specula_cdf=SpeculaCdf1, last_inserted=LastInserted, final_cdf=FinalCdf1, store_cdf=StoreCdf, seed=NewSeed}, 0}
+                                    specula_txs=SpeculaTxs2, read_txs=ReadTxs2, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, store_cdf=StoreCdf, seed=NewSeed}, 0}
             end;
         %% Report abort of all cascaded txns, including the current one; also report commits of all committed.
         %% Retry txns from the aborted one.
         {cascade_abort, {AbortedTxId, AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
-            %case CurrentOpType of  update ->lager:warning("Op ~p cascade-aborted", [UpdateSeq]); read -> ok end,
             %lager:warning("Cascade abort!!! Specula txs are ~w, abortedtx id is ~w, op aborted ~w, AbortedReads are ~w, FinalCommUpates ~w, FinalCommReads ~w", [SpeculaTxs, AbortedTxId, OpTag, AbortedReads, FinalCommitUpdates, FinalCommitReads]),
             State#state.shutdown_on_error andalso
                 erlang:send_after(500, basho_bench,
                                   {shutdown, "Shutdown on errors requested", 1}),
-            ReadTxs1 = finalize_reads(lists:sort(FinalCommitReads), ReadTxs, [], ok),
-            ReadTxs2 = finalize_reads(lists:sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
+            ReadTxs1 = finalize_reads(reverse_sort(FinalCommitReads), ReadTxs, [], ok),
+            ReadTxs2 = finalize_reads(reverse_sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], Now),
             
             {StartTime, {RetryOpSeq, NextOpName}} = find_specula_tx(AbortedTxId, SpeculaTxs1),
             {Sum, Count} = AbortStat,
             AbortStat1 = {timer:now_diff(Now, StartTime)+Sum, Count+1},
-            {next_state, execute, State#state{driver_state=DriverState, todo_op={RetryOpSeq, NextOpName}, last_inserted=LastInserted,update_seq=RetryOpSeq, op_type=update, specula_txs=SpeculaTxs1, read_txs=ReadTxs2, abort_stat=AbortStat1, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, seed=StartTime, store_cdf=StoreCdf}, 0};
+            {next_state, execute, State#state{driver_state=DriverState, todo_op={RetryOpSeq, NextOpName}, update_seq=RetryOpSeq, op_type=update, specula_txs=SpeculaTxs1, read_txs=ReadTxs2, abort_stat=AbortStat1, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, seed=StartTime, store_cdf=StoreCdf}, 0};
         {aborted, {AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
 	        %lager:warning("Op aborted! seq is ~w, list is ~w", [UpdateSeq, SpeculaTxs]),
             State#state.shutdown_on_error andalso
                 erlang:send_after(500, basho_bench,
                                   {shutdown, "Shutdown on errors requested", 1}),
-            ReadTxs1 = finalize_reads(lists:sort(FinalCommitReads), ReadTxs, [], ok),
+            ReadTxs1 = finalize_reads(reverse_sort(FinalCommitReads), ReadTxs, [], ok),
             %case FinalCommitUpdates of [] -> ok; _ ->lager:warning("Commit updates before abort, FinalCommitUpdates are ~w", [FinalCommitUpdates]) end,
-            ReadTxs2 = finalize_reads(lists:sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
+            ReadTxs2 = finalize_reads(reverse_sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], Now),
                       %% Add abort of this txn to stat, if no cascading abort was found 
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
             {Sum, Count} = AbortStat,
             AbortStat1 = {timer:now_diff(Now, Seed)+Sum, Count+1},
-            {next_state, execute, State#state{driver_state=DriverState, update_seq=UpdateSeq, store_cdf=StoreCdf, last_inserted=LastInserted, 
+            {next_state, execute, State#state{driver_state=DriverState, update_seq=UpdateSeq, store_cdf=StoreCdf,  
                     specula_txs=SpeculaTxs1, read_txs=ReadTxs2, abort_stat=AbortStat1, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1}, 0};
         {wrong_msg, DriverState} ->
             %lager:warning("WTF, wrong msg!!!"),
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
-            {next_state, execute, State#state{driver_state=DriverState, final_cdf=FinalCdf, specula_txs=SpeculaTxs, update_seq=UpdateSeq, last_inserted=LastInserted, specula_cdf=SpeculaCdf, store_cdf=StoreCdf}, 100};
+            {next_state, execute, State#state{driver_state=DriverState, final_cdf=FinalCdf, specula_txs=SpeculaTxs, update_seq=UpdateSeq,  specula_cdf=SpeculaCdf, store_cdf=StoreCdf}, 50};
+        {Res, DriverState} when Res == silent orelse element(1, Res) == silent ->
+            %% Not implemented here
+            {ok, State#state { driver_state = DriverState, todo_op=false, specula_txs=SpeculaTxs, update_seq=UpdateSeq}};
         crash -> %% Got timeout 
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
             {next_state, execute, State#state{final_cdf=FinalCdf, specula_cdf=SpeculaCdf, store_cdf=StoreCdf}, 100};
@@ -611,13 +594,10 @@ worker_next_op(State) ->
             State#state.shutdown_on_error andalso
                 erlang:send_after(500, basho_bench,
                                   {shutdown, "Shutdown on errors requested", 1}),
-            {next_state, execute, State#state { driver_state = DriverState, update_seq=UpdateSeq, specula_txs=SpeculaTxs, last_inserted=LastInserted, todo_op=ToDo, store_cdf=StoreCdf}, 0};
+            {next_state, execute, State#state { driver_state = DriverState, update_seq=UpdateSeq, specula_txs=SpeculaTxs,  todo_op=ToDo, store_cdf=StoreCdf}, 0};
         {'EXIT', Reason} ->
-            %% Driver crashed, generate a crash error and terminate. This will take down
-            %% the corresponding worker which will get restarted by the appropriate supervisor.
             basho_bench_stats:op_complete(ToDo, {error, crash}),
 
-            %% Give the driver a chance to cleanup
             (catch (State#state.driver):terminate({'EXIT', Reason}, State#state.driver_state)),
 
             ?DEBUG("Driver ~p crashed: ~p\n", [State#state.driver, Reason]),
@@ -627,7 +607,6 @@ worker_next_op(State) ->
                                       {shutdown, "Shutdown on errors requested", 2}),
                     {next_state, execute, State#state{store_cdf=StoreCdf}, 0};
                 false ->
-                    %% Not implemented here
                     crash
             end;
         {stop, Reason} ->
@@ -637,8 +616,6 @@ worker_next_op(State) ->
 
             %% Give the driver a chance to cleanup
             (catch (State#state.driver):terminate(normal, State#state.driver_state)),
-
-            %% Not implemented here
             normal
     end.
 
@@ -699,7 +676,7 @@ op_think_time(CurrentOp, NextOp, ThinkTime, Transition) ->
 find_specula_tx(Seq, [{Seq, OpName, StartTime, _SpecTime}|_T]=List) ->
     report_cascade(List),
     {StartTime, {Seq, OpName}};
-find_specula_tx({tx_id, _, _, _,Seq, up}, [{Seq, OpName, StartTime, _SpecTime}|_T]=List) ->
+find_specula_tx({tx_id, _, _, _,Seq}, [{Seq, OpName, StartTime, _SpecTime}|_T]=List) ->
     report_cascade(List),
     {StartTime, {Seq, OpName}};
 find_specula_tx(Seq, [{_Seq1, _OpName, _StartTime, _SpecTime}|T]) ->
@@ -737,7 +714,7 @@ add_sctime_to_list([TxInfo|Rest], TxnSeq, SpecCommitTime) ->
 
 commit_updates(FinalCdf, SpeculaCdf, [], SpeculaTxs, PreviousSpecula, _) ->
     {FinalCdf, SpeculaCdf, lists:reverse(PreviousSpecula)++SpeculaTxs};
-commit_updates(FinalCdf, SpeculaCdf, [{{tx_id, _A, _B, _C, TxnSeq, up}, EndTime}|Rest], [{TxnSeq, OpName, StartTime, SpecTime}|SpeculaRest], PreviousSpecula, Now)->
+commit_updates(FinalCdf, SpeculaCdf, [{{tx_id, _A, _B, _C, TxnSeq}, EndTime}|Rest], [{TxnSeq, OpName, StartTime, SpecTime}|SpeculaRest], PreviousSpecula, Now)->
     %case EndTime of ignore ->%lager:warning("End Time is ~w, SpecTime is ~w, TxId is ~w", [EndTime, SpecTime, TxId]); _ -> ok end, 
     UsedTime = timer:now_diff(EndTime, StartTime),
     %case SpecTime of ignore ->%lager:warning("End Time is ~w, SpecTime is ~w, TxId is ~w", [EndTime, SpecTime, TxId]); _ -> ok end, 
@@ -773,7 +750,7 @@ commit_updates(FinalCdf, SpeculaCdf, [H|T]=List, [{TxnSeq, _OpName, _StartTime, 
 
 finalize_reads([], ReadTxs, Previous, _Result) ->
     lists:reverse(Previous)++ReadTxs;
-finalize_reads([{tx_id, _,_,_,TxnSeq, read}|T], [{TxnSeq, _, OpName}|Rest],Previous, Result) ->
+finalize_reads([{tx_id, _,_,_,TxnSeq}|T], [{TxnSeq, _, OpName}|Rest],Previous, Result) ->
     basho_bench_stats:op_complete({OpName, OpName}, Result),
     finalize_reads(T, Rest, Previous, Result);
 finalize_reads([TxnSeq|T], [{TxnSeq, _, OpName}|Rest], Previous, Result) ->
@@ -788,6 +765,9 @@ finalize_reads(List, [], Previous, Result) ->
 	end, List),
     List = 1,
 	lists:reverse(Previous).
+
+reverse_sort(List) ->
+    lists:sort(fun({tx_id, _, _,_, X}, {tx_id,_,_,_, Y}) -> X > Y end, List).
 
 get_op_type(_, true) ->
     update;
