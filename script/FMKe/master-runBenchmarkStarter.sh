@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # This script is meant to be run by the coordinating machine,
 # to start the benchmarks in all the benchmark nodes, and collect their results.
+# each node sends its results through scp, and they're put in a directory of the form basho_bench/tests/fmk-bench-date-time
+# the basho bench script for individual nodes can be found in this directory/worker-runFMKbench.sh
 
-# It assumes there exists a file, basho_bench-nodes-list.txt, in this directory with the list of IP addresses of the nodes that will run basho_bench
+# It assumes (IMPORTANT!!!)
+# 1) Machines have a key in ~/.ssh/known hosts, so ssh does not prompt for passwords
+# 2) there exists a file, basho_bench-nodes-list.txt, in this directory with the list of IP addresses of the nodes that will run basho_bench
 BenchNodes=`cat script/FMKe/basho_bench-nodes-list.txt`
 
 # The IP address of the master node is sent to the worker nodes.
@@ -25,7 +29,7 @@ do
     RunCommand="ssh alek@${Item} ~/basho_bench/script/FMKe/worker-runFMKbench.sh ${MY_IP} ${BenchResultsDirectory}"
     echo "sending ssh command to ${Item} to run benchmark as:"
     echo "${RunCommand}"
-    eval $RunCommand
+    eval $RunCommand &
 done
 
 
