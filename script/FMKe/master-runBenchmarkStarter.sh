@@ -112,12 +112,17 @@ for Item in ${BenchNodes}
              Numfiles=$(eval "\ls -afq | wc -l")
              let ReceivedFiles=$((Numfiles-2))
          done
-    echo "--##--Master ${MY_IP}: Done collecting results from all ${NumBenchNodes} nodes, gonna merge them into a single one..."
+    echo "--##--Master ${MY_IP}: Done collecting results from all ${NumBenchNodes} nodes, gonna merge them into a single one...\n\n\n"
 
     #####################################################
     # Merge results in the test directory into a single one
     #####################################################
+    # Call the merge results script
+    CommandToRunMergeScript="BenchResultsDirectory=$BenchResultsDirectory ~/basho_bench/script/FMKe/master-mergeResults.sh"
+    echo "--##--Master ${MY_IP}: Calling merge script with command:"
+    echo "--##--Master ${MY_IP}: $CommandToRunMergeScript"
+    eval $CommandToRunMergeScript
 
 
-
+    echo "--##--Master ${MY_IP}: DONE!!!"
 fi
