@@ -68,7 +68,7 @@ for Dir in test-* ; do
         # Now use this magic command to merge them into a file into the summary directory
         ########################################################
         echo "---### MASTER: Merging all those files into summary/${SummaryFile}"
-        awk -f ~/basho_bench/script/mergeResultsSummary.awk $AllFiles > summary/${SummaryFile}
+        awk -f ~/basho_bench/script/mergeResultsSummary.awk $AllFilesWithThisName > $BenchResultsDirectory/summary/${SummaryFile}
         echo "---### MASTER: done"
 
         ## We only needed the first directory to know which files we need to process,
@@ -89,20 +89,20 @@ for Dir in test-* ; do
         ########################################################
         # get all the latency files (that end with _latencies.csv") in the results directory
         ########################################################
-        for SummaryFile in *_latencies.csv ; do
+        for LatencyFile in *_latencies.csv ; do
             AllFilesWithThisName=""
-            echo "---### MASTER: Collecting all ${SummaryFile} in $BenchResultsDirectory"
+            echo "---### MASTER: Collecting all ${LatencyFile} in $BenchResultsDirectory"
 #            echo "---### MASTER: cding back into $BenchResultsDirectory"
             cd $BenchResultsDirectory
             for TestDir in test-* ; do
-                AllFilesWithThisName=""$BenchResultsDirectory"/"$TestDir"/tests/current/${SummaryFile} "$AllFilesWithThisName""
+                AllFilesWithThisName=""$BenchResultsDirectory"/"$TestDir"/tests/current/${LatencyFile} "$AllFilesWithThisName""
             done
             echo "---### MASTER: all files with this name are: ${AllFilesWithThisName}"
         ########################################################
         # Now use this magic command to merge them into a file into the summary directory
         ########################################################
-            echo "---### MASTER: Merging all those files into summary/${SummaryFile}"
-            awk -f ~/basho_bench/script/mergeResults.awk $AllFiles > summary/${SummaryFile}
+            echo "---### MASTER: Merging all those files into summary/${LatencyFile}"
+            awk -f ~/basho_bench/script/mergeResults.awk $AllFilesWithThisName > $BenchResultsDirectory/summary/${LatencyFile}
             echo "---### MASTER: done"
 
         done
@@ -110,37 +110,3 @@ for Dir in test-* ; do
         ## and I suck at bash scripting...
         break
 done
-
-
-#I=1
-#for File in $Files; do
-#    echo The test date for $File is ${TestDate[$I]}
-#    AllFiles=""$File"/tests/"${TestDate[$I]}"/read_latencies.csv "$AllFiles""
-#    I=$(($I + 1))
-#done
-#echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/read_latencies.csv
-#awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/read_latencies.csv
-
-
-
-
-## Append latencies
-#AllFiles=""
-#I=1
-#for File in $Files; do
-#    AllFiles=""$File"/tests/"${TestDate[$I]}"/"$AppendFile" "$AllFiles""
-#    I=$(($I + 1))
-#done
-#echo awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/append_latencies.csv
-#awk -f ../basho_bench/script/mergeResults.awk $AllFiles > summary-"$TestName"/append_latencies.csv
-#
-#
-## Summary latencies
-#AllFiles=""
-#I=1
-#for File in $Files; do
-#    AllFiles=""$File"/tests/"${TestDate[$I]}"/summary.csv "$AllFiles""
-#    I=$(($I + 1))
-#done
-#echo awk -f ../basho_bench/script/mergeResultsSummary.awk $AllFiles > summary-"$TestName"/summary.csv
-#awk -f ../basho_bench/script/mergeResultsSummary.awk $AllFiles > summary-"$TestName"/summary.csv
