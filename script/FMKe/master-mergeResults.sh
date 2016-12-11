@@ -52,9 +52,6 @@ for Dir in test-* ; do
         echo "---### MASTER: cding into $Dir/tests/current/ to meet all the files we need to merge"
         cd $Dir/tests/current/
 
-        ########################################################
-        # get all the latency files (that end with _latencies.csv") in the results directory
-        ########################################################
         SummaryFile=summary.csv
         AllFilesWithThisName=""
         echo "---### MASTER: Collecting all ${SummaryFile} in $BenchResultsDirectory"
