@@ -42,6 +42,42 @@ done
 mkdir summary
 echo "---### MASTER: created summary directory"
 
+
+
+########################################################
+    # Merge Summary Files
+########################################################
+# get all the directories of the untared files (they start with "test-")
+for Dir in test-* ; do
+        echo "---### MASTER: cding into $Dir/tests/current/ to meet all the files we need to merge"
+        cd $Dir/tests/current/
+
+        ########################################################
+        # get all the latency files (that end with _latencies.csv") in the results directory
+        ########################################################
+        SummaryFile=summary.csv
+        AllFilesWithThisName=""
+        echo "---### MASTER: Collecting all ${SummaryFile} in $BenchResultsDirectory"
+#       echo "---### MASTER: cding back into $BenchResultsDirectory"
+        cd $BenchResultsDirectory
+        for TestDir in test-* ; do
+            AllFilesWithThisName=""$BenchResultsDirectory"/"$TestDir"/tests/current/${SummaryFile} "$AllFilesWithThisName""
+        done
+        echo "---### MASTER: all files with this name are: ${AllFilesWithThisName}"
+        ########################################################
+        # Now use this magic command to merge them into a file into the summary directory
+        ########################################################
+        echo "---### MASTER: Merging all those files into summary/${SummaryFile}"
+        awk -f ~/basho_bench/script/mergeResultsSummary.awk $AllFiles > summary/${SummaryFile}
+        echo "---### MASTER: done"
+
+        ## We only needed the first directory to know which files we need to process,
+        ## and, again, I suck at bash scripting...
+        break
+done
+
+
+
 ########################################################
     # Merge Latency Files
 ########################################################
@@ -53,20 +89,20 @@ for Dir in test-* ; do
         ########################################################
         # get all the latency files (that end with _latencies.csv") in the results directory
         ########################################################
-        for LatencyFile in *_latencies.csv ; do
+        for SummaryFile in *_latencies.csv ; do
             AllFilesWithThisName=""
-            echo "---### MASTER: Collecting all ${LatencyFile} in $BenchResultsDirectory"
+            echo "---### MASTER: Collecting all ${SummaryFile} in $BenchResultsDirectory"
 #            echo "---### MASTER: cding back into $BenchResultsDirectory"
             cd $BenchResultsDirectory
             for TestDir in test-* ; do
-                AllFilesWithThisName=""$BenchResultsDirectory"/"$TestDir"/tests/current/${LatencyFile} "$AllFilesWithThisName""
+                AllFilesWithThisName=""$BenchResultsDirectory"/"$TestDir"/tests/current/${SummaryFile} "$AllFilesWithThisName""
             done
             echo "---### MASTER: all files with this name are: ${AllFilesWithThisName}"
         ########################################################
         # Now use this magic command to merge them into a file into the summary directory
         ########################################################
-            echo "---### MASTER: Merging all those files into summary/${LatencyFile}"
-            awk -f ~/basho_bench/script/mergeResults.awk $AllFiles > summary/${LatencyFile}
+            echo "---### MASTER: Merging all those files into summary/${SummaryFile}"
+            awk -f ~/basho_bench/script/mergeResults.awk $AllFiles > summary/${SummaryFile}
             echo "---### MASTER: done"
 
         done
