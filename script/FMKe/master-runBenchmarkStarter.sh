@@ -6,8 +6,8 @@
 
 # It assumes (IMPORTANT!!!)
 # 1) Machines have a key in ~/.ssh/known hosts, so ssh does not prompt for passwords
-# 2) there exists a file, basho_bench-nodes-list.txt, in this directory with the list of IP addresses of the nodes that will run basho_bench
-BenchNodes=`cat script/FMKe/basho_bench-nodes-list.txt`
+# 2) there exists a file, bench-nodes-list.txt, in this directory with the list of IP addresses of the nodes that will run basho_bench
+BenchNodes=`cat script/FMKe/bench-nodes-list.txt`
 
 # Use the following line if one can obtain the public IP address of this machine from its adapter.
     MY_IP=$(ifconfig en0 | grep inet | grep -v inet6 | awk '{print $2}')
@@ -16,12 +16,18 @@ BenchNodes=`cat script/FMKe/basho_bench-nodes-list.txt`
     # The IP address of the master node is sent to the worker nodes.
     # They use it to scp their results once they're done with their bench
 
+if [ -z "$BenchDuration" ]; then
+    BenchDuration=1
+fi
 
+# check that the script was called with the right parameters
 if [ -z "$RUNFMKSETUP" ]; then
   echo "--##--Master ${MY_IP}: missing parameter: RUNFMKSETUP"
   echo "--##--Master ${MY_IP}: Run like: RUNFMKSETUP=<TRUE/FALSE> master-runBenchmarkStarter.sh"
   else
-#   NOW CHECK THAT ALL NODES ARE SSH-ABLE!
+########################################################
+    # Verify that all nodes can receiven ssh connections
+##########################################################
 #   First, check that master node is ssh-able
     RunCommand="ssh -q -o ConnectTimeout=2 -o StrictHostKeyChecking=no ${USER}@${MY_IP} exit"
     echo "--##--Master ${MY_IP}: checking master ssh connectivity with command:"
@@ -33,6 +39,8 @@ if [ -z "$RUNFMKSETUP" ]; then
         echo "--##--Master ${MY_IP}: Unable to SSH master node ${MY_IP}, check what you're doing! good bye!"
         exit 1
     fi
+
+#   Second, check that worker nodes are ssh-able
 
     for Item in ${BenchNodes}
     do
@@ -47,18 +55,69 @@ if [ -z "$RUNFMKSETUP" ]; then
             exit 1
         fi
     done
+    echo "--##--Master ${MY_IP}: Great! All worker nodes can receive SSH connections."
 
-    # create a directory to store the test results...
+
+#########################################################
+# create a directory to store the test results...
+# this directory is used by the worker nodes, to send their results via scp
+# #########################################################
+
     DateTime=`date +%Y-%m-%d-%H-%M-%S`
     BenchResultsDirectory=~/basho_bench/tests/fmk-bench-${DateTime}
     mkdir -p $BenchResultsDirectory
     echo "--##--Master ${MY_IP}: Created dir to receive results: ${BenchResultsDirectory}"
+
+    #####################################################
     # Send the command to start benchmarking to each node:
-    for Item in ${BenchNodes}
+    #####################################################
+for Item in ${BenchNodes}
     do
         RunCommand="ssh -o StrictHostKeyChecking=no ${USER}@${Item} BenchResultsDirectory=${BenchResultsDirectory} MasterNodeIp=${MY_IP} RUNFMKSETUP=${RUNFMKSETUP} ~/basho_bench/script/FMKe/worker-runFMKbench.sh"
         echo "--##--Master ${MY_IP}: sending ssh command to ${Item} to run benchmark as:"
         echo "--##--Master ${MY_IP}: ${RunCommand}"
         eval $RunCommand &
     done
+
+
+    #####################################################
+    # Sleep until the benchmark ends:
+    #####################################################
+    Time=`date +%H-%M-%S`
+    echo "--##--Master ${MY_IP}: Now its: ${Time} Gonna sleep ${BenchDuration} minutes..."
+    sleep $((BenchDuration*60))
+
+#    sleep a bit more if we setup fmke
+    if [ "$RUNFMKSETUP" = TRUE ] ; then
+        sleep 100
+    fi
+
+    echo "--##--Master ${MY_IP}:good nap! up now!"
+
+
+    #####################################################
+    # Now let's wait to collect the results from all workers
+    #####################################################
+    NumBenchNodes=${#BenchNodes[@]}
+    echo "--##--Master ${MY_IP}: cding into tests directory"
+    cd ${BenchResultsDirectory}
+    pwd
+    Numfiles=$(eval "\ls -afq | wc -l")
+    ReceivedFiles=$((Numfiles-2))
+
+    echo "--##--Master ${MY_IP}: Waiting until all ${NumBenchNodes} worker nodes send their results..."
+    until [  $ReceivedFiles = $NumBenchNodes ]; do
+             sleep 2
+             echo "--##--Master ${MY_IP}:Received result files so far...: ${ReceivedFiles}), missing "$((NumBenchNodes-ReceivedFiles))"}"
+             Numfiles=$(eval "\ls -afq | wc -l")
+             let ReceivedFiles=$((Numfiles-2))
+         done
+    echo "--##--Master ${MY_IP}: Done collecting results from all ${NumBenchNodes} nodes, gonna merge them into a single one..."
+
+    #####################################################
+    # Merge results in the test directory into a single one
+    #####################################################
+
+
+
 fi

@@ -10,11 +10,19 @@
 # 2) THE TESTNAME, TO SCP INTO THAT DIRECTORY AT THE MASTER NODE
 # 3) RUNFMKSETUP=TRUE/FALSE
 
+########################################################
+    # get my IP address
+##########################################################
+
 # Use the following line if one can obtain the public IP address of this machine from its adapter.
     MY_IP=$(ifconfig en0 | grep inet | grep -v inet6 | awk '{print $2}')
     # Otherwise, get the public IP
     #MY_IP=$(dig +short myip.opendns.com @resolver1.opendns.com.)
-    
+
+
+########################################################
+    # Obtain the input variables
+##########################################################
 if [ -z "$MasterNodeIp" ]
   then
     MasterNodeIp="127.0.0.1"
@@ -28,13 +36,17 @@ if [ -z "$BenchResultsDirectory" ]
 fi
 echo "##Node:${MY_IP}: Benchmark directoryName = ${BenchResultsDirectory}"
 
+########################################################
+    # Run (or not) the FMKe setup script
+##########################################################
 # Make the setup test executable
 chmod +x ~/FMKe/test/fmk_setup_script.erl
 
-# This is necessary when running on OS X, erlang 19
+# This is only necessary when running on OS X, erlang 19
+# might be removed, but won't harm otherwise...
 PATH="$PATH:/opt/local/lib/erlang/erts-8.1/bin/"
 
-# first check that fmk is active on that node:
+# first check that fmk is active (pingable) on that node:
 FmkPing=$(~/basho_bench/script/FMKe/ping.erl 'fmk@127.0.0.1')
 echo "##Node:${MY_IP}:Pinging 'fmk@127.0.0.1', got: ${FmkPing}"
 if [ "$FmkPing" = pong ] ; then
@@ -52,7 +64,9 @@ if [ "$FmkPing" = pong ] ; then
 
     fi
 
+########################################################
     # Run basho_bench
+##########################################################
     echo "##Node:${MY_IP}: cding into ~/basho_bench"
     cd ~/basho_bench
     pwd
@@ -60,15 +74,19 @@ if [ "$FmkPing" = pong ] ; then
     echo "##Node:${MY_IP}: Running Benchmark with command: "
     echo "##Node:${MY_IP}: ${RunBenchCommand}"
     eval ${RunBenchCommand}
-    #	-Rscript --vanilla ${BENCH}/priv/summary.r -i tests/current
+
+########################################################
     # Tar the results
+##########################################################
     TarFileName=./test-"$MY_IP".tar
     TarResultsCommand="tar cvzf ${TarFileName} tests/current"
     echo "##Node:${MY_IP}: Running Benchmark with command: "
     echo "##Node:${MY_IP}: ${TarResultsCommand}"
     eval ${TarResultsCommand}
 
-    # SCP THE RESULTS TO THE MASTER NODE
+########################################################
+    # SCP the results to the master node, into the BenchResultsDirectory
+##########################################################
     ScpResultsCommand="scp -o StrictHostKeyChecking=no ${TarFileName} alek@${MasterNodeIp}:${BenchResultsDirectory}/"
     echo "##Node:${MY_IP}: SCPing results to master node with command: "
     echo "##Node:${MY_IP}: ${ScpResultsCommand}"
