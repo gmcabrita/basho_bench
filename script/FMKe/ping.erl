@@ -1,6 +1,4 @@
 #!/usr/bin/env escript
-%% -*- erlang -*-
-%%! -smp enable -name setup@127.0.0.1 -cookie antidote -mnesia debug verbose
 -mode(compile).
 
 
