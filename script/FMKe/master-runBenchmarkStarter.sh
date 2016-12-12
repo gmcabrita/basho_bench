@@ -73,7 +73,7 @@ if [ -z "$RUNFMKSETUP" ]; then
     #####################################################
 for Item in ${BenchNodes}
     do
-        RunCommand="ssh -o StrictHostKeyChecking=no ${USER}@${Item} BenchResultsDirectory=${BenchResultsDirectory} MasterNodeIp=${MY_IP} RUNFMKSETUP=${RUNFMKSETUP} ~/basho_bench/script/FMKe/worker-runFMKbench.sh"
+        RunCommand="ssh -o StrictHostKeyChecking=no ${USER}@${Item} Worker_IP=${Item} BenchResultsDirectory=${BenchResultsDirectory} MasterNodeIp=${MY_IP} RUNFMKSETUP=${RUNFMKSETUP} ~/basho_bench/script/FMKe/worker-runFMKbench.sh"
         echo "--##--Master ${MY_IP}: sending ssh command to ${Item} to run benchmark as:"
         echo "--##--Master ${MY_IP}: ${RunCommand}"
         eval $RunCommand &
@@ -86,7 +86,6 @@ for Item in ${BenchNodes}
     Time=`date +%H-%M-%S`
     echo "--##--Master ${MY_IP}: Now its: ${Time} Gonna sleep ${BenchDuration} minutes..."
     sleep $((BenchDuration*60))
-
 #    sleep a bit more if we setup fmke
     if [ "$RUNFMKSETUP" = TRUE ] ; then
         sleep 100
@@ -98,7 +97,6 @@ for Item in ${BenchNodes}
     #####################################################
     # Now let's wait to collect the results from all workers
     #####################################################
-    NumBenchNodes=${#BenchNodes[@]}
     echo "--##--Master ${MY_IP}: cding into tests directory"
     cd ${BenchResultsDirectory}
     pwd
