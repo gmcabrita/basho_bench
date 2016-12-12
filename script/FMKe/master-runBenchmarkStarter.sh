@@ -9,17 +9,19 @@
 # 2) there exists a file, bench-nodes-list.txt, in this directory with the list of IP addresses of the nodes that will run basho_bench
 BenchNodes=`cat script/FMKe/bench-nodes-list.txt`
 
-# Use the following line if one can obtain the public IP address of this machine from its adapter.
     if [ -z "$MY_IP" ]; then
-    MY_IP=$(ifconfig en4 | grep inet | grep -v inet6 | awk '{print $2}')    # Otherwise, get the public IP
+    echo "--##--Master ${MY_IP}: missing parameter: MY_IP"
+    echo "--##--Master ${MY_IP}: Run like: MY_IP=<my_ip_ssh_enabled> RUNFMKSETUP=<TRUE/FALSE> master-runBenchmarkStarter.sh"
+    exit 255
+#        MY_IP=$(ifconfig en4 | grep inet | grep -v inet6 | awk '{print $2}')
+# Use the following line if one can obtain the public IP address of this machine from its adapter.
+# Otherwise, get the public IP
     #Worker_IP=$(dig +short myip.opendns.com @resolver1.opendns.com.)
-fi
-
-
     # Otherwise, get the public IP
     #MY_IP=$(dig +short myip.opendns.com @resolver1.opendns.com.)
     # The IP address of the master node is sent to the worker nodes.
     # They use it to scp their results once they're done with their bench
+fi
 
 if [ -z "$BenchDuration" ]; then
     BenchDuration=1
@@ -28,7 +30,7 @@ fi
 # check that the script was called with the right parameters
 if [ -z "$RUNFMKSETUP" ]; then
   echo "--##--Master ${MY_IP}: missing parameter: RUNFMKSETUP"
-  echo "--##--Master ${MY_IP}: Run like: RUNFMKSETUP=<TRUE/FALSE> master-runBenchmarkStarter.sh"
+  echo "--##--Master ${MY_IP}: Run like: MY_IP=<my_ip_ssh_enabled> RUNFMKSETUP=<TRUE/FALSE> master-runBenchmarkStarter.sh"
   else
 ########################################################
     # Verify that all nodes can receiven ssh connections

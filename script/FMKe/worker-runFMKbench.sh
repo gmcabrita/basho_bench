@@ -50,15 +50,15 @@ chmod +x ~/FMKe/test/fmk_setup_script.erl
 PATH="$PATH:/opt/local/lib/erlang/erts-8.1/bin/"
 
 # first check that fmk is active (pingable) on that node:
-FmkPing=$(~/basho_bench/script/FMKe/ping.erl 'fmk@127.0.0.1')
-echo "##Node:${Worker_IP}:Pinging 'fmk@127.0.0.1', got: ${FmkPing}"
+FmkPing=$(~/basho_bench/script/FMKe/ping.erl 'fmk@${Worker_IP}')
+echo "##Node:${Worker_IP}:Pinging 'fmk@${Worker_IP}', got: ${FmkPing}"
 if [ "$FmkPing" = pong ] ; then
     # Run the setup test
     if [ "$RUNFMKSETUP" = TRUE ] ; then
         echo "##Node:${Worker_IP}: cding into ~/FMKe"
         cd ~/FMKe/
         pwd
-        SetupCommand="~/FMKe/test/fmk_setup_script.erl 1 fmk@127.0.0.1"
+        SetupCommand="~/FMKe/test/fmk_setup_script.erl 1 fmk@${Worker_IP}"
         echo "##Node:${Worker_IP}: Running Setup script with command: "
         echo "##Node:${Worker_IP}: ${SetupCommand}"
         eval ${SetupCommand}
