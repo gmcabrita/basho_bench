@@ -127,6 +127,7 @@ for Item in ${BenchNodes}
     CommandToBuildPng="Rscript --vanilla priv/summary.r -i $BenchResultsDirectory/summary"
     echo "--##--Master ${MY_IP}: Processing results into a summary.png file..."
     echo "--##--Master ${MY_IP}: $CommandToBuildPng"
+    cd ~/basho_bench/
     eval $CommandToBuildPng
     echo "--##--Master ${MY_IP}: DONE, see your results!!!"
     open $BenchResultsDirectory/summary/summary.png
