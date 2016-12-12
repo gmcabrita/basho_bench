@@ -1,4 +1,6 @@
 #!/usr/bin/env escript
+%% -*- erlang -*-
+%%! -smp enable -name pingy@127.0.0.1 -cookie antidote
 -mode(compile).
 
 
