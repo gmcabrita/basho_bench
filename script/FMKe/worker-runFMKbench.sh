@@ -90,7 +90,7 @@ if [ "$FmkPing" = pong ] ; then
 ########################################################
     # SCP the results to the master node, into the BenchResultsDirectory
 ##########################################################
-    ScpResultsCommand="scp -o StrictHostKeyChecking=no ${TarFileName} alek@${MasterNodeIp}:${BenchResultsDirectory}/"
+    ScpResultsCommand="scp -o StrictHostKeyChecking=no ${TarFileName} ${USER}@${MasterNodeIp}:${BenchResultsDirectory}/"
     echo "##Node:${Worker_IP}: SCPing results to master node with command: "
     echo "##Node:${Worker_IP}: ${ScpResultsCommand}"
     eval ${ScpResultsCommand}
