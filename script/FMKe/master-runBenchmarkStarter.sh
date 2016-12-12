@@ -115,7 +115,7 @@ for Item in ${BenchNodes}
     echo "--##--Master ${MY_IP}: Done collecting results from all ${NumBenchNodes} nodes, gonna merge them into a single one...\n\n\n"
 
     #####################################################
-    # Merge results in the test directory into a single one
+    # Merge results in the test directory into a single one and create the results file image
     #####################################################
     # Call the merge results script
     CommandToRunMergeScript="BenchResultsDirectory=$BenchResultsDirectory ~/basho_bench/script/FMKe/master-mergeResults.sh"
@@ -123,6 +123,11 @@ for Item in ${BenchNodes}
     echo "--##--Master ${MY_IP}: $CommandToRunMergeScript"
     eval $CommandToRunMergeScript
 
-
-    echo "--##--Master ${MY_IP}: DONE!!!"
+    # Create an image with the summary
+    CommandToBuildPng="Rscript --vanilla priv/summary.r -i $BenchResultsDirectory/summary"
+    echo "--##--Master ${MY_IP}: Processing results into a summary.png file..."
+    echo "--##--Master ${MY_IP}: $CommandToBuildPng"
+    eval $CommandToBuildPng
+    echo "--##--Master ${MY_IP}: DONE, see your results!!!"
+    open $BenchResultsDirectory/summary/summary.png
 fi
