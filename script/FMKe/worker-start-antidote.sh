@@ -6,7 +6,8 @@ cd ~/antidote
 git pull
 make relclean
 make rel
-IP=${IP} INSTANCE_NAME=antidote ~/antidote/_build/default/rel/antidote/bin/env foreground
+~/antidote/_build/default/rel/antidote/bin/env stop
+IP=$IP INSTANCE_NAME=antidote ~/antidote/_build/default/rel/antidote/bin/env foreground
 
 
 
