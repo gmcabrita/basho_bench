@@ -27,7 +27,7 @@ echo "Nodes are: ${Nodes}"
 
 for Item in ${Nodes}
 do
-    Command="ssh $SshOptions $USER@$Item IP=${Item} ~/basho_bench/script/FMKe/worker-start-antidote.sh"
+    Command="ssh $SshOptions $USER@$Item 'bash -s' < IP=${Item} ~/basho_bench/script/FMK/worker-start-antidote.sh"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
