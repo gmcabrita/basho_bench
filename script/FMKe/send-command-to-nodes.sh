@@ -12,7 +12,7 @@ BenchNodes=`cat ${1}`
 
 for Item in ${BenchNodes}
 do
-    RunCommand="$2"
+    RunCommand= "$2"
     echo "sending ssh command to ${Item}:"
     echo "${RunCommand}"
     spawn eval $RunCommand

@@ -4,7 +4,7 @@
 # It merges all those results into a single one.
 # It is called by the master-runBenchmarkStarter.sh script
 
-# run like : BenchResultsDirectory=dir master-mergeResults.sh
+# run like : BenchResultsDirectory=$dir master-mergeResults.sh
 # INPUT:
 # 1) BenchResultsDirectory, the directory where the worker result tar files are stored.
 

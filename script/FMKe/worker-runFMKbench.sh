@@ -4,11 +4,13 @@
 # on the local machine, and listenning to http requests on the 9097 port.
 # That instance of FMKe should already be connected to target antidote nodes.
 
-# run like : MasterNodeIp=1.2.3.4 BenchResultsDirectory=dir RUNFMKSETUP=TRUE/FALSE worker-runFMKbench.sh
+# run like : Worker_IP=5.6.7.8 MasterNodeIp=1.2.3.4 BenchResultsDirectory=dir UserName=ubuntu worker-runFMKbench.sh
 # INPUT:
-# 1) THE IP ADDRESS OF THE MASTER NODE, USED TO SCP THE RESULTS
-# 2) THE TESTNAME, TO SCP INTO THAT DIRECTORY AT THE MASTER NODE
-# 3) RUNFMKSETUP=TRUE/FALSE
+# 1) MasterNodeIp: THE IP ADDRESS OF THE MASTER NODE, USED TO SCP THE RESULTS
+# 2) BenchResultsDirectory: TO SCP INTO THAT DIRECTORY AT THE MASTER NODE
+# 4) UserName: The username needed to connect to tha machines through SSH.
+#               The username should also exist on the master machine.
+# 5) Worker_IP: The IP address of this node as accessed by the master node.
 
 ########################################################
     # get my IP address
@@ -39,33 +41,7 @@ if [ -z "$BenchResultsDirectory" ]
 fi
 echo "##Node:${Worker_IP}: Benchmark directoryName = ${BenchResultsDirectory}"
 
-########################################################
-    # Run (or not) the FMKe setup script
-##########################################################
-# Make the setup test executable
-chmod +x ~/FMKe/test/fmk_setup_script.erl
 
-# This is only necessary when running on OS X, erlang 19
-# might be removed, but won't harm otherwise...
-PATH="$PATH:/opt/local/lib/erlang/erts-8.1/bin/"
-
-# first check that fmk is active (pingable) on that node:
-FmkPing=$(~/basho_bench/script/FMKe/ping.erl 'fmk@${Worker_IP}')
-echo "##Node:${Worker_IP}:Pinging 'fmk@${Worker_IP}', got: ${FmkPing}"
-if [ "$FmkPing" = pong ] ; then
-    # Run the setup test
-    if [ "$RUNFMKSETUP" = TRUE ] ; then
-        echo "##Node:${Worker_IP}: cding into ~/FMKe"
-        cd ~/FMKe/
-        pwd
-        SetupCommand="~/FMKe/test/fmk_setup_script.erl 1 fmk@${Worker_IP}"
-        echo "##Node:${Worker_IP}: Running Setup script with command: "
-        echo "##Node:${Worker_IP}: ${SetupCommand}"
-        eval ${SetupCommand}
-    else
-        echo "##Node:${Worker_IP}: not running fmk setup."
-
-    fi
 
 ########################################################
     # Run basho_bench
@@ -90,14 +66,11 @@ if [ "$FmkPing" = pong ] ; then
 ########################################################
     # SCP the results to the master node, into the BenchResultsDirectory
 ##########################################################
-    ScpResultsCommand="scp -o StrictHostKeyChecking=no ${TarFileName} ${USER}@${MasterNodeIp}:${BenchResultsDirectory}/"
+    ScpResultsCommand="scp -o StrictHostKeyChecking=no ${TarFileName} ${UserName}@${MasterNodeIp}:${BenchResultsDirectory}/"
     echo "##Node:${Worker_IP}: SCPing results to master node with command: "
     echo "##Node:${Worker_IP}: ${ScpResultsCommand}"
     eval ${ScpResultsCommand}
     # the "master node" should collect this tar afterwards through scp.
-else
-    echo "##Node:${Worker_IP}: fmk is not running on worker ${Worker_IP}, nothing to do..."
-fi
 echo "##Node:${Worker_IP}: worker ${Worker_IP} done."
 
 

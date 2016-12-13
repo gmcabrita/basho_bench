@@ -7,11 +7,19 @@
 # It assumes (IMPORTANT!!!)
 # 1) Machines have a key in ~/.ssh/known hosts, so ssh does not prompt for passwords
 # 2) there exists a file, bench-nodes-list.txt, in this directory with the list of IP addresses of the nodes that will run basho_bench
+
+# INPUT:
+# 1) MY_IP= the IP address of the master machine, as it should be sshed by other nodes.
+# 2) PrivateKey: Path to private key of the key needed to connect to all machines
+# 3) BenchDuration: Duration of the benchmarks at the workers, used to wait at the master that the slaves finish.
+# 4) RUNFMKSETUP=<TRUE/FALSE> run or not the setup script
+
+
 BenchNodes=`cat script/FMKe/bench-nodes-list.txt`
 
     if [ -z "$MY_IP" ]; then
     echo "--##--Master ${MY_IP}: missing parameter: MY_IP"
-    echo "--##--Master ${MY_IP}: Run like: MY_IP=<my_ip_ssh_enabled> RUNFMKSETUP=<TRUE/FALSE> master-runBenchmarkStarter.sh"
+    echo "--##--Master ${MY_IP}: Run like: PrivateKey=~/.ssh/antidote.pem MY_IP=<my_ip_ssh_enabled> RUNFMKSETUP=<TRUE/FALSE> master-runBenchmarkStarter.sh"
     exit 255
 #        MY_IP=$(ifconfig en4 | grep inet | grep -v inet6 | awk '{print $2}')
 # Use the following line if one can obtain the public IP address of this machine from its adapter.
@@ -23,20 +31,30 @@ BenchNodes=`cat script/FMKe/bench-nodes-list.txt`
     # They use it to scp their results once they're done with their bench
 fi
 
+if [ -z "$PrivateKey" ]; then
+    PrivateKey=~/.ssh/antidote.pem
+fi
+chmod 600 $PrivateKey
+
+
+SshOptions="-o StrictHostKeyChecking=no -i $PrivateKey"
+
+
+
 if [ -z "$BenchDuration" ]; then
     BenchDuration=1
 fi
 
 # check that the script was called with the right parameters
 if [ -z "$RUNFMKSETUP" ]; then
-  echo "--##--Master ${MY_IP}: missing parameter: RUNFMKSETUP"
+  echo "--##--Master ${MY_IP}: missing parameter: RUNFMKSETUP"14
   echo "--##--Master ${MY_IP}: Run like: MY_IP=<my_ip_ssh_enabled> RUNFMKSETUP=<TRUE/FALSE> master-runBenchmarkStarter.sh"
   else
 ########################################################
-    # Verify that all nodes can receiven ssh connections
+    # Verify that all nodes can receive ssh connections
 ##########################################################
 #   First, check that master node is ssh-able
-    RunCommand="ssh -q -o ConnectTimeout=2 -o StrictHostKeyChecking=no ${USER}@${MY_IP} exit"
+    RunCommand="ssh ${SshOptions} ${USER}@${MY_IP} exit"
     echo "--##--Master ${MY_IP}: checking master ssh connectivity with command:"
     echo "--##--Master ${MY_IP}: ${RunCommand}"
     eval $RunCommand
@@ -51,7 +69,7 @@ if [ -z "$RUNFMKSETUP" ]; then
 
     for Item in ${BenchNodes}
     do
-        RunCommand="ssh -q -o ConnectTimeout=2 -o StrictHostKeyChecking=no ${USER}@${Item} exit"
+        RunCommand="ssh ${SshOptions} ${USER}@${Item} exit"
         echo "--##--Master ${MY_IP}: sending ssh command to ${Item} to verify connectivity as:"
         echo "--##--Master ${MY_IP}: ${RunCommand}"
         eval $RunCommand
@@ -75,12 +93,21 @@ if [ -z "$RUNFMKSETUP" ]; then
     mkdir -p $BenchResultsDirectory
     echo "--##--Master ${MY_IP}: Created dir to receive results: ${BenchResultsDirectory}"
 
+
+    #####################################################
+    # RUN THE FMK SETUP
+    # IMPORTANT: THE FOLLOWING SCRIPTS ASSUMES THAT THE MASTER RUNS ON A MACHINE WHERE FMK IS RUNNING
+    #####################################################
+if [ "$RUNFMKSETUP" = TRUE ] ; then
+        echo "--##--Master ${MY_IP}: Running FMK setup..."
+        ~/basho_bench/script/FMKe/master-run_fmk_setup.sh
+    fi
     #####################################################
     # Send the command to start benchmarking to each node:
     #####################################################
 for Item in ${BenchNodes}
     do
-        RunCommand="ssh -o StrictHostKeyChecking=no ${USER}@${Item} Worker_IP=${Item} BenchResultsDirectory=${BenchResultsDirectory} MasterNodeIp=${MY_IP} RUNFMKSETUP=${RUNFMKSETUP} ~/basho_bench/script/FMKe/worker-runFMKbench.sh"
+        RunCommand="ssh ${SshOptions} ${USER}@${Item} Worker_IP=${Item} BenchResultsDirectory=${BenchResultsDirectory} MasterNodeIp=${MY_IP} ~/basho_bench/script/FMKe/worker-runFMKbench.sh"
         echo "--##--Master ${MY_IP}: sending ssh command to ${Item} to run benchmark as:"
         echo "--##--Master ${MY_IP}: ${RunCommand}"
         eval $RunCommand &
