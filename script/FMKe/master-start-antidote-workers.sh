@@ -38,7 +38,7 @@ done
 for Item in ${Nodes}
 do
 
-    Command="ssh $SshOptions $USER@$Item IP=${Item} ~/antidote/_build/default/rel/antidote/bin/env stop"
+    Command="ssh $SshOptions $USER@$Item ~/antidote/_build/default/rel/antidote/bin/env stop"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
