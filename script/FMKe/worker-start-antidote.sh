@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # Call this like IP=1.2.3.4 worker-start-antidote.sh
+echo "----Worker $IP ----: cd ~"
+cd ~
+echo "----Worker $IP ----: . ./r18b03/activate"
+. ./r18b03/activate
 echo "----Worker $IP ----: cd ~/basho_bench/"
 cd ~/basho_bench/
 echo "----Worker $IP ----: git pull"
