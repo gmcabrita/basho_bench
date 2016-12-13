@@ -28,7 +28,7 @@ echo "Nodes are: ${Nodes}"
 for Item in ${Nodes}
 do
 
-    Command="ssh $SshOptions $USER@$Item IP=${Item} cd ~/antidote"
+    Command="ssh $SshOptions $USER@$Item cd ~/antidote"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
@@ -47,7 +47,7 @@ done
 for Item in ${Nodes}
 do
 
-    Command="ssh $SshOptions $USER@$Item IP=${Item} make relclean"
+    Command="ssh $SshOptions $USER@$Item make relclean"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
@@ -56,7 +56,7 @@ done
 for Item in ${Nodes}
 do
 
-    Command="ssh $SshOptions $USER@$Item IP=${Item} make rel"
+    Command="ssh $SshOptions $USER@$Item make rel"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
