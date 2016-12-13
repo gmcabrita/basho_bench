@@ -65,7 +65,7 @@ done
 for Item in ${Nodes}
 do
 
-    Command="ssh $SshOptions $USER@$Item IP=${Item} INSTANCE_NAME=antidote ~/antidote/_build/default/rel/antidote/bin/env console"
+    Command="ssh $SshOptions $USER@$Item IP=${Item} INSTANCE_NAME=antidote ~/antidote/_build/default/rel/antidote/bin/env foreground"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
