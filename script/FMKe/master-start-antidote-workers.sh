@@ -24,6 +24,14 @@ SshOptions="-o StrictHostKeyChecking=no -i $PrivateKey"
 Nodes=`cat ${NodesListFile}`
 echo "Nodes are: ${Nodes}"
 
+for Item in ${Nodes}
+do
+
+    Command="ssh $SshOptions $USER@$Item pkill beam"
+    echo "Sending ssh command to ${Item}:"
+    echo "${Command}"
+    eval $Command &
+done
 
 for Item in ${Nodes}
 do
