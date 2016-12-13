@@ -11,7 +11,7 @@
 # Example: if we want to make rel in antidote, we will call this script like: NodesListFile="~/basho_bench/script/FMKe/antidote-nodes-list.txt" ./master-start-antidote-workers.sh
 
 if [ -z "$NodesListFile" ]; then
-    NodesListFile="~/basho_bench/script/FMKe/antidote-nodes-list.txt"
+    NodesListFile=~/basho_bench/script/FMKe/antidote-nodes-list.txt
 fi
 if [ -z "$PrivateKey" ]; then
     PrivateKey=~/.ssh/antidote.pem
