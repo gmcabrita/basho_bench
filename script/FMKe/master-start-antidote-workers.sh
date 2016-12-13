@@ -24,56 +24,10 @@ SshOptions="-o StrictHostKeyChecking=no -i $PrivateKey"
 Nodes=`cat ${NodesListFile}`
 echo "Nodes are: ${Nodes}"
 
-for Item in ${Nodes}
-do
-
-    Command="ssh $SshOptions $USER@$Item pkill beam"
-    echo "Sending ssh command to ${Item}:"
-    echo "${Command}"
-    eval $Command &
-done
 
 for Item in ${Nodes}
 do
-
-    Command="ssh $SshOptions $USER@$Item cd ~/antidote"
-    echo "Sending ssh command to ${Item}:"
-    echo "${Command}"
-    eval $Command &
-done
-
-
-for Item in ${Nodes}
-do
-
-    Command="ssh $SshOptions $USER@$Item ~/antidote/_build/default/rel/antidote/bin/env stop"
-    echo "Sending ssh command to ${Item}:"
-    echo "${Command}"
-    eval $Command &
-done
-
-for Item in ${Nodes}
-do
-
-    Command="ssh $SshOptions $USER@$Item make relclean"
-    echo "Sending ssh command to ${Item}:"
-    echo "${Command}"
-    eval $Command &
-done
-
-for Item in ${Nodes}
-do
-
-    Command="ssh $SshOptions $USER@$Item make rel"
-    echo "Sending ssh command to ${Item}:"
-    echo "${Command}"
-    eval $Command &
-done
-
-for Item in ${Nodes}
-do
-
-    Command="ssh $SshOptions $USER@$Item IP=${Item} INSTANCE_NAME=antidote ~/antidote/_build/default/rel/antidote/bin/env foreground"
+    Command="ssh $SshOptions $USER@$Item IP=${Item} ~/basho_bench/script/FMK/worker-start-antidote.sh"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
