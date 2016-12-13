@@ -29,9 +29,9 @@ do
 
     Command="ssh $SshOptions $USER@$Item << EOF
     cd ~/antidote/
-    make relclean
-    make rel
-    IP=${Item} INSTANCE_NAME=antidote ./_build/default/rel/antidote/bin/env console
+    ~/antidote/make relclean
+    ~/antidote/make rel
+    IP=${Item} INSTANCE_NAME=antidote ~/antidote/_build/default/rel/antidote/bin/env console
     EOF"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
