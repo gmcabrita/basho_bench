@@ -2,7 +2,7 @@
 # Call this like IP=1.2.3.4 worker-start-antidote.sh
 cd ~/basho_bench/
 git pull
-cd antidote
+cd ~/antidote
 git pull
 make relclean
 make rel
