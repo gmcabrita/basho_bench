@@ -27,12 +27,7 @@ echo "Nodes are: ${Nodes}"
 for Item in ${Nodes}
 do
 
-    Command="ssh $SshOptions $USER@$Item << EOF
-    cd ~/antidote/
-    ~/antidote/make relclean
-    ~/antidote/make rel
-    IP=${Item} INSTANCE_NAME=antidote ~/antidote/_build/default/rel/antidote/bin/env console
-    EOF"
+    Command="ssh $SshOptions $USER@$Item IP=${Item} INSTANCE_NAME=antidote ~/antidote/_build/default/rel/antidote/bin/env console"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
