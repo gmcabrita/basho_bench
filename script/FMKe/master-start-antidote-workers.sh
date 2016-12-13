@@ -24,10 +24,21 @@ SshOptions="-o StrictHostKeyChecking=no -i $PrivateKey"
 Nodes=`cat ${NodesListFile}`
 echo "Nodes are: ${Nodes}"
 
+
 for Item in ${Nodes}
 do
 
     Command="ssh $SshOptions $USER@$Item IP=${Item} cd ~/antidote"
+    echo "Sending ssh command to ${Item}:"
+    echo "${Command}"
+    eval $Command &
+done
+
+
+for Item in ${Nodes}
+do
+
+    Command="ssh $SshOptions $USER@$Item IP=${Item} ~/antidote/_build/default/rel/antidote/bin/env stop"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
