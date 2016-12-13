@@ -4,11 +4,11 @@ echo "----Worker $IP ----: cd ~/basho_bench/"
 cd ~/basho_bench/
 echo "----Worker $IP ----: git pull"
 git pull
-echo "----Worker $IP ----: cd ~/antidote
+echo "----Worker $IP ----: cd ~/antidote"
 cd ~/antidote
 echo "----Worker $IP ----: git pull"
 git pull
-echo "----Worker $IP ----: make relclean
+echo "----Worker $IP ----: make relclean"
 make relclean
 echo "----Worker $IP ----: make rel"
 make rel
