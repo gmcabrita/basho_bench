@@ -24,7 +24,6 @@ FmkPing=pong #$(~/basho_bench/script/FMKe/ping.erl 'fmk@${MY_IP}')
 echo "##Node:${MY_IP}:Pinging 'fmk@${MY_IP}', got: ${FmkPing}"
 if [ "$FmkPing" = pong ] ; then
     # Run the setup test
-    if [ "$RUNFMKSETUP" = TRUE ] ; then
         echo "##Node:${MY_IP}: cding into ~/FMKe"
         cd ~/FMKe/
         pwd
@@ -32,8 +31,5 @@ if [ "$FmkPing" = pong ] ; then
         echo "##Node:${MY_IP}: Running Setup script with command: "
         echo "##Node:${MY_IP}: ${SetupCommand}"
         eval ${SetupCommand}
-    else
-        echo "##Node:${MY_IP}: not running fmk setup."
 
-    fi
 fi

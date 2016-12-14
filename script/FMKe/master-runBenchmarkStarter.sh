@@ -22,6 +22,7 @@ chmod +x ~/FMKe/bin/*
 chmod +x ~/antidote/bin/*
 
 BenchNodes=`cat script/FMKe/bench-nodes-list.txt`
+NumBenchNodes=${#BenchNodes[@]}
 
     if [ -z "$MY_IP" ]; then
     echo "--##--Master ${MY_IP}: missing parameter: MY_IP"
@@ -141,14 +142,15 @@ for Item in ${BenchNodes}
     cd ${BenchResultsDirectory}
     pwd
     Numfiles=$(eval "\ls -afq | wc -l")
-    ReceivedFiles=$((Numfiles-2))
+    InitNumFiles=$Numfiles
+    ReceivedFiles=$((Numfiles-InitNumFiles))
 
     echo "--##--Master ${MY_IP}: Waiting until all ${NumBenchNodes} worker nodes send their results..."
     until [  $ReceivedFiles = $NumBenchNodes ]; do
              sleep 2
              echo "--##--Master ${MY_IP}:Received result files so far...: ${ReceivedFiles}), missing "$((NumBenchNodes-ReceivedFiles))"}"
              Numfiles=$(eval "\ls -afq | wc -l")
-             let ReceivedFiles=$((Numfiles-2))
+             let ReceivedFiles=$((Numfiles-InitNumFiles))
          done
     echo "--##--Master ${MY_IP}: Done collecting results from all ${NumBenchNodes} nodes, gonna merge them into a single one...\n\n\n"
 
