@@ -45,7 +45,7 @@ echo "Nodes are: ${Nodes}"
 
 for Item in ${Nodes}
 do
-    Command="ssh $SshOptions $USER@$Item screen -A -m -d -S antidotedbWorker \"sh; BashoBenchGitBranch=${BashoBenchGitBranch=} GitBranch=${GitBranch} CleanMake=${CleanMake} IP=${Item} ~/basho_bench/script/FMKe/worker-start-antidote.sh\" &"
+    Command="ssh $SshOptions $USER@$Item screen -x antidotedb \"sh; BashoBenchGitBranch=${BashoBenchGitBranch=} GitBranch=${GitBranch} CleanMake=${CleanMake} IP=${Item} ~/basho_bench/script/FMKe/worker-start-antidote.sh\" &"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
