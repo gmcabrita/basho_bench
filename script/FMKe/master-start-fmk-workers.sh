@@ -40,7 +40,7 @@ echo "Nodes are: ${Nodes}"
 
 for Item in ${Nodes}
 do
-    Command="ssh $SshOptions $USER@$Item screen -A -m -d -S antidotedbWorker \"sh; GitBranch=${GitBranch} CleanMake=${CleanMake} IP=${Item} ~/basho_bench/script/FMKe/worker-start-fmk.sh\" &"
+    Command="ssh $SshOptions $USER@$Item screen -x antidotedb \"sh; GitBranch=${GitBranch} CleanMake=${CleanMake} IP=${Item} ~/basho_bench/script/FMKe/worker-start-fmk.sh\" &"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
