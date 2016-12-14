@@ -76,7 +76,7 @@ do
             break
         fi
    else
-        if [ $((NumNodes % i)) = 1 ]; then
+        if [ $((i % NodesPerDC)) = 1 ]; then
            echo "---MASTER-CONNECT-DCS: This is the first node of a cluster: 'antidote@$Item' will use it as cluster head, for later running the connect_dcs script"
             ClusterHeads="'antidote@"$Item"' "$ClusterHeads""
         fi
