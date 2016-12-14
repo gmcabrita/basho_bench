@@ -23,7 +23,7 @@ pkill beam
 echo "----Worker $IP ----: cd ~"
 cd ~
 echo "----Worker $IP ----: . ./r18b03/activate"
-. ./r18b03/activate
+. ~/r18b03/activate
 echo "----Worker $IP ----: cd ~/basho_bench/"
 cd ~/basho_bench/
 echo "----Worker $IP ----:git checkout $BashoBenchGitBranch"
