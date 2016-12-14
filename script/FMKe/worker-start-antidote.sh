@@ -20,7 +20,7 @@ fi
 
 echo "----Worker $IP ----: pkill beam"
 pkill beam
-echo "----Worker $IP ----: cd ~"
+echo "----Worker $IP ----: cd ~/kerl_dir"
 cd ~/kerl_dir
 echo "----Worker $IP ----: . ./r18b03/activate"
 . ./r18b03/activate

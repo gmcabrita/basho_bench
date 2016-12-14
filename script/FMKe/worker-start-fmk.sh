@@ -15,9 +15,15 @@ if [ -z "$GitBranch" ]; then
     GitBranch="master"
 fi
 
+echo "----Worker $IP ----: cd ~/kerl_dir"
+cd ~/kerl_dir
+echo "----Worker $IP ----: . ./r18b03/activate"
+. ./r18b03/activate
+
 echo "----Worker $IP ----: cd ~/FMKe/"
 cd ~/FMKe/
 if [ CleanMake=TRUE ]; then
+
     echo "----Worker $IP ----: git checkout $GitBranch"
     git checkout $GitBranch
     echo "----Worker $IP ----: git pull"
