@@ -39,16 +39,15 @@ fi
     # Divide the list of nodes into clusters
 ##########################################################
 NodesList=$(cat $NodesListFile)
-NumNodes=${#NodesList[@]}
+NumNodes=$(wc -l $NodesListFile)
 
-if [ $NumNodes < 2 ]; then
+if [[ $NumNodes -lt 2 ]]; then
     echo "---MASTER-CONNECT-DCS: Too little nodes to work with: $NodesList"
     exit 255
 fi
 
 NodesPerDC=$((NumNodes / NumDCs))
 
-echo "===> $NumNodes , $NodesPerDC"
 echo "---MASTER-CONNECT-DCS: Nodes are: ${NodesList}"
 
 NodesInThisCluster=""
