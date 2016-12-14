@@ -39,9 +39,9 @@ fi
     # Divide the list of nodes into clusters
 ##########################################################
 NodesList=$(cat $NodesListFile)
-NumNodes=$(wc -l $NodesListFile)
+NumNodes=$(wc -l $NodesListFile | cut -d" " -f1)
 
-if [[ $NumNodes -lt 2 ]]; then
+if [ $NumNodes -lt 2 ]; then
     echo "---MASTER-CONNECT-DCS: Too little nodes to work with: $NodesList"
     exit 255
 fi
