@@ -13,7 +13,9 @@
 # 2) PrivateKey: Path to private key of the key needed to connect to all machines
 # 3) BenchDuration: Duration of the benchmarks at the workers, used to wait at the master that the slaves finish.
 # 4) RUNFMKSETUP=<TRUE/FALSE> run or not the setup script
-
+# This is only necessary when running on OS X, erlang 19
+# might be removed, but won't harm otherwise...
+PATH="$PATH:/opt/local/lib/erlang/erts-8.1/bin/"
 
 BenchNodes=`cat script/FMKe/bench-nodes-list.txt`
 

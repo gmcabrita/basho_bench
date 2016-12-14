@@ -12,6 +12,10 @@
 
 # Example: if we want to make rel in antidote, we will call this script like: NodesListFile="~/basho_bench/script/FMKe/antidote-nodes-list.txt" ./master-start-antidote-workers.sh
 
+# This is only necessary when running on OS X, erlang 19
+# might be removed, but won't harm otherwise...
+PATH="$PATH:/opt/local/lib/erlang/erts-8.1/bin/"
+
 if [ -z "$NodesListFile" ]; then
     NodesListFile=~/basho_bench/script/FMKe/antidote-nodes-list.txt
 fi
@@ -38,7 +42,7 @@ echo "Nodes are: ${Nodes}"
 
 for Item in ${Nodes}
 do
-    Command="ssh $SshOptions $USER@$Item BashoBenchGitBranch=${BashoBenchGitBranch=} GitBranch=${GitBranch} CleanMake=${CleanMake}IP=${Item} ~/basho_bench/script/FMKe/worker-start-antidote.sh"
+    Command="ssh $SshOptions $USER@$Item BashoBenchGitBranch=${BashoBenchGitBranch=} GitBranch=${GitBranch} CleanMake=${CleanMake} IP=${Item} ~/basho_bench/script/FMKe/worker-start-antidote.sh"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &

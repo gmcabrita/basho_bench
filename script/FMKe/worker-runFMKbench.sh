@@ -12,6 +12,10 @@
 #               The username should also exist on the master machine.
 # 5) Worker_IP: The IP address of this node as accessed by the master node.
 
+# This is only necessary when running on OS X, erlang 19
+# might be removed, but won't harm otherwise...
+PATH="$PATH:/opt/local/lib/erlang/erts-8.1/bin/"
+
 ########################################################
     # get my IP address
 ##########################################################

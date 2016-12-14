@@ -8,6 +8,9 @@
 # INPUT:
 # 1) BenchResultsDirectory, the directory where the worker result tar files are stored.
 
+# This is only necessary when running on OS X, erlang 19
+# might be removed, but won't harm otherwise...
+PATH="$PATH:/opt/local/lib/erlang/erts-8.1/bin/"
 
 ########################################################
     # check we got a correct directory with tar files
