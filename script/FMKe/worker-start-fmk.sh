@@ -34,4 +34,4 @@ if [ CleanMake=TRUE ]; then
     make rel
 fi
 echo "----Worker $IP ----: IP=$IP ANTIDOTE_ADDRESS=$IP IP=$IP INSTANCE_NAME=fmk ./_build/default/rel/fmk/bin/env foreground"
-nohup "ANTIDOTE_ADDRESS=$IP IP=$IP INSTANCE_NAME=fmk ./_build/default/rel/fmk/bin/env foreground"
+ANTIDOTE_ADDRESS=$IP IP=$IP INSTANCE_NAME=fmk nohup ./_build/default/rel/fmk/bin/env foreground &
