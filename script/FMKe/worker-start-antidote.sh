@@ -7,6 +7,9 @@ fi
 if [ -z "$GitBranch" ]; then
     GitBranch="build-local-cluster"
 fi
+if [ -z "$BashoBenchGitBranch" ]; then
+    BashoBenchGitBranch="antidote_pb_fmk"
+fi
 
 echo "----Worker $IP ----: pkill beam"
 pkill beam
@@ -16,6 +19,8 @@ echo "----Worker $IP ----: . ./r18b03/activate"
 . ./r18b03/activate
 echo "----Worker $IP ----: cd ~/basho_bench/"
 cd ~/basho_bench/
+echo "----Worker $IP ----:git checkout $BashoBenchGitBranch"
+git checkout $BashoBenchGitBranch
 echo "----Worker $IP ----: git pull"
 git pull
 echo "----Worker $IP ----: cd ~/antidote"

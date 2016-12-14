@@ -21,6 +21,9 @@ fi
 if [ -z "$GitBranch" ]; then
     GitBranch="build-local-cluster"
 fi
+if [ -z "$BashoBenchGitBranch" ]; then
+    BashoBenchGitBranch="antidote_pb_fmk"
+fi
 if [ -z "$PrivateKey" ]; then
     PrivateKey=~/.ssh/antidote.pem
 fi
@@ -35,7 +38,7 @@ echo "Nodes are: ${Nodes}"
 
 for Item in ${Nodes}
 do
-    Command="ssh $SshOptions $USER@$Item GitBranch=${GitBranch} CleanMake=${CleanMake}IP=${Item} ~/basho_bench/script/FMKe/worker-start-antidote.sh"
+    Command="ssh $SshOptions $USER@$Item BashoBenchGitBranch=${BashoBenchGitBranch=} GitBranch=${GitBranch} CleanMake=${CleanMake}IP=${Item} ~/basho_bench/script/FMKe/worker-start-antidote.sh"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
