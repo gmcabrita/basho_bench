@@ -32,7 +32,7 @@ if [ -z "$NumDCs" ]; then
 fi
 
 if [ -z "$NodesListFile" ]; then
-    NodesListFile="~/basho_bench/script/FMKe/antidote-nodes-list.txt"
+    NodesListFile=~/basho_bench/script/FMKe/antidote-nodes-list.txt
 fi
 
 ########################################################
