@@ -46,17 +46,22 @@ if [ $NumNodes < 2 ]; then
     exit 255
 fi
 
+NodesPerDC=$((NumNodes / NumDCs))
+
 echo "---MASTER-CONNECT-DCS: Nodes are: ${NodesList}"
 
 NodesInThisCluster=""
 ClusterHeads=""
 
 i=1
+CompletedDCs=0
+
 for Item in ${NodesList}
 do
 #    Make a list of nodes that will conform each cluster
+    echo "---MASTER-CONNECT-DCS: adding antidote@$Item to the list of nodes in this cluster"
     NodesInThisCluster="'antidote@"$Item"' "$NodesInThisCluster""
-    if [ $((NumNodes % i)) = 0 ]; then
+    if [ $((i % NodesPerDC)) = 0 ]; then
 #        Make a cluster with this nodes
         echo "---MASTER-CONNECT-DCS: Will make a cluster with this nodes: $NodesInThisCluster"
         Command="cd ~/antidote"
@@ -66,10 +71,28 @@ do
         echo "---MASTER-CONNECT-DCS: $Command"
         eval $Command
         NodesInThisCluster=""
-        i=$((i + 1))
+        CompletedDCs=$((CompletedDCs + 1))
+        if [ $CompletedDCs = $NumDCs ]; then
+            break
+        fi
    else
         if [ $((NumNodes % i)) = 1 ]; then
-#        This is the first node of a cluster, will use it as cluster head, for later running the connect_dcs script
-        ClusterHeads="'antidote@"$Item"' "$ClusterHeads""
+           echo "---MASTER-CONNECT-DCS: This is the first node of a cluster: 'antidote@$Item' will use it as cluster head, for later running the connect_dcs script"
+            ClusterHeads="'antidote@"$Item"' "$ClusterHeads""
+        fi
     fi
+    i=$((i + 1))
 done
+echo "---MASTER-CONNECT-DCS: done connecting all clusters!"
+
+########################################################
+    # Connect all the clusters among each other
+##########################################################
+
+echo "---MASTER-CONNECT-DCS: Now connecting all clusters into a Multi-DC setting"
+
+Command="~/antidote/bin/join_dcs_script.erl $ClusterHeads"
+echo "---MASTER-CONNECT-DCS: $Command"
+eval $Command
+echo "---MASTER-CONNECT-DCS: $Command"
+
