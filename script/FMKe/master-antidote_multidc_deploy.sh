@@ -38,7 +38,7 @@ fi
 ########################################################
     # Divide the list of nodes into clusters
 ##########################################################
-NodesList=`cat $NodesListFile`
+NodesList=$(cat $NodesListFile)
 NumNodes=${#NodesList[@]}
 
 if [ $NumNodes < 2 ]; then
