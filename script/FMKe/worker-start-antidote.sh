@@ -21,7 +21,7 @@ fi
 echo "----Worker $IP ----: pkill beam"
 pkill beam
 echo "----Worker $IP ----: cd ~"
-cd ~
+cd ~/kerl_dir
 echo "----Worker $IP ----: . ./r18b03/activate"
 . ~/r18b03/activate
 echo "----Worker $IP ----: cd ~/basho_bench/"
