@@ -21,7 +21,7 @@ BenchNodes=`cat script/FMKe/bench-nodes-list.txt`
 
     if [ -z "$MY_IP" ]; then
     echo "--##--Master ${MY_IP}: missing parameter: MY_IP"
-    echo "--##--Master ${MY_IP}: Run like: PrivateKey=~/.ssh/antidote.pem MY_IP=<my_ip_ssh_enabled> RUNFMKSETUP=<TRUE/FALSE> master-runBenchmarkStarter.sh"
+    echo "--##--Master ${MY_IP}: Run like: PrivateKey=~/.ssh/antidotedbKeyPair.pem MY_IP=<my_ip_ssh_enabled> RUNFMKSETUP=<TRUE/FALSE> master-runBenchmarkStarter.sh"
     exit 255
 #        MY_IP=$(ifconfig en4 | grep inet | grep -v inet6 | awk '{print $2}')
 # Use the following line if one can obtain the public IP address of this machine from its adapter.
@@ -34,7 +34,7 @@ BenchNodes=`cat script/FMKe/bench-nodes-list.txt`
 fi
 
 if [ -z "$PrivateKey" ]; then
-    PrivateKey=~/.ssh/antidote.pem
+    PrivateKey=~/.ssh/antidotedbKeyPair.pem
 fi
 chmod 600 $PrivateKey
 

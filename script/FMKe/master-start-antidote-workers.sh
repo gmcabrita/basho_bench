@@ -32,7 +32,7 @@ if [ -z "$BashoBenchGitBranch" ]; then
     BashoBenchGitBranch="antidote_pb_fmk"
 fi
 if [ -z "$PrivateKey" ]; then
-    PrivateKey=~/.ssh/antidote.pem
+    PrivateKey=~/.ssh/antidotedbKeyPair.pem
 fi
 chmod 600 $PrivateKey
 

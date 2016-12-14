@@ -27,7 +27,7 @@ if [ -z "$GitBranch" ]; then
     GitBranch="master"
 fi
 if [ -z "$PrivateKey" ]; then
-    PrivateKey=~/.ssh/antidote.pem
+    PrivateKey=~/.ssh/antidotedbKeyPair.pem
 fi
 chmod 600 $PrivateKey
 
