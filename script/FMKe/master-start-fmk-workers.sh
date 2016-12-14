@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # This script sends an ssh command to the nodes in an input file
-# The nodes should have installed antidote under ~/antidote
+# The nodes should have installed fmk under ~/FMKe
 
 # INPUT:
 # 1) NodesListFile: THE filename with the list of nodes
@@ -10,16 +10,15 @@
 # 5) GitBranch: the branch of git we want to checkout
 
 
-# Example: if we want to make rel in antidote, we will call this script like: NodesListFile="~/basho_bench/script/FMKe/antidote-nodes-list.txt" ./master-start-antidote-workers.sh
 
 if [ -z "$NodesListFile" ]; then
-    NodesListFile=~/basho_bench/script/FMKe/antidote-nodes-list.txt
+    NodesListFile=~/basho_bench/script/FMKe/bench-nodes-list.txt
 fi
 if [ -z "$CleanMake" ]; then
     CleanMake=TRUE
 fi
 if [ -z "$GitBranch" ]; then
-    GitBranch="build-local-cluster"
+    GitBranch="master"
 fi
 if [ -z "$PrivateKey" ]; then
     PrivateKey=~/.ssh/antidote.pem
@@ -35,7 +34,7 @@ echo "Nodes are: ${Nodes}"
 
 for Item in ${Nodes}
 do
-    Command="ssh $SshOptions $USER@$Item GitBranch=${GitBranch} CleanMake=${CleanMake}IP=${Item} ~/basho_bench/script/FMKe/worker-start-antidote.sh"
+    Command="ssh $SshOptions $USER@$Item GitBranch=${GitBranch} CleanMake=${CleanMake}IP=${Item} ~/basho_bench/script/FMKe/worker-start-fmk.sh"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
