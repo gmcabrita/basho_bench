@@ -11,7 +11,9 @@
     # Run (or not) the FMKe setup script
 ##########################################################
 # Make the setup test executable
-chmod +x ~/FMKe/test/fmk_setup_script.erl
+chmod +x ~/basho_bench//script/FMKe/*
+chmod +x ~/FMKe/bin/*
+chmod +x ~/antidote/bin/*
 
 # This is only necessary when running on OS X, erlang 19
 # might be removed, but won't harm otherwise...

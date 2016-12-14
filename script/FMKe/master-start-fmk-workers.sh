@@ -13,6 +13,9 @@
 # might be removed, but won't harm otherwise...
 PATH="$PATH:/opt/local/lib/erlang/erts-8.1/bin/"
 # Example: if we want to make rel in antidote, we will call this script like: NodesListFile="~/basho_bench/script/FMKe/antidote-nodes-list.txt" ./master-start-antidote-workers.sh
+chmod +x ~/basho_bench//script/FMKe/*
+chmod +x ~/FMKe/bin/*
+chmod +x ~/antidote/bin/*
 
 if [ -z "$NodesListFile" ]; then
     NodesListFile=~/basho_bench/script/FMKe/bench-nodes-list.txt
