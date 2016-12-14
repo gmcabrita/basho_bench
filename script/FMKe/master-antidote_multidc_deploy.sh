@@ -48,6 +48,7 @@ fi
 
 NodesPerDC=$((NumNodes / NumDCs))
 
+echo "===> $NumNodes , $NodesPerDC"
 echo "---MASTER-CONNECT-DCS: Nodes are: ${NodesList}"
 
 NodesInThisCluster=""
