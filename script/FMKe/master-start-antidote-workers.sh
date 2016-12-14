@@ -37,7 +37,7 @@ fi
 chmod 600 $PrivateKey
 
 
-SshOptions="-o StrictHostKeyChecking=no -i $PrivateKey"
+SshOptions="-t -o StrictHostKeyChecking=no -i $PrivateKey"
 
 Nodes=`cat ${NodesListFile}`
 echo "Nodes are: ${Nodes}"
@@ -45,7 +45,7 @@ echo "Nodes are: ${Nodes}"
 
 for Item in ${Nodes}
 do
-    Command="ssh $SshOptions $USER@$Item screen -x antidotedb \"sh; BashoBenchGitBranch=${BashoBenchGitBranch=} GitBranch=${GitBranch} CleanMake=${CleanMake} IP=${Item} ~/basho_bench/script/FMKe/worker-start-antidote.sh\" &"
+    Command="ssh $SshOptions $USER@$Item BashoBenchGitBranch=${BashoBenchGitBranch=} GitBranch=${GitBranch} CleanMake=${CleanMake} IP=${Item} ~/basho_bench/script/FMKe/worker-start-antidote.sh"
     echo "Sending ssh command to ${Item}:"
     echo "${Command}"
     eval $Command &
