@@ -37,7 +37,7 @@ fi
 chmod 600 $PrivateKey
 
 
-SshOptions="-t -o StrictHostKeyChecking=no -i $PrivateKey"
+SshOptions="-o StrictHostKeyChecking=no -i $PrivateKey"
 
 Nodes=`cat ${NodesListFile}`
 echo "Nodes are: ${Nodes}"
