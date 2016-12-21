@@ -30,11 +30,8 @@ cd $KERL_DIR
 curl -O https://raw.githubusercontent.com/kerl/kerl/master/kerl
 chmod a+x kerl
 ./kerl build 18.3 r18b03
-./kerl build 17.4 r17b04
 mkdir r18b03
-mkdir r17b04
 ./kerl install r18b03 ./r18b03/
-./kerl install r17b04 ./r17b04/
 
 . ./r18b03/activate
 
@@ -60,7 +57,7 @@ FMKE_DIR=$HOME
 cd $FMKE_DIR
 git clone https://github.com/goncalotomas/FMKe
 cd FMKe
-git checkout multi-fmk
+git checkout perf-and-errors
 make rel
 
 cd $BIN_DIR
