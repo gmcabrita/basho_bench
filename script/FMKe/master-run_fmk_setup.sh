@@ -17,7 +17,7 @@ chmod +x ~/antidote/bin/*
 
 # This is only necessary when running on OS X, erlang 19
 # might be removed, but won't harm otherwise...
-PATH="$PATH:/opt/local/lib/erlang/erts-8.1/bin/"
+PATH="$PATH:/home/ubuntu/kerl_dir/r18b03/bin/"
 
 # first check that fmk is active (pingable) on that node:
 FmkPing=pong #$(~/basho_bench/script/FMKe/ping.erl 'fmk@${MY_IP}')
