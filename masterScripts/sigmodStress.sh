@@ -24,15 +24,15 @@ seq="1"
 #threads="32 64 96 128 160 192 224 256"
 #threads="128 64 32 16 8"
 #threads="160 80 40 20 10"
-threads="80 10"
-contentions="1 2 3 4"
+threads="10 20 40 80 160"
+contentions="4 3 2 1"
 start_ind=1
 skipped=1
 skip_len=0
 prob_access=t
 
-rep=4
-parts=24
+rep=5
+parts=28
 #rep=1
 #parts=4
 
@@ -60,10 +60,8 @@ SN=20
 CN=0
 
 
-if [ 1 == 2 ];
-then
-sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo micro duration 80 >> config
@@ -78,7 +76,7 @@ do_specula=false
 len=0
 length="0"
 
-sudo ./script/configBeforeRestart.sh 400 $do_specula $len $rep $parts $specula_read
+sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
 
 folder="specula_tests/baseline"
@@ -86,7 +84,7 @@ for t in $threads
 do
 for len in $length
 do
-    #sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
+    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
@@ -98,6 +96,7 @@ do
     done
 done
 done
+exit
 
 folder="specula_tests/planet"
 seq="1 2 3"
