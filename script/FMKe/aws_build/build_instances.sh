@@ -16,8 +16,8 @@ fi;
 # env
 KEY_FILE_PATH=$1
 KEY_FILE_NAME=$(basename $KEY_FILE_PATH)
-BUILD_SCRIPT_PATH="./src/bin/build_image.sh"
-BUILD_SCRIPT_REMOTE_PATH="~/build_image.sh"
+BUILD_SCRIPT_PATH="./src/bin/worker_instance_build.sh"
+BUILD_SCRIPT_REMOTE_PATH="~/worker_instance_build.sh"
 
 IP_ADDR_LIST=$(echo $* | cut -d' ' -f2-)
 IP_ADDR_FILE="./ip_addr_list.txt"
