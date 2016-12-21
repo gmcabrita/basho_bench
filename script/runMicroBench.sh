@@ -55,7 +55,7 @@ echo micro remote_hot_range $remote_hot_range >> config
 echo micro prob_access $prob_access >> config
 echo micro pattern $pattern >> config
 #echo micro duration 60 >> config
-echo micro total_key 10 >> config
+#echo micro total_key 10 >> config
 echo micro specula $do_specula >> config
 echo micro deter $deter >> config
 #ToSleep=$((40000 / ${1}))

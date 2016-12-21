@@ -12,4 +12,5 @@ echo ant do_repl true >> ./config
 
 sudo ./script/parallel_command.sh "cd basho_bench && sudo chown -R ubuntu ./config"
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
+echo "Repl degree is " $repl_degree
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh && sudo ./script/configReplication.sh $repl_degree"
