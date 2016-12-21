@@ -127,7 +127,7 @@ new(Id) ->
              _ -> ok
     end,
 
-    [{hash_fun, {PartList, ReplList, NumDcs}}] = ets:lookup(load_info, hash_fun),
+    [{hash_fun, {_, PartList, ReplList, NumDcs}}] = ets:lookup(load_info, hash_fun),
     MyTxServer = case length(IPs) of 1 ->
                  case Id of 1 -> 
                         NameLists = lists:foldl(fun(WorkerId, Acc) -> [WorkerId|Acc]
