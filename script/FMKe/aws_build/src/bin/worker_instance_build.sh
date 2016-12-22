@@ -24,6 +24,9 @@ sudo apt-get --assume-yes install awscli
 sudo apt-get --assume-yes install r-base
 sudo apt-get --assume-yes install erlang
 
+# needed to later build the PNG image
+sudo chown ubuntu /usr/local/lib/R/site-library/
+
 cd $BIN_DIR
 
 #############################  antidote @############################
