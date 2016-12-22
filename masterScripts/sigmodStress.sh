@@ -60,8 +60,8 @@ SN=20
 CN=0
 
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo micro duration 80 >> config
@@ -72,14 +72,14 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 # Baseline
 clock="old"
 specula_read=false
-do_specula=false
+do_specula=true
 len=0
 length="0"
 
 sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
 
-folder="specula_tests/baseline"
+folder="specula_tests/planet"
 for t in $threads
 do
 for len in $length
