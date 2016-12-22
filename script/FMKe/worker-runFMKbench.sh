@@ -11,6 +11,7 @@
 # 4) UserName: The username needed to connect to tha machines through SSH.
 #               The username should also exist on the master machine.
 # 5) Worker_IP: The IP address of this node as accessed by the master node.
+# 6) Private Key: key needed to ssh the results back into master node.
 
 # This is only necessary when running on OS X, erlang 19
 # might be removed, but won't harm otherwise...
@@ -24,7 +25,7 @@ chmod +x ~/antidote/bin/*
 ##########################################################
 
 # Use the following line if one can obtain the public IP address of this machine from its adapter.
-    
+
 if [ -z "$Worker_IP" ]; then
     Worker_IP=$(ifconfig en0 | grep inet | grep -v inet6 | awk '{print $2}')
     # Otherwise, get the public IP
@@ -39,6 +40,11 @@ if [ -z "$MasterNodeIp" ]
   then
     MasterNodeIp="127.0.0.1"
 fi
+if [ -z "$PrivateKey" ]; then
+    PrivateKey=~/.ssh/fmke_experiments.pem
+fi
+chmod 600 $PrivateKey
+
 echo "##Node:${Worker_IP}: MasterNodeIp = ${MasterNodeIp}"
 
 if [ -z "$BenchResultsDirectory" ]
@@ -73,13 +79,9 @@ echo "##Node:${Worker_IP}: Benchmark directoryName = ${BenchResultsDirectory}"
 ########################################################
     # SCP the results to the master node, into the BenchResultsDirectory
 ##########################################################
-    ScpResultsCommand="scp -o StrictHostKeyChecking=no ${TarFileName} ${UserName}@${MasterNodeIp}:${BenchResultsDirectory}/"
+    ScpResultsCommand="scp -i ${PrivateKey} -o StrictHostKeyChecking=no ${TarFileName} ${UserName}@${MasterNodeIp}:${BenchResultsDirectory}/"
     echo "##Node:${Worker_IP}: SCPing results to master node with command: "
     echo "##Node:${Worker_IP}: ${ScpResultsCommand}"
     eval ${ScpResultsCommand}
     # the "master node" should collect this tar afterwards through scp.
 echo "##Node:${Worker_IP}: worker ${Worker_IP} done."
-
-
-
-
