@@ -123,8 +123,8 @@ stop(_State) ->
 
 write_cdf(Stat) ->
     [{start_time, StartTime}] = ets:lookup(final_cdf, start_time),
-    StartTimeInt = to_integer(StartTime) + 1000000*20, 
-    EndTimeInt = to_integer(StartTime) + basho_bench_config:get(duration)*1000000 - 1000000*20, 
+    StartTimeInt = to_integer(StartTime) + 1000000*10, 
+    EndTimeInt = to_integer(StartTime) + basho_bench_config:get(duration)*1000000 - 1000000*10, 
     true = ets:delete(final_cdf, start_time),
 
     PercvCdf = ets:tab2list(percv_cdf),

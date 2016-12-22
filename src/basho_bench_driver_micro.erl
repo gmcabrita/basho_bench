@@ -189,8 +189,8 @@ new(Id) ->
                node_id = NodeId,
                target_node=TargetNode}}.
 
-get_stat(#state{target_node=TargetNode}) ->
-    rpc:call(TargetNode, tx_cert_sup, get_hitcounters, []).
+get_stat(_) ->
+    ok.
 
 %% @doc Warehouse, District are always local.. Only choose to access local or remote objects when reading
 %% objects. 
