@@ -56,3 +56,4 @@ cd $BASHO_BENSH_DIR
 git clone https://github.com/SyncFree/basho_bench
 cd basho_bench
 git checkout antidote_pb_fmk
+make all
