@@ -22,20 +22,7 @@ sudo apt-get --assume-yes install libexpat1
 sudo apt-get --assume-yes install libexpat1-dev
 sudo apt-get --assume-yes install awscli
 sudo apt-get --assume-yes install r-base
-
-#################### install erlang 18.3 and 17.4 ####################
-KERL_DIR=$HOME/kerl_dir
-mkdir $KERL_DIR
-cd $KERL_DIR
-curl -O https://raw.githubusercontent.com/kerl/kerl/master/kerl
-chmod a+x kerl
-./kerl build 18.3 r18b03
-mkdir r18b03
-./kerl install r18b03 ./r18b03/
-
-. ./r18b03/activate
-
-echo "\n\n. $KERL_DIR=$HOME/kerl_dir/r18b03/activate" >> ~/.bashrc
+sudo apt-get --assume-yes install erlang
 
 cd $BIN_DIR
 
@@ -69,5 +56,3 @@ cd $BASHO_BENSH_DIR
 git clone https://github.com/SyncFree/basho_bench
 cd basho_bench
 git checkout antidote_pb_fmk
-
-
