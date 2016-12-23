@@ -8,7 +8,7 @@ function runTpccNTimes {
 	elif [ $wl == 2 ]; then  n=5 p=43
 	elif [ $wl == 3 ]; then n=45 p=43
 	fi
-        ./script/runSpeculaBench.sh $t $AM $AS $do_specula $think_time $len specula_tests $wh $n $p $rep $start_ind
+        ./script/runSpeculaBench.sh $t $AM $AS $do_specula $think_time $len $Folder $wh $n $p $rep $start_ind
         skipped=1
         else
         echo "Skipped..."$start_ind
@@ -23,7 +23,7 @@ function runRubis {
         if [ $start_ind -gt $skip_len ]; then
         AC=$((100-AM-AS))
 	sudo ./script/preciseTime.sh
-        ./script/runRubisBench.sh $t $AM $AC $do_specula $think_time $len specula_tests $start_ind
+        ./script/runRubisBench.sh $t $AM $AC $do_specula $think_time $len $Folder $start_ind
         #echo $t $MN $SN $CN $MR $SR $CR $do_specula $len random $rep $comp specula_tests $start_ind
         skipped=1
         else
@@ -140,13 +140,14 @@ do
 done
 fi
 
-do_specula=false
+do_specula=true
 specula_read=false
-len=0
+len=16
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat 
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat 
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
+Folder="./specula_tests/planet16"
 rm -rf ./config
 echo tpcc cdf true >> config
 echo tpcc duration 120 >> config
@@ -156,7 +157,7 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 1000 $do_specula 0 $rep $parts $specula_read 
+sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read 
 sudo ./script/restartAndConnect.sh
 
 
@@ -202,6 +203,7 @@ do
         done
 done
 
+#Folder="./specula_tests/baseline/rubis"
 rubis_threads="50 500 1000 2000 3000 4000"
 for t in $rubis_threads
 do  
