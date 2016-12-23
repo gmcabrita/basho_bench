@@ -148,8 +148,10 @@ folder="specula_tests/internal"
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
-echo micro duration 80 >> config
+echo micro duration 100 >> config
 echo micro auto_tune true >> config
+echo micro tune_period 2 >> config
+echo micro tune_sleep 1 >> config
 echo micro centralized true >> config
 echo micro all_nodes replace >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/

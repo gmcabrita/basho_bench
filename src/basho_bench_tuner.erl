@@ -126,7 +126,7 @@ init([Name]) ->
             RealNode = get_real_node(),
             MyIndex = index_of(RealNode, AllNodes, 1),
             MyInterIndex = ((MyIndex-1) div NodesPerDc * NodesPerDc) +1,
-            MyInterNode = list_to_atom(atom_to_list(lists:nth(MyInterIndex, AllNodes)) ++ "@auto_tuner"),
+            MyInterNode = {lists:nth(MyInterIndex, AllNodes), list_to_atom(atom_to_list(lists:nth(MyInterIndex, AllNodes)) ++ "@auto_tuner")},
             AllInterNodes = lists:foldl(fun(I, AN) -> 
                                 Index = 1+(I-1)*NodesPerDc,
                                 [{lists:nth(Index, AllNodes), lists:nth(Index, AllTuners)}|AN] end, 
