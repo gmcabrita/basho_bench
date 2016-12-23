@@ -303,7 +303,7 @@ process_stats(Now, State, Seq) ->
             case Counter of
                 1 ->
                     %lager:warning("Sending ~w to the caller, counter is ~w", [PrevSum, Counter]),
-                    gen_fsm:send_event({global, TunerName}, {throughput, Seq, Oks+PrevSum});
+                    gen_fsm:send_event(TunerName, {throughput, Seq, Oks+PrevSum});
                 _ ->
                     %lager:warning("Did not send anything, current aggr result is ~w, counter is ~w", [Oks+PrevSum, Counter]),
                     ok
