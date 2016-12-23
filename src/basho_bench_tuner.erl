@@ -24,7 +24,7 @@
 -behaviour(gen_fsm).
 
 %% 0 means no spec read + SL0, 1 means spec read +SL1...
--define(BIG, 8).
+-define(BIG, 9).
 -define(SML, 0).
 %% API
 -export([start_link/0]).
@@ -186,7 +186,7 @@ gather_stat({master_gather, MasterRound, Throughput}, State=#state{master_remain
             {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, SumThroughput1),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
             lager:warning("Master ~w Centralized: Previous length is ~w, current length is ~w, all inter nodes ~w", [node(), Prev, Current1, AllInterNodes]),
-            lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {inter_new_length, Current1}) end, AllInterNodes),
+            lists:foreach(fun(Node, Tuner) -> rpc:cast(Node, gen_fsm, send_event, [Tuner, {inter_new_length, Current1}]) end, AllInterNodes),
             {Prev1, Current2} = case Current1 of Current -> {Prev, Current}; _ -> {Current, Current1} end,
             ets:insert(stat, {{auto_tune, MasterRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
             case dict:find(MasterRound+1, RoundDict) of
@@ -222,7 +222,8 @@ gather_stat({inter_gather, InterRound, Throughput}, State=#state{inter_remain=In
     	    lager:warning("Inter ~w sending ~w to master ~w", [node(), SumThroughput1, Master]),
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
-            gen_fsm:send_event({global, Master}, {master_gather, InterRound, SumThroughput1}),
+            {MNode, MTuner} = Master,
+            rpc:cast(MNode, gen_fsm, send_event, [MTuner, {master_gather, InterRound, SumThroughput1}]),
             {next_state, gather_stat, State#state{inter_remain=InterGather, sum_throughput=0, inter_round=InterRound+1}};
         _ ->
             {next_state, gather_stat, State#state{inter_remain=InterRemain-1, sum_throughput=SumThroughput+Throughput}}
@@ -263,12 +264,14 @@ gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, ce
             end;
         true ->
     	    lager:warning("Received ~w for round ~w, sending to inter ~w", [Throughput, Round, InterNode]),
-            gen_fsm:send_event({global, InterNode}, {inter_gather, Round, Throughput}),
+            {INode, ITuner} = InterNode,
+            rpc:cast(INode, gen_fsm, send_event, [ITuner, {inter_gather, Round, Throughput}]),
             {next_state, gather_stat, State#state{current_round=CurrentRound+1}}
     end;
 
 gather_stat({inter_new_length, NewLength} , State=#state{inter_range_nodes=InterRangeNodes}) ->
-    lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, NewLength}) end, InterRangeNodes),
+    %lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, NewLength}) end, InterRangeNodes),
+    lists:foreach(fun(Node, Tuner) -> rpc:cast(Node, gen_fsm, send_event, [Tuner, {new_length, NewLength}]) end, InterRangeNodes),
     {next_state, gather_stat, State};
 
 gather_stat({new_length, NewLength} , State=#state{my_workers=MyWorkers}) ->
