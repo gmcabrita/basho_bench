@@ -276,11 +276,12 @@ gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, ce
 
 gather_stat({inter_new_length, NewLength} , State=#state{inter_range_nodes=InterRangeNodes}) ->
     %lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, NewLength}) end, InterRangeNodes),
-    lists:foreach(fun({Node, Tuner}) -> rpc:cast(Node, gen_fsm, send_event, [Tuner, {new_length, NewLength}]) end, InterRangeNodes),
+    lager:warning("InterRagne nodes are ~w", [InterRangeNodes]),
+    lists:foreach(fun({Node, Tuner}) -> lager:warning("Sending to ~w", [Node]), rpc:cast(Node, gen_fsm, send_event, [Tuner, {new_length, NewLength}]) end, InterRangeNodes),
     {next_state, gather_stat, State};
 
 gather_stat({new_length, NewLength} , State=#state{my_workers=MyWorkers}) ->
-    lager:warning("~w received new length ~w", [self(), NewLength]),
+    lager:warning("~w received new length ~w", [node(), NewLength]),
     Workers = case MyWorkers of [] -> basho_bench_sup:workers();
                                 _ -> MyWorkers
               end,
