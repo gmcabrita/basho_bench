@@ -76,7 +76,7 @@
 start_link() ->
     Name = tuner_name(), 
     lager:warning("Tuner name is ~w", [Name]),
-    gen_fsm:start_link(Name, ?MODULE, [Name], []).
+    gen_fsm:start_link({local, Name}, ?MODULE, [Name], []).
 
 %% ====================================================================
 %% gen_server callbacks
