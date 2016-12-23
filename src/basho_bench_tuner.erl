@@ -133,7 +133,7 @@ init([Name]) ->
                                 Index = 1+(I-1)*NodesPerDc,
                                 N = atom_to_list(lists:nth(Index, AllNodes)),
                                 [{list_to_atom("micro@"++N), lists:nth(Index, AllTuners)}|AN] end, 
-                            [], lists:seq(1, length(AllNodes) div NumDc)),
+                            [], lists:seq(1, NumDc)),
             InterRangeNodes = lists:foldl(fun(I, AN) ->
                                   N = atom_to_list(lists:nth(I, AllNodes)),
                                   [{list_to_atom("micro@"++N), lists:nth(I, AllTuners)}|AN] end,
@@ -276,8 +276,7 @@ gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, ce
 
 gather_stat({inter_new_length, NewLength} , State=#state{inter_range_nodes=InterRangeNodes}) ->
     %lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, NewLength}) end, InterRangeNodes),
-    lager:warning("InterRagne nodes are ~w", [InterRangeNodes]),
-    lists:foreach(fun({Node, Tuner}) -> lager:warning("Sending to ~w", [Node]), rpc:cast(Node, gen_fsm, send_event, [Tuner, {new_length, NewLength}]) end, InterRangeNodes),
+    lists:foreach(fun({Node, Tuner}) -> rpc:cast(Node, gen_fsm, send_event, [Tuner, {new_length, NewLength}]) end, InterRangeNodes),
     {next_state, gather_stat, State};
 
 gather_stat({new_length, NewLength} , State=#state{my_workers=MyWorkers}) ->
