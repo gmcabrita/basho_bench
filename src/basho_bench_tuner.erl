@@ -280,6 +280,7 @@ gather_stat({inter_new_length, NewLength} , State=#state{inter_range_nodes=Inter
     {next_state, gather_stat, State};
 
 gather_stat({new_length, NewLength} , State=#state{my_workers=MyWorkers}) ->
+    lager:warning("~w received new length ~w", [self(), NewLength]),
     Workers = case MyWorkers of [] -> basho_bench_sup:workers();
                                 _ -> MyWorkers
               end,
