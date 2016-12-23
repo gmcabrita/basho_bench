@@ -190,7 +190,7 @@ gather_stat({master_gather, MasterRound, Throughput}, State=#state{master_remain
             {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, SumThroughput1),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
             lager:warning("Master ~w Centralized: Previous length is ~w, current length is ~w, all inter nodes ~w", [node(), Prev, Current1, AllInterNodes]),
-            lists:foreach(fun(Node, Tuner) -> rpc:call(Node, gen_fsm, send_event, [Tuner, {inter_new_length, Current1}]) end, AllInterNodes),
+            lists:foreach(fun({Node, Tuner}) -> rpc:call(Node, gen_fsm, send_event, [Tuner, {inter_new_length, Current1}]) end, AllInterNodes),
             {Prev1, Current2} = case Current1 of Current -> {Prev, Current}; _ -> {Current, Current1} end,
             ets:insert(stat, {{auto_tune, MasterRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
             case dict:find(MasterRound+1, RoundDict) of
@@ -275,7 +275,7 @@ gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, ce
 
 gather_stat({inter_new_length, NewLength} , State=#state{inter_range_nodes=InterRangeNodes}) ->
     %lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, NewLength}) end, InterRangeNodes),
-    lists:foreach(fun(Node, Tuner) -> rpc:call(Node, gen_fsm, send_event, [Tuner, {new_length, NewLength}]) end, InterRangeNodes),
+    lists:foreach(fun({Node, Tuner}) -> rpc:call(Node, gen_fsm, send_event, [Tuner, {new_length, NewLength}]) end, InterRangeNodes),
     {next_state, gather_stat, State};
 
 gather_stat({new_length, NewLength} , State=#state{my_workers=MyWorkers}) ->
