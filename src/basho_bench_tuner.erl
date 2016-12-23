@@ -128,14 +128,15 @@ init([Name]) ->
             MyInterIndex = ((MyIndex-1) div NodesPerDc * NodesPerDc) +1,
             MyInterNode = list_to_atom(atom_to_list(lists:nth(MyInterIndex, AllNodes)) ++ "@auto_tuner"),
             AllInterNodes = lists:foldl(fun(I, AN) -> 
-                                [lists:nth(1+(I-1)*NodesPerDc, AllTuners)|AN] end, 
+                                Index = 1+(I-1)*NodesPerDc,
+                                [{lists:nth(Index, AllNodes), lists:nth(Index, AllTuners)}|AN] end, 
                             [], lists:seq(1, length(AllNodes) div NumDc)),
             InterRangeNodes = lists:foldl(fun(I, AN) ->
-                                  [lists:nth(I, AllTuners)|AN] end,
+                                  [{lists:nth(I, AllNodes), lists:nth(I, AllTuners)}|AN] end,
                               [], lists:seq(MyInterIndex, MyInterIndex+NodesPerDc-1)), 
             NumNodes = length(AllNodes),
             [MasterNode|_] = AllNodes, 
-            Master = list_to_atom( atom_to_list(MasterNode) ++ "@auto_tuner"),
+            Master = {MasterNode, list_to_atom( atom_to_list(MasterNode) ++ "@auto_tuner")},
             lager:warning("Master is ~w, InterNode is ~w, inter_gather is ~w, master_gather is ~w", [Master, MyInterNode, length(AllNodes) div NumDc, NumDc]),
             MyWorkers = basho_bench_sup:workers(),
 	        RoundDict = dict:store(1, {0, 0}, dict:new()),
