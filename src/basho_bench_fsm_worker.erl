@@ -108,7 +108,7 @@ cleanup(Children, Stat0) ->
     case RemainNames of
 	[] -> Stat;
 	_ -> 
-    	     lager:info("So many has not finished... w!!!!", [RemainNames]),
+    	     lager:info("~w has not finished!", [RemainNames]),
 	     %cleanup(RemainNames, Stat)
 	     Stat
     end.

@@ -114,6 +114,7 @@ init([Name]) ->
 			    master_round=1,
                             master_remain=1,
 			    inter_remain=1,
+			    max_len=MaxLen,
                             my_workers = MyWorkers,
                             all_nodes = [],
                             sum_throughput = 0}};
@@ -148,6 +149,7 @@ init([Name]) ->
                             myself = Myself,
                             master = Master,
                             num_dcs = NumDc,
+			    max_len=MaxLen,
                             my_workers=MyWorkers,
                             inter_node=MyInterNode,
                             all_inter_nodes=AllInterNodes,
@@ -224,7 +226,7 @@ gather_stat({inter_gather, InterRound, Throughput}, State=#state{inter_remain=In
     case InterRemain of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
-    	    lager:warning("Inter ~w sending ~w to master ~w", [node(), SumThroughput1, Master]),
+    	    %lager:warning("Inter ~w sending ~w to master ~w", [node(), SumThroughput1, Master]),
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
             {MNode, MTuner} = Master,
@@ -280,7 +282,7 @@ gather_stat({inter_new_length, NewLength} , State=#state{inter_range_nodes=Inter
     {next_state, gather_stat, State};
 
 gather_stat({new_length, NewLength} , State=#state{my_workers=MyWorkers}) ->
-    lager:warning("~w received new length ~w", [node(), NewLength]),
+    %lager:warning("~w received new length ~w", [node(), NewLength]),
     Workers = case MyWorkers of [] -> basho_bench_sup:workers();
                                 _ -> MyWorkers
               end,
@@ -314,7 +316,7 @@ linear_stay(Prev, Current, Dict, Throughput, MaxLen) ->
             {1, Dict1};
         _ ->
             PrevTh = dict:fetch(Prev, Dict),
-            lager:warning("Prev is ~w, prevth is ~w, curr is ~w, curr th is ~w", [PrevTh, Prev, Throughput, Current]),
+            lager:warning("Prev is ~w, prevth is ~w, curr is ~w, curr th is ~w, max len is ~w", [PrevTh, Prev, Throughput, Current, MaxLen]),
             case Throughput > PrevTh of
                 true ->
                     case Current > Prev of
