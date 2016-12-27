@@ -39,30 +39,26 @@ SSH_USERNAME=ubuntu
 
 echo "[SCRIPT] RUNNING SCRIPT TO START MULTIPLE ANTIDOTE REPLICAS..."
 
-echo "[SCRIPT] KILLING ALL ERLANG PROCESSES ON REMOTE MACHINES..."
+ANTIDOTE_SCRIPT="./src/bin/worker-start-antidote.sh"
+REMOTE_ANTIDOTE_SCRIPT="/home/ubuntu/worker-start-antidote.sh"
+
+# copy scripts to remote machines and add execute permission
+echo "[SCRIPT] COPYING REQUIRED SCRIPTS TO REMOTE MACHINES..."
 for IP_ADDR in $IP_ADDR_LIST; do
-    Command="ssh $SSH_OPTIONS $USER@$IP_ADDR pkill beam"
-    eval $Command
+    scp $SSH_OPTIONS $ANTIDOTE_SCRIPT $SSH_USERNAME@$IP_ADDR:$REMOTE_ANTIDOTE_SCRIPT
+    ssh $SSH_OPTIONS $SSH_USERNAME@$IP_ADDR chmod u+x $REMOTE_ANTIDOTE_SCRIPT
 done
 
-echo "[SCRIPT] DELETING DATA FROM PREVIOUS BENCHMARKS, IF ANY..."
-for IP_ADDR in $IP_ADDR_LIST; do
-    Command="ssh $SSH_OPTIONS $USER@$IP_ADDR make -C ~/antidote relclean"
-    eval $Command &
-done
+echo "[SCRIPT] COPIED ALL WORKER SCRIPTS."
 
-echo "[SCRIPT] REGENERATING RELX RELEASE..."
+echo "[SCRIPT] STARTING REMOTE ANTIDOTE NODES..."
 for IP_ADDR in $IP_ADDR_LIST; do
-    Command="ssh $SSH_OPTIONS $USER@$IP_ADDR make -C ~/antidote rel"
-    eval $Command &
-done
-
-for IP_ADDR in $IP_ADDR_LIST; do
-    Command="ssh $SSH_OPTIONS $USER@$Item GITBRANCH=${GITBRANCH} CLEANMAKE=${CLEANMAKE} IP=${IP_ADDR} ~/basho_bench/script/FMKe/aws_build/src/bin/worker-start-antidote.sh"
+    Command="ssh $SSH_OPTIONS $SSH_USERNAME@$IP_ADDR GITBRANCH=${GITBRANCH} CLEANMAKE=${CLEANMAKE} IP=${IP_ADDR} $REMOTE_ANTIDOTE_SCRIPT"
     echo "[SCRIPT] Starting antidote on node ${IP_ADDR}, using the following command:"
     echo "[SCRIPT] ${Command}"
     eval $Command &
 done
 
-sleep 10 # antidote takes a while to boot up.
+# making sure the message is visible, antidote takes a few seconds to turn on
+sleep 15
 echo "[SCRIPT] Done. Antidote has been launched on the specified replicas."
