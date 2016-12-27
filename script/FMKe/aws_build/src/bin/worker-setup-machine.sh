@@ -5,6 +5,17 @@
 set -e # Any subsequent(*) commands which fail will cause the shell script
        # to exit immediately
 
+# add ESL as a repository
+sudo wget -c -O- http://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc | sudo apt-key add -
+sudo echo "deb http://packages.erlang-solutions.com/ubuntu xenial contrib" | sudo tee -a /etc/apt/sources.list.d/erlang_solutions.list > /dev/null
+
+sudo apt-get update
+sudo apt-get --assume-yes upgrade
+sudo apt-get --assume-yes install build-essential autoconf git r-base erlang
+
+# needed to later build the PNG image
+sudo chown ubuntu /usr/local/lib/R/site-library/
+
  # env
  BIN_DIR=`pwd`
  cd $BIN_DIR

@@ -13,12 +13,16 @@ if [ -z "$GITBRANCH" ]; then
 fi
 
 if [ CLEANMAKE=TRUE ]; then
+    echo "[SCRIPT] KILLING ALL ERLANG PROCESSES ON REMOTE MACHINES..."
+    pkill beam
     echo "----Worker $IP ----: git checkout $GITBRANCH"
     git checkout $GITBRANCH
     echo "----Worker $IP ----: git pull"
     git pull
+    echo "[SCRIPT] DELETING DATA FROM PREVIOUS BENCHMARKS, IF ANY..."
     echo "----Worker $IP ----: make relclean"
     make relclean
+    echo "[SCRIPT] REGENERATING RELX RELEASE..."
     echo "----Worker $IP ----: make rel"
     make rel
 fi
