@@ -57,7 +57,7 @@ REMOTE_CONFIG_FILE="/home/ubuntu/basho_bench/test/fmkclient.config"
 
 for IP_ADDR in $IP_ADDR_LIST; do
     echo "[SCRIPT]: Configuring FMK server addresses..."
-    ssh ${SshOptions} ${USER}@${IP_ADDR} sed -ie 's#{fmk_server_addresses, \[\(\"\([0-9]\{1,3\}\.\)\{3\}\([0-9]\{1,3\}\)\{1\}\"\)\(,\(\"\([0-9]\{1,3\}\.\)\{3\}\([0-9]\{1,3\}\)\{1\}\"\)\)*\]}.#{fmk_server_addresses, ['"$DURATION"']}.#g' ${REMOTE_CONFIG_FILE} ${REMOTE_CONFIG_FILE} ## TODO MODIFY
+    ssh ${SshOptions} ${USER}@${IP_ADDR} sed -ie 's#{fmk_server_addresses, \[\(\"\([0-9]\{1,3\}\.\)\{3\}\([0-9]\{1,3\}\)\{1\}\"\)\(,\(\"\([0-9]\{1,3\}\.\)\{3\}\([0-9]\{1,3\}\)\{1\}\"\)\)*\]}.#{fmk_server_addresses, ['"${FMK_HTTP_ADDRESSES}"']}.#g' ${REMOTE_CONFIG_FILE}  ## TODO FETCH FROM ENV VAR
     if [ "$?" = 0  ]; then
         echo "[SCRIPT] Successfully configured FMK server addresses."
     else
@@ -65,7 +65,7 @@ for IP_ADDR in $IP_ADDR_LIST; do
         exit 1
     fi
     echo "[SCRIPT]: Configuring FMK server ports..."
-    ssh ${SshOptions} ${USER}@${IP_ADDR} sed -ie 's#{fmk_server_ports, \[[0-9]\+[,[0-9]\+]*\]}.#{fmk_server_ports, ['"$DURATION"']}.#g' ${REMOTE_CONFIG_FILE} ## TODO MODIFY
+    ssh ${SshOptions} ${USER}@${IP_ADDR} sed -ie 's#{fmk_server_ports, \[[0-9]\+[,[0-9]\+]*\]}.#{fmk_server_ports, ['"${FMK_HTTP_PORTS}"']}.#g' ${REMOTE_CONFIG_FILE} ## TODO FETCH FROM ENV VAR
     if [ "$?" = 0  ]; then
         echo "[SCRIPT] Successfully configured FMK server ports."
     else
@@ -77,18 +77,18 @@ for IP_ADDR in $IP_ADDR_LIST; do
     if [ "$?" = 0  ]; then
         echo "[SCRIPT] Successfully configured number of basho bench clients."
     else
-        echo "[SCRIPT] Basho bench is not compiled in node ${IP_ADDR}, aborting..."
+        echo "[SCRIPT] Could not write number of basho bench clients in node ${IP_ADDR}, aborting..."
         exit 1
     fi
-    echo "[SCRIPT]: Setting benchmark duration (${BENCHDURATION})..."
+    echo "[SCRIPT]: Setting benchmark duration for ${BENCHDURATION} minute(s)..."
     ssh ${SshOptions} ${USER}@${IP_ADDR} sed -ie 's#{duration, [0-9]\+}.#{duration, '"${BENCHDURATION}"'}.#g' ${REMOTE_CONFIG_FILE}
     if [ "$?" = 0  ]; then
-        echo "[SCRIPT] Successfully configured number of basho bench clients."
+        echo "[SCRIPT] Successfully configured benchmark duration."
     else
-        echo "[SCRIPT] Basho bench is not compiled in node ${IP_ADDR}, aborting..."
+        echo "[SCRIPT] Could not write benchmark duration in node ${IP_ADDR}, aborting..."
         exit 1
     fi
-    echo "[SCRIPT] Successfully completed configuration of node ${IP_ADDR}."
+    echo "[SCRIPT] Node ${IP_ADDR} has been successfully configured."
 done
 
 echo "[SCRIPT]: STEP 3/5: Checking if antidote population has been requested..."
@@ -102,9 +102,9 @@ fi
 echo "STEP 3/5: Done."
 
 echo "[SCRIPT]: STEP 4/5: Starting benchmarks..."
-
+## TODO MISSING
 echo "[SCRIPT]: STEP 5/5: Fetching and merging results..."
-
+## TODO MISSING
 
 #########################################################
 # create a directory to store the test results...
