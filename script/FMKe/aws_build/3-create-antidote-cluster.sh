@@ -30,26 +30,29 @@ fi
 PRIVATEKEY=$1
 KEY_FILE_NAME=$(basename $PRIVATEKEY)
 
+SSH_USERNAME=ubuntu
 SSH_OPTIONS="-i $PRIVATEKEY -o StrictHostKeyChecking=no"
 
 IP_ADDR_LIST=$(echo $* | cut -d' ' -f2-)
-REQUESTER=IP_ADDR_LIST[0]
 
 for IP_ADDR in $IP_ADDR_LIST; do
     ACCUM="$ACCUM antidote@$IP_ADDR"
+    REQUESTER=$IP_ADDR
 done
 
 echo "[SCRIPT] RUNNING SCRIPT TO JOIN MULTIPLE ANTIDOTE REPLICAS IN A CLUSTER..."
 
-SSH_USERNAME=ubuntu
-SSH_OPTIONS="-i $PRIVATEKEY -o StrictHostKeyChecking=no"
-
 echo "[SCRIPT] RUNNING THE JOIN CLUSTER SCRIPT FROM $REQUESTER..."
 
-Command="ssh $SSH_OPTIONS $USER@$Item ~/antidote/bin/join_cluster_script.erl $ACCUM"
-echo "Requesting antidote cluster join on node ${REQUESTER}, using the following command:"
-echo "${Command}"
-eval $Command &
+JOIN_CLUSTER_SCRIPT="./src/bin/join_antidote_cluster.erl"
+REMOTE_JOIN_CLUSTER_SCRIPT="/home/ubuntu/join_antidote_cluster.erl"
 
-sleep 15 # cluster creation takes a while
+scp $SSH_OPTIONS $JOIN_CLUSTER_SCRIPT $SSH_USERNAME@$REQUESTER:$REMOTE_JOIN_CLUSTER_SCRIPT
+ssh $SSH_OPTIONS $SSH_USERNAME@$IP_ADDR chmod u+x $REMOTE_JOIN_CLUSTER_SCRIPT
+Command="ssh $SSH_OPTIONS $SSH_USERNAME@$REQUESTER $REMOTE_JOIN_CLUSTER_SCRIPT $ACCUM"
+echo "Requesting antidote cluster join on node $REQUESTER, using the following command:"
+echo "${Command}"
+eval $Command
+
+# cluster creation may take a while
 echo "[SCRIPT] Done. The specified antidote replicas are now joined in a cluster."
