@@ -30,7 +30,7 @@ main([MyNodeRef, FmkNodeRef]) ->
   %                     ++ "/../_build/default/lib/ssl_verify_fun/ebin"),
   % io:format("Loaded external libs.~n"),
   DirName = filename:dirname(escript:script_name()),
-  FileName = DirName ++ "/fmkclient.config",
+  FileName = DirName ++ "basho_bench/examples/fmkclient.config",
   io:format("Checking configuration file ~p~n",[FileName]),
   {ok, FmkConfigProps} = file:consult(FileName),
   FmkConfig = #fmkconfig{
