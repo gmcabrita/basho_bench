@@ -60,5 +60,5 @@ for IP_ADDR in $IP_ADDR_LIST; do
 done
 
 # making sure the message is visible, antidote takes a few seconds to turn on
-sleep 15
+sleep 10
 echo "[SCRIPT] Done. Antidote has been launched on the specified replicas."
