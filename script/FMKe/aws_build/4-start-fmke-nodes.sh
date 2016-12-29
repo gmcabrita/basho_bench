@@ -12,9 +12,11 @@
 set -e # Any subsequent(*) commands which fail will cause the shell script
        # to exit immediately
 
+USAGE="Usage: ANTIDOTE_ADDRESS=<CSV IP LIST> ANTIDOTE_PB_PORT=<CSV PORT LIST> $0 <private_key_file> <FMK_IP_ADDR_LIST>"
+
 # args checking
 if [[ $# -lt 2 ]]; then
-    echo "Error: usage $0 <private_key_file> <IP_ADDR_LIST> ..."
+    echo $USAGE
     exit 2
 fi;
 
@@ -23,11 +25,11 @@ if [[ ! -e $1 ]]; then
     exit 2
 fi;
 if [ -z "$ANTIDOTE_ADDRESS" ]; then
-    echo "Error: missing list of comma separated antidote IP addresses"
+    echo $USAGE
     exit 2
 fi
 if [ -z "$ANTIDOTE_PB_PORT" ]; then
-    echo "Error: missing list of comma separated antidote PB ports"
+    echo $USAGE
     exit 2
 fi
 
@@ -44,19 +46,29 @@ KEY_FILE_NAME=$(basename $PRIVATEKEY)
 
 IP_ADDR_LIST=$(echo $* | cut -d' ' -f2-)
 
-SSH_OPTIONS="-i $PRIVATEKEY -o StrictHostKeyChecking=no"
 
 echo "[SCRIPT] RUNNING SCRIPT TO START MULTIPLE ANTIDOTE REPLICAS..."
 
 SSH_USERNAME=ubuntu
 SSH_OPTIONS="-i $PRIVATEKEY -o StrictHostKeyChecking=no"
 
+FMK_SCRIPT="./src/bin/worker-start-fmk.sh"
+REMOTE_FMK_SCRIPT="/home/ubuntu/worker-start-fmk.sh"
+
+# copy scripts to remote machines and add execute permission
+echo "[SCRIPT] COPYING REQUIRED SCRIPTS TO REMOTE MACHINES..."
 for IP_ADDR in $IP_ADDR_LIST; do
-    Command="ssh $SSH_OPTIONS $USER@$Item GITBRANCH=${GITBRANCH} CLEANMAKE=${CLEANMAKE} IP=${IP_ADDR} ANTIDOTE_ADDRESS=${ANTIDOTE_ADDRESS} ANTIDOTE_PB_PORT=${ANTIDOTE_PB_PORT} ~/basho_bench/script/FMKe/aws_build/src/bin/worker-start-fmk.sh"
+    scp $SSH_OPTIONS $FMK_SCRIPT $SSH_USERNAME@$IP_ADDR:$REMOTE_FMK_SCRIPT
+    ssh $SSH_OPTIONS $SSH_USERNAME@$IP_ADDR chmod u+x $REMOTE_FMK_SCRIPT
+done
+echo "[SCRIPT] COPIED ALL WORKER SCRIPTS."
+
+for IP_ADDR in $IP_ADDR_LIST; do
+    Command="ssh $SSH_OPTIONS $SSH_USERNAME@$IP_ADDR GITBRANCH=${GITBRANCH} CLEANMAKE=${CLEANMAKE} IP=${IP_ADDR} ANTIDOTE_ADDRESS=${ANTIDOTE_ADDRESS} ANTIDOTE_PB_PORT=${ANTIDOTE_PB_PORT} ${REMOTE_FMK_SCRIPT}"
     echo "[SCRIPT] Starting antidote on node ${IP_ADDR}, using the following command:"
     echo "[SCRIPT] ${Command}"
     eval $Command &
 done
 
-sleep 10 # antidote takes a while to boot up.
+sleep 10 # fmk takes a while to boot up.
 echo "[SCRIPT] Done. FMKe has been launched on the specified replicas."
