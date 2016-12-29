@@ -1,3 +1,5 @@
+FMK_HTTP_ADDRESSES="\"${FMK_HTTP_ADDRESSES}\""
+
 sed -ie 's#{fmk_server_ips, \[\(\"\([0-9]\{1,3\}\.\)\{3\}\([0-9]\{1,3\}\)\{1\}\"\)\(,\(\"\([0-9]\{1,3\}\.\)\{3\}\([0-9]\{1,3\}\)\{1\}\"\)\)*\]}.#{fmk_server_ips, ['"${FMK_HTTP_ADDRESSES}"']}.#g' ${REMOTE_CONFIG_FILE}
 if [ "$?" = 0  ]; then
     echo "[SCRIPT]: Configured FMK server addresses."
