@@ -226,7 +226,7 @@ gather_stat({inter_gather, InterRound, Throughput}, State=#state{inter_remain=In
     case InterRemain of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
-    	    %lager:warning("Inter ~w sending ~w to master ~w", [node(), SumThroughput1, Master]),
+    	    lager:warning("Inter ~w sending ~w to master ~w", [node(), SumThroughput1, Master]),
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
             {MNode, MTuner} = Master,
@@ -270,19 +270,18 @@ gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, ce
                     {next_state, gather_stat, State#state{previous=Current, current_round=CurrentRound+1, current=Current1, prev_throughput=PrevTh1, my_workers=Workers}}
             end;
         true ->
-    	    %lager:warning("Received ~w for round ~w, sending to inter ~w", [Throughput, Round, InterNode]),
+    	    lager:warning("Received ~w for round ~w, sending to inter ~w", [Throughput, Round, InterNode]),
             {INode, ITuner} = InterNode,
             rpc:cast(INode, gen_fsm, send_event, [ITuner, {inter_gather, Round, Throughput}]),
             {next_state, gather_stat, State#state{current_round=CurrentRound+1}}
     end;
 
 gather_stat({inter_new_length, NewLength} , State=#state{inter_range_nodes=InterRangeNodes}) ->
-    %lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, NewLength}) end, InterRangeNodes),
     lists:foreach(fun({Node, Tuner}) -> rpc:cast(Node, gen_fsm, send_event, [Tuner, {new_length, NewLength}]) end, InterRangeNodes),
     {next_state, gather_stat, State};
 
 gather_stat({new_length, NewLength} , State=#state{my_workers=MyWorkers}) ->
-    %lager:warning("~w received new length ~w", [node(), NewLength]),
+    lager:warning("~w received new length ~w", [node(), NewLength]),
     Workers = case MyWorkers of [] -> basho_bench_sup:workers();
                                 _ -> MyWorkers
               end,

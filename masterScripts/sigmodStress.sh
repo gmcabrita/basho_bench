@@ -148,9 +148,9 @@ contentions="2"
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
-folder="specula_tests/external"
+folder="specula_tests/test"
 rm -rf ./config
-echo micro duration 150 >> config
+echo micro duration 120 >> config
 echo micro auto_tune true >> config
 echo micro tune_period 1 >> config
 echo micro tune_sleep 1 >> config
