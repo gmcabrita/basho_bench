@@ -37,7 +37,7 @@ if [ -z "$CLEANMAKE" ]; then
     CLEANMAKE=TRUE
 fi
 if [ -z "$GITBRANCH" ]; then
-    GITBRANCH="build-local-cluster"
+    GITBRANCH="perf-and-errors"
 fi
 
 # env
