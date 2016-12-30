@@ -195,7 +195,7 @@ gather_stat({master_gather, MasterRound, Throughput}, State=#state{master_remain
             lager:warning("Master ~w Centralized: Previous length is ~w, current length is ~w, all inter nodes ~w", [node(), Prev, Current1, AllInterNodes]),
             lists:foreach(fun({Node, Tuner}) -> rpc:cast(Node, gen_fsm, send_event, [Tuner, {inter_new_length, Current1}]) end, AllInterNodes),
             {Prev1, Current2} = case Current1 of Current -> {Prev, Current}; _ -> {Current, Current1} end,
-            ets:insert(stat, {{auto_tune, MasterRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
+            ets:insert(stat, {{auto_tune, MasterRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, SumThroughput1, Current1}}),
             case dict:find(MasterRound+1, RoundDict) of
                 {ok, {Sum, Replied}} ->
                     {next_state, gather_stat, State#state{master_remain=NumDcs-Replied, sum_throughput=Sum,
