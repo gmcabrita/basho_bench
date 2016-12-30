@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 # Call this like IP=1.2.3.4 worker-start-antidote.sh
 
-chmod +x ~/basho_bench//script/FMKe/*
-chmod +x ~/FMKe/bin/*
-chmod +x ~/antidote/bin/*
+ANTIDOTE_DIR="/home/ubuntu/antidote"
 
 if [ -z "$CLEANMAKE" ]; then
     CLEANMAKE=TRUE
@@ -13,6 +11,7 @@ if [ -z "$GITBRANCH" ]; then
 fi
 
 if [ CLEANMAKE=TRUE ]; then
+    cd $ANTIDOTE_DIR
     echo "[SCRIPT] KILLING ALL ERLANG PROCESSES ON REMOTE MACHINES..."
     pkill beam
     echo "----Worker $IP ----: git checkout $GITBRANCH"
@@ -25,6 +24,7 @@ if [ CLEANMAKE=TRUE ]; then
     echo "[SCRIPT] REGENERATING RELX RELEASE..."
     echo "----Worker $IP ----: make rel"
     make rel
+    cd -
 fi
 
 echo "----Worker $IP ----: IP=$IP INSTANCE_NAME=antidote ~/antidote/_build/default/rel/antidote/bin/env foreground"
