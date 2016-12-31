@@ -140,7 +140,7 @@ seq="1"
 do_specula=true
 specula_read=true
 clock=new
-len=8
+len=0
 #threads="10 20 40 80 160"
 #contentions="4 3 2 1"
 threads="40"
@@ -151,17 +151,17 @@ contentions="2"
 folder="specula_tests/test"
 rm -rf ./config
 echo micro duration 120 >> config
-echo micro auto_tune false >> config
+echo micro auto_tune true >> config
 echo micro tune_period 1 >> config
 echo micro tune_sleep 1 >> config
-echo micro centralized false >> config
+echo micro centralized true >> config
 echo micro max_len 9 >> config
 echo micro all_nodes replace >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
