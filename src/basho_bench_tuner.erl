@@ -413,4 +413,7 @@ get_ip([C|T], Prev) ->
     end.
 
 tuner_name() ->
-    list_to_atom( get_ip(atom_to_list(node()), [])  ++ "@auto_tuner").
+    case basho_bench_config:get(auto_tune, false) of
+        false -> false;
+        true -> list_to_atom( get_ip(atom_to_list(node()), [])  ++ "@auto_tuner")
+    end.
