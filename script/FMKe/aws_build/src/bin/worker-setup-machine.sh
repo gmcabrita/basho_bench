@@ -23,31 +23,62 @@ sudo chown ubuntu /usr/local/lib/R/site-library/
  #############################  antidote @############################
  ANTIDOTE_DIR=$HOME
 
- cd $ANTIDOTE_DIR
- git clone https://github.com/SyncFree/antidote
+if [ -d "$ANTIDOTE_DIR" ]; then
+    echo "[SCRIPT] Antidote directory has been found in this node. Pulling latest changes..."
+    # Control will enter here if $DIRECTORY exists.
+    cd $ANTIDOTE_DIR
 
- cd antidote
- git checkout build-local-cluster
- make rel
+    cd antidote
+    git checkout build-local-cluster
+    git pull
+    make rel
+else
+    echo "[SCRIPT] Antidote repository not found. Cloning repository..."
+    cd $ANTIDOTE_DIR
+    git clone https://github.com/SyncFree/antidote
 
- cd $BIN_DIR
+    cd antidote
+    git checkout build-local-cluster
+    make rel
+fi
+
+cd $BIN_DIR
 
  ############################## FMKe #################################
- FMKE_DIR=$HOME
+FMKE_DIR=$HOME/FMKe
 
- cd $FMKE_DIR
- git clone https://github.com/goncalotomas/FMKe
- cd FMKe
- git checkout perf-and-errors
- make rel
+ if [ -d "$FMKE_DIR" ]; then
+     echo "[SCRIPT] FMKe directory has been found in this node. Pulling latest changes..."
+
+     cd $FMKE_DIR
+     git checkout perf-and-errors
+     git pull
+     make rel
+ else
+     echo "[SCRIPT] FMKe repository not found. Cloning repository..."
+
+     git clone https://github.com/goncalotomas/FMKe
+     cd $FMKE_DIR
+     git checkout perf-and-errors
+     make rel
+ fi
 
  cd $BIN_DIR
 
  ########################## basho_bensh ##############################
- BASHO_BENSH_DIR=$HOME
+ BASHO_BENSH_DIR=$HOME/basho_bench
 
- cd $BASHO_BENSH_DIR
- git clone https://github.com/SyncFree/basho_bench
- cd basho_bench
- git checkout antidote_pb_fmk_aws
- make all
+ if [ -d "$BASHO_BENSH_DIR" ]; then
+     echo "[SCRIPT] FMKe directory has been found in this node. Pulling latest changes..."
+
+     cd $BASHO_BENSH_DIR
+     git checkout antidote_pb_fmk_aws
+     git pull
+     make all
+ else
+     echo "[SCRIPT] FMKe repository not found. Cloning repository..."
+     git clone https://github.com/SyncFree/basho_bench
+     cd $BASHO_BENSH_DIR
+     git checkout antidote_pb_fmk_aws
+     make all
+ fi
