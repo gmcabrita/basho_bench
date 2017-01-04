@@ -21,23 +21,21 @@ sudo chown ubuntu /usr/local/lib/R/site-library/
  cd $BIN_DIR
 
  #############################  antidote @############################
- ANTIDOTE_DIR=$HOME
+ ANTIDOTE_DIR=$HOME/antidote
 
 if [ -d "$ANTIDOTE_DIR" ]; then
     echo "[SCRIPT] Antidote directory has been found in this node. Pulling latest changes..."
     # Control will enter here if $DIRECTORY exists.
     cd $ANTIDOTE_DIR
 
-    cd antidote
     git checkout build-local-cluster
     git pull
     make rel
 else
     echo "[SCRIPT] Antidote repository not found. Cloning repository..."
-    cd $ANTIDOTE_DIR
     git clone https://github.com/SyncFree/antidote
 
-    cd antidote
+    cd $ANTIDOTE_DIR
     git checkout build-local-cluster
     make rel
 fi
