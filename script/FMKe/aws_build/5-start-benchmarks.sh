@@ -40,7 +40,7 @@ fi
 ##########################################################
     # Verify that all nodes are reachable
 ##########################################################
-echo "[SCRIPT]: STEP 1/5: TESTING REQUIREMENTS FOR EVERY BASHO BENCH NODE..."
+echo "[SCRIPT]: STEP 1/4: TESTING REQUIREMENTS FOR EVERY BASHO BENCH NODE..."
 
 for IP_ADDR in $IP_ADDR_LIST; do
     ssh ${SSH_OPTIONS} ${USER}@${IP_ADDR} exit
@@ -69,38 +69,36 @@ for IP_ADDR in $IP_ADDR_LIST; do
     fi
 done
 
-echo "[SCRIPT]: STEP 1/5: Done. All nodes contain a compiled version of basho_bench."
-
-FMK_ADDRESS_ARR=(`echo ${FMK_HTTP_ADDRESSES}`);
-FMK_PORT_ARR=(`echo ${FMK_HTTP_PORTS}`);
-IP_ARR=(`echo ${IP_ADDR_LIST}`);
-
-## TODO
+echo "[SCRIPT]: STEP 1/4: Done. All nodes contain a compiled version of basho_bench."
 
 #########################################################
 # BENCHMARK CONFIGURATION STAGE                         #
 #########################################################
-echo "[SCRIPT]: STEP 2/5: Editing configuration files for each bench node..."
+FMK_ADDRESS_ARR=(`echo ${FMK_HTTP_ADDRESSES}`);
+FMK_ADDRESS_ARR_SIZE=${#FMK_ADDRESS_ARR[@]}
+FMK_PORT_ARR=(`echo ${FMK_HTTP_PORTS}`);
+IP_ARR=(`echo ${IP_ADDR_LIST}`);
+
+echo "[SCRIPT]: STEP 2/4: Editing configuration files for each bench node..."
 REMOTE_CONFIG_FILE="/home/ubuntu/basho_bench/examples/fmkclient.config"
 WORKER_SCRIPT="./src/bin/worker-configure-benchmark.sh"
 REMOTE_WORKER_SCRIPT="/home/ubuntu/worker-configure-benchmark.sh"
 
-for IP_ADDR in $IP_ADDR_LIST; do
-    echo "[SCRIPT] KILLING ALL ERLANG PROCESSES ON REMOTE MACHINES..."
-    ssh ${SSH_OPTIONS} ${USER}@${IP_ADDR} pkill beam
+for index in "${!IP_ARR[@]}"; do
+    ## ASSIGN EACH BASHO BENCH TO EACH FMK IN A ROUND ROBIN FASHION
+    ## SO THAT WE ALLOW THE CASE WHERE #BENCHENODES > #FMKNODES
     echo "[SCRIPT]: Copying configuration script to remote machine..."
-    scp ${SSH_OPTIONS} ${WORKER_SCRIPT} ${USER}@${IP_ADDR}:${REMOTE_WORKER_SCRIPT}
-    ssh ${SSH_OPTIONS} ${USER}@${IP_ADDR} chmod u+x ${REMOTE_WORKER_SCRIPT}
+    scp ${SSH_OPTIONS} ${WORKER_SCRIPT} ${USER}@${IP_ARR[$index]}:${REMOTE_WORKER_SCRIPT}
+    ssh ${SSH_OPTIONS} ${USER}@${IP_ARR[$index]} chmod u+x ${REMOTE_WORKER_SCRIPT}
     echo "[SCRIPT]: Configuration script copied successfully."
     echo "[SCRIPT]: Running configuration script..."
-    ssh ${SSH_OPTIONS} ${USER}@${IP_ADDR} NUM_CLIENTS=${NUM_CLIENTS} BENCHDURATION=${BENCHDURATION} IP_ADDR=${IP_ADDR} FMK_HTTP_ADDRESSES=${FMK_HTTP_ADDRESSES} FMK_HTTP_PORTS=${FMK_HTTP_PORTS} REMOTE_CONFIG_FILE=${REMOTE_CONFIG_FILE} ${REMOTE_WORKER_SCRIPT}
-    echo "[SCRIPT]: Node ${IP_ADDR} has been successfully configured."
+    ssh ${SSH_OPTIONS} ${USER}@${IP_ARR[$index]} NUM_CLIENTS=${NUM_CLIENTS} BENCHDURATION=${BENCHDURATION} IP_ADDR=${IP_ARR[$index]} FMK_HTTP_ADDRESSES=${FMK_ADDRESS_ARR[$(($index % $FMK_ADDRESS_ARR_SIZE))]} FMK_HTTP_PORTS=${FMK_PORT_ARR[$(($index % $FMK_ADDRESS_ARR_SIZE))]} REMOTE_CONFIG_FILE=${REMOTE_CONFIG_FILE} ${REMOTE_WORKER_SCRIPT}
 done
 
 #########################################################
 # ANTIDOTE POPULATION STAGE                             #
 #########################################################
-echo "[SCRIPT]: STEP 3/5: Checking if antidote population has been requested..."
+echo "[SCRIPT]: STEP 3/4: Checking if antidote population has been requested..."
 if [ "$POPULATE_ANTIDOTE" = TRUE ]
     then
         echo "[SCRIPT] Antidote population has been requested."
@@ -122,12 +120,12 @@ if [ "$POPULATE_ANTIDOTE" = TRUE ]
     else
         echo "[SCRIPT] No request for antidote population found. Continuing..."
 fi
-echo "STEP 3/5: Done."
+echo "STEP 3/4: Done."
 
 #########################################################
 # BENCHMARKING STAGE                                    #
 #########################################################
-echo "[SCRIPT]: STEP 4/5: Starting benchmarks..."
+echo "[SCRIPT]: STEP 4/4: Starting benchmarks..."
 for IP_ADDR in $IP_ADDR_LIST; do
     REMOTE_BENCHMARK_COMMAND="/home/ubuntu/basho_bench/_build/default/bin/basho_bench ${REMOTE_CONFIG_FILE}"
     echo "[SCRIPT]: Starting benchmark in node ${IP_ADDR}..."
@@ -141,57 +139,6 @@ sleep $((${BENCHDURATION}*60))
 
 echo "ZzzzzZZZzzzzzZZZzzzzz...."
 
-sleep 30
+sleep 45
 
-echo "I'm back and I feel so alive! Let's get those results!!"
-
-echo "[SCRIPT]: STEP 5/5: Fetching and merging results..."
-# mkdir benchmarks
-# cd benchmarks
-# for IP_ADDR in $IP_ADDR_LIST; do
-#     REMOTE_BENCHMARK_COMMAND="/home/ubuntu/basho_bench/_build/default/bin/basho_bench ${REMOTE_CONFIG_FILE}"
-#     echo "[SCRIPT]: Starting benchmark in node ${IP_ADDR}..."
-#     ssh ${SSH_OPTIONS} ${USER}@${IP_ADDR} $REMOTE_BENCHMARK_COMMAND &
-# done
-# for IP_ADDR in $IP_ADDR_LIST; do
-#     REMOTE_BENCHMARK_COMMAND="/home/ubuntu/basho_bench/_build/default/bin/basho_bench ${REMOTE_CONFIG_FILE}"
-#     echo "[SCRIPT]: Starting benchmark in node ${IP_ADDR}..."
-#     ssh ${SSH_OPTIONS} ${USER}@${IP_ADDR} $REMOTE_BENCHMARK_COMMAND &
-# done
-#     #####################################################
-#     # Now let's wait to collect the results from all workers
-#     #####################################################
-#     echo "--##--Master ${MY_IP}: cding into tests directory"
-#     cd ${BenchResultsDirectory}
-#     pwd
-#     Numfiles=$(eval "\ls -afq | wc -l")
-#     InitNumFiles=$Numfiles
-#     ReceivedFiles=$((Numfiles-InitNumFiles))
-#
-#     echo "--##--Master ${MY_IP}: Waiting until all ${NumBenchNodes} worker nodes send their results..."
-#     until [  $ReceivedFiles = $NumBenchNodes ]; do
-#              sleep 2
-#              echo "--##--Master ${MY_IP}:Received result files so far...: ${ReceivedFiles}), missing "$((NumBenchNodes-ReceivedFiles))"}"
-#              Numfiles=$(eval "\ls -afq | wc -l")
-#              let ReceivedFiles=$((Numfiles-InitNumFiles))
-#          done
-#     echo "--##--Master ${MY_IP}: Done collecting results from all ${NumBenchNodes} nodes, gonna merge them into a single one...\n\n\n"
-#
-#     #####################################################
-#     # Merge results in the test directory into a single one and create the results file image
-#     #####################################################
-#     # Call the merge results script
-#     CommandToRunMergeScript="BenchResultsDirectory=$BenchResultsDirectory ~/basho_bench/script/FMKe/master-mergeResults.sh"
-#     echo "--##--Master ${MY_IP}: Calling merge script with command:"
-#     echo "--##--Master ${MY_IP}: $CommandToRunMergeScript"
-#     eval $CommandToRunMergeScript
-#
-#     # Create an image with the summary
-#     CommandToBuildPng="Rscript --vanilla priv/summary.r -i $BenchResultsDirectory/summary"
-#     echo "--##--Master ${MY_IP}: Processing results into a summary.png file..."
-#     echo "--##--Master ${MY_IP}: $CommandToBuildPng"
-#     cd ~/basho_bench/
-#     eval $CommandToBuildPng
-#     echo "--##--Master ${MY_IP}: DONE, see your results!!!"
-#     open $BenchResultsDirectory/summary/summary.png
-# fi
+echo "[SCRIPT]: Done!"
