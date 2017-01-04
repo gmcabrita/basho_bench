@@ -210,14 +210,14 @@ gather_stat({master_gather, MasterRound, Throughput}, State=#state{master_remain
       end;
 gather_stat({master_gather, Round, Throughput}, State=#state{centralized=true, 
                 master_round=MasterRound, round_dict=RoundDict}) ->
-    lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, MasterRound]),
+    lager:warning("Received here!!?? Current round is ~w, proceeding to ~w", [MasterRound, Round]),
     case Round > MasterRound of
         true ->
             RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict)  ,
             {next_state, gather_stat, State#state{round_dict=RoundDict1}};
         false ->
-            true = Round < MasterRound,
-            {next_state, gather_stat, State}
+	    {next_state, gather_stat, State#state{master_remain=NumDcs, sum_throughput=0,
+                        master_round=Round}}
     end;
 
 gather_stat({inter_gather, InterRound, Throughput}, State=#state{inter_remain=InterRemain, centralized=true, 
