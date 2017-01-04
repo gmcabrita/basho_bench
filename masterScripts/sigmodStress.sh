@@ -150,7 +150,7 @@ sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 folder="specula_tests/test"
 rm -rf ./config
-echo micro duration 120 >> config
+echo micro duration 200 >> config
 echo micro auto_tune true >> config
 echo micro tune_period 1 >> config
 echo micro tune_sleep 1 >> config
@@ -165,7 +165,7 @@ sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
-    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
+    #sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
