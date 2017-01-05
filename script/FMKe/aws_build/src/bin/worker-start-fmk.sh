@@ -22,6 +22,7 @@ if [ CLEANMAKE=TRUE ]; then
     cd $FMK_DIR
     echo "[SCRIPT] KILLING ALL ERLANG PROCESSES ON REMOTE MACHINES..."
     pkill beam
+    git stash
     echo "----Worker $IP ----: git checkout $GITBRANCH"
     git checkout $GITBRANCH
     echo "----Worker $IP ----: git pull"
