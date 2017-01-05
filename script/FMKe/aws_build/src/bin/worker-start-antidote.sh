@@ -14,7 +14,10 @@ if [ CLEANMAKE=TRUE ]; then
     cd $ANTIDOTE_DIR
     echo "[SCRIPT] KILLING ALL ERLANG PROCESSES ON REMOTE MACHINES..."
     pkill beam
-    git stash
+    if [ -f rebar.lock ]; then
+        rm rebar.lock ## not doing this was causing issues
+    fi
+
     echo "----Worker $IP ----: git checkout $GITBRANCH"
     git checkout $GITBRANCH
     echo "----Worker $IP ----: git pull"
