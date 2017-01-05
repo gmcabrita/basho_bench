@@ -28,4 +28,17 @@ for index in "${!IP_ARR[@]}"; do
     echo "[SCRIPT]: Worker script copied successfully."
     echo "[SCRIPT]: Running worker script..."
     ssh ${SSH_OPTIONS} ${USER}@${IP_ARR[$index]} WORKERID=$(($index + 1)) ${REMOTE_WORKER_SCRIPT} &
-done
+    pids="$pids $!"
+ done
+
+ echo "[SCRIPT] Waiting for SSH processes to finish their work..."
+ for pid in $pids; do
+     wait $pid || let "RESULT=1"
+ done
+
+ if [ "$RESULT" == "1" ]; then
+     echo "[SCRIPT] Something went wrong in installing all the software!"
+     exit 1
+ else
+     echo "[SCRIPT] Done. All remote machines have the required software stack and repositories."
+ fi
