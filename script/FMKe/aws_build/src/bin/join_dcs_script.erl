@@ -273,6 +273,7 @@ connect_cluster(Nodes) ->
         ok = rpc:call(Node1, logging_vnode, set_sync_log, [true])
     end, Clusters),
     Descriptors = descriptors(Clusters),
+    io:format("Take a look at the node descriptors: ~p~n",[Descriptors]),
     io:format("the clusters ~w~n", [Clusters]),
     Res = [ok || _ <- Clusters],
     pmap(fun(Cluster) ->
