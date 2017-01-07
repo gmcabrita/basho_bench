@@ -36,7 +36,7 @@ cd ..
 # Merge results in the test directory into a single one and create the results file image TODO
 ####################################################
 #Call the merge results script
-CommandToRunMergeScript="BenchResultsDirectory=$BenchResultsDirectory ~/git/basho_bench/script/FMKe/master-mergeResults.sh"
+CommandToRunMergeScript="BenchResultsDirectory=$BenchResultsDirectory ../master-mergeResults.sh"
 echo "[SCRIPT]: Calling merge script..."
 eval $CommandToRunMergeScript
 
