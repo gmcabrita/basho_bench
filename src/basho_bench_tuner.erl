@@ -209,7 +209,7 @@ gather_stat({master_gather, MasterRound, Throughput}, State=#state{master_remain
             {next_state, gather_stat, State#state{master_remain=MasterRemain-1, sum_throughput=SumThroughput+Throughput}}
       end;
 gather_stat({master_gather, Round, Throughput}, State=#state{centralized=true, 
-                master_round=MasterRound, round_dict=RoundDict}) ->
+                master_round=MasterRound, round_dict=RoundDict, num_dcs=NumDcs}) ->
     lager:warning("Received here!!?? Current round is ~w, proceeding to ~w", [MasterRound, Round]),
     case Round > MasterRound of
         true ->
