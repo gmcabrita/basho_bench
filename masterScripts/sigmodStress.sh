@@ -31,10 +31,10 @@ skipped=1
 skip_len=0
 prob_access=t
 
-#rep=5
-#parts=28
-rep=1
-parts=10
+rep=5
+parts=28
+#rep=1
+#parts=10
 
 #MBIG=60000
 #MSML=6000
@@ -175,7 +175,6 @@ do
     done
 done
 
-exit
 threads="10 20 40 80"
 folder="specula_tests/micro/internalnew"
 rm -rf ./config
