@@ -24,17 +24,17 @@ seq="1"
 #threads="32 64 96 128 160 192 224 256"
 #threads="128 64 32 16 8"
 #threads="160 80 40 20 10"
-threads="10 20 40 80 160"
-contentions="4 3 2 1"
+threads="10 20 40 80"
+contentions="4 2"
 start_ind=1
 skipped=1
 skip_len=0
 prob_access=t
 
-#rep=5
-#parts=28
-rep=1
-parts=4
+rep=5
+parts=28
+#rep=1
+#parts=4
 
 #MBIG=60000
 #MSML=6000
@@ -143,14 +143,12 @@ clock=new
 len=0
 #threads="10 20 40 80 160"
 #contentions="4 3 2 1"
-threads="160"
-contentions="2"
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
-folder="specula_tests/test"
+folder="specula_tests/micro/externalnew"
 rm -rf ./config
-echo micro duration 200 >> config
+echo micro duration 120 >> config
 echo micro auto_tune true >> config
 echo micro tune_period 1 >> config
 echo micro tune_sleep 1 >> config
@@ -160,8 +158,8 @@ echo micro all_nodes replace >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
@@ -176,12 +174,10 @@ do
         runNTimes
     done
 done
-exit
 
-
-folder="specula_tests/internal"
+folder="specula_tests/micro/internalnew"
 rm -rf ./config
-echo micro duration 100 >> config
+echo micro duration 80 >> config
 echo micro auto_tune true >> config
 echo micro tune_period 1 >> config
 echo micro tune_sleep 1 >> config
@@ -191,7 +187,7 @@ echo micro all_nodes replace >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
+sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
 #sudo ./script/restartAndConnect.sh
 
 for t in $threads
