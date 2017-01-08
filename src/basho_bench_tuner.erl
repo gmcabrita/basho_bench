@@ -24,16 +24,15 @@
 -behaviour(gen_fsm).
 
 %% 0 means no spec read + SL0, 1 means spec read +SL1...
--define(BIG, 9).
 -define(SML, 0).
 %% API
 -export([start_link/0]).
 
 %% gen_server callbacks
 -export([init/1, gather_stat/2, 
-         linear_new_length/4,
-         linear_stay/4,
-         binary_search/5,
+         linear_new_length/5,
+         linear_stay/5,
+         binary_search/6,
          tuner_name/0,
          handle_info/3,
          handle_event/3,
@@ -46,6 +45,7 @@
                  myself,
                  master,
                  centralized,
+		 max_len,
                  %big,
                  %sml,
                  %mid,
@@ -92,9 +92,10 @@ init([Name]) ->
     %PrevThroughput = dict:new(), %lists:foldl(fun(N, D) ->
                % dict:store(N, inf, D)
                % end, dict:new(), lists:seq(Sml, Big)),
+    MaxLen = basho_bench_config:get(max_len),
     PrevThroughput = lists:foldl(fun(N, D) ->
                 dict:store(N, inf, D)
-                end, dict:new(), lists:seq(-1, ?BIG)),
+                end, dict:new(), lists:seq(-1, MaxLen)),
 
     case Centralized of
         false ->
@@ -113,6 +114,7 @@ init([Name]) ->
 			    master_round=1,
                             master_remain=1,
 			    inter_remain=1,
+			    max_len=MaxLen,
                             my_workers = MyWorkers,
                             all_nodes = [],
                             sum_throughput = 0}};
@@ -132,7 +134,7 @@ init([Name]) ->
                                 Index = 1+(I-1)*NodesPerDc,
                                 N = atom_to_list(lists:nth(Index, AllNodes)),
                                 [{list_to_atom("micro@"++N), lists:nth(Index, AllTuners)}|AN] end, 
-                            [], lists:seq(1, length(AllNodes) div NumDc)),
+                            [], lists:seq(1, NumDc)),
             InterRangeNodes = lists:foldl(fun(I, AN) ->
                                   N = atom_to_list(lists:nth(I, AllNodes)),
                                   [{list_to_atom("micro@"++N), lists:nth(I, AllTuners)}|AN] end,
@@ -140,18 +142,20 @@ init([Name]) ->
             NumNodes = length(AllNodes),
             [MasterNode|_] = AllNodes, 
             Master = {list_to_atom("micro@"++atom_to_list(MasterNode)), list_to_atom( atom_to_list(MasterNode) ++ "@auto_tuner")},
-            lager:warning("Master is ~w, InterNode is ~w, inter_gather is ~w, master_gather is ~w", [Master, MyInterNode, length(AllNodes) div NumDc, NumDc]),
+            InterGather = length(AllNodes) div NumDc,
+            lager:warning("Master is ~w, InterNode is ~w, All nodes are ~w, inter_gather is ~w, master_gather is ~w", [Master, MyInterNode, length(AllNodes), InterGather, NumDc]),
             MyWorkers = basho_bench_sup:workers(),
 	        RoundDict = dict:store(1, {0, 0}, dict:new()),
             {ok, gather_stat, #state{ prev_throughput=PrevThroughput,
                             myself = Myself,
                             master = Master,
                             num_dcs = NumDc,
+			    max_len=MaxLen,
                             my_workers=MyWorkers,
                             inter_node=MyInterNode,
                             all_inter_nodes=AllInterNodes,
                             inter_range_nodes=InterRangeNodes,
-                            inter_gather=length(AllNodes) div NumDc,
+                            inter_gather=InterGather,
                             centralized = Centralized,
                             num_nodes=NumNodes,
                             previous = -1,
@@ -180,19 +184,19 @@ remove([_H|T]) ->
     remove(T).
 
 gather_stat({master_gather, MasterRound, Throughput}, State=#state{master_remain=MasterRemain, centralized=true, 
-                prev_throughput=PrevTh, master_round=MasterRound, round_dict=RoundDict, 
+                prev_throughput=PrevTh, master_round=MasterRound, round_dict=RoundDict, max_len=MaxLen, 
                 num_dcs=NumDcs, sum_throughput=SumThroughput, all_inter_nodes=AllInterNodes,  previous=Prev, current=Current}) ->
-    lager:warning("Master ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, MasterRound, MasterRemain]),
+    %lager:warning("Master ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, MasterRound, MasterRemain]),
     case MasterRemain of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, SumThroughput1),
-            {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, SumThroughput1),
+            {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, SumThroughput1, MaxLen),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, SumThroughput1),
             lager:warning("Master ~w Centralized: Previous length is ~w, current length is ~w, all inter nodes ~w", [node(), Prev, Current1, AllInterNodes]),
-            lists:foreach(fun(Node, Tuner) -> rpc:cast(Node, gen_fsm, send_event, [Tuner, {inter_new_length, Current1}]) end, AllInterNodes),
+            lists:foreach(fun({Node, Tuner}) -> rpc:cast(Node, gen_fsm, send_event, [Tuner, {inter_new_length, Current1}]) end, AllInterNodes),
             {Prev1, Current2} = case Current1 of Current -> {Prev, Current}; _ -> {Current, Current1} end,
-            ets:insert(stat, {{auto_tune, MasterRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
+            ets:insert(stat, {{auto_tune, MasterRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, SumThroughput1, Current1}}),
             case dict:find(MasterRound+1, RoundDict) of
                 {ok, {Sum, Replied}} ->
                     {next_state, gather_stat, State#state{master_remain=NumDcs-Replied, sum_throughput=Sum,
@@ -206,20 +210,20 @@ gather_stat({master_gather, MasterRound, Throughput}, State=#state{master_remain
       end;
 gather_stat({master_gather, Round, Throughput}, State=#state{centralized=true, 
                 master_round=MasterRound, round_dict=RoundDict}) ->
-    lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, MasterRound]),
+    lager:warning("Received here!!?? Current round is ~w, proceeding to ~w", [MasterRound, Round]),
     case Round > MasterRound of
         true ->
             RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict)  ,
             {next_state, gather_stat, State#state{round_dict=RoundDict1}};
         false ->
-            true = Round < MasterRound,
-            {next_state, gather_stat, State}
+	    {next_state, gather_stat, State#state{master_remain=NumDcs, sum_throughput=0,
+                        master_round=Round}}
     end;
 
 gather_stat({inter_gather, InterRound, Throughput}, State=#state{inter_remain=InterRemain, centralized=true, 
                 inter_round=InterRound, inter_gather=InterGather, 
                 master=Master, sum_throughput=SumThroughput}) ->
-    lager:warning("Inter ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, InterRound, InterRemain]),
+    %lager:warning("Inter ~w  Received ~w for round ~w, remaining ~w", [node(), Throughput, InterRound, InterRemain]),
     case InterRemain of
         1 ->
             SumThroughput1 = SumThroughput + Throughput,
@@ -245,14 +249,14 @@ gather_stat({inter_gather, Round, Throughput}, State=#state{centralized=true,
     end;
 
 gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, centralized=Centralized, 
-                my_workers=MyWorkers, prev_throughput=PrevTh, current_round=CurrentRound, 
+                my_workers=MyWorkers, prev_throughput=PrevTh, current_round=CurrentRound, max_len=MaxLen, 
                 sum_throughput=SumThroughput, inter_node=InterNode, previous=Prev, current=Current}) ->
     case Centralized of
         false ->
             SumThroughput = 0,
             NumNodes = 1,
             %{S1, B1, NewLength, PrevTh1} = get_new_length(PrevTh, Sml, Big, Mid, Throughput),
-            {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, Throughput),
+            {Current1, PrevTh1} = linear_stay(Prev, Current, PrevTh, Throughput, MaxLen),
             %{Current1, PrevTh1} = linear_new_length(Prev, Current, PrevTh, Throughput),
             lager:warning("Distribute: Previous length is ~w, current is ~w, next length is ~w", [Prev, Current, Current1]),
             ets:insert(stat, {{auto_tune, CurrentRound}, {Prev, dict:fetch(Prev, PrevTh1), Current, Throughput, Current1}}),
@@ -274,11 +278,11 @@ gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, ce
     end;
 
 gather_stat({inter_new_length, NewLength} , State=#state{inter_range_nodes=InterRangeNodes}) ->
-    %lists:foreach(fun(Node) -> gen_fsm:send_event({global, Node}, {new_length, NewLength}) end, InterRangeNodes),
-    lists:foreach(fun(Node, Tuner) -> rpc:cast(Node, gen_fsm, send_event, [Tuner, {new_length, NewLength}]) end, InterRangeNodes),
+    lists:foreach(fun({Node, Tuner}) -> rpc:cast(Node, gen_fsm, send_event, [Tuner, {new_length, NewLength}]) end, InterRangeNodes),
     {next_state, gather_stat, State};
 
 gather_stat({new_length, NewLength} , State=#state{my_workers=MyWorkers}) ->
+    lager:warning("~w received new length ~w", [node(), NewLength]),
     Workers = case MyWorkers of [] -> basho_bench_sup:workers();
                                 _ -> MyWorkers
               end,
@@ -304,7 +308,7 @@ code_change(_OldVsn, _, State, _Extra) ->
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
-linear_stay(Prev, Current, Dict, Throughput) ->
+linear_stay(Prev, Current, Dict, Throughput, MaxLen) ->
     Dict1 = dict:store(Current, Throughput, Dict),
     case Prev of
         -1 -> %% This is the first time!
@@ -312,24 +316,24 @@ linear_stay(Prev, Current, Dict, Throughput) ->
             {1, Dict1};
         _ ->
             PrevTh = dict:fetch(Prev, Dict),
-            lager:warning("Prev is ~w, prevth is ~w, curr is ~w, curr th is ~w", [PrevTh, Prev, Throughput, Current]),
+            lager:warning("Prev is ~w, prevth is ~w, curr is ~w, curr th is ~w, max len is ~w", [PrevTh, Prev, Throughput, Current, MaxLen]),
             case Throughput > PrevTh of
                 true ->
                     case Current > Prev of
                         true ->
-                            Next = min(Current+1, ?BIG),
+                            Next = min(Current+1, MaxLen),
 			    lager:warning("Should to here, next is ~w", [Next]),
                             to_next_or_not(Current, Next, Dict1, Throughput);
                         false -> 
-                            Next = max(Current-1, ?SML),
+                            Next = max(Current-1, 0),
                             to_next_or_not(Current, Next, Dict1, Throughput)
                     end;
                 false ->
                     case Current > Prev of
                         true ->
-                            {max(Current-1, ?SML), Dict1};
+                            {max(Current-1, 0), Dict1};
                         false -> 
-                            {min(Current+1, ?BIG), Dict1}
+                            {min(Current+1, MaxLen), Dict1}
                     end
             end
     end.
@@ -345,7 +349,7 @@ to_next_or_not(Current, Next, Dict, Throughput) ->
                         end
     end.
 
-linear_new_length(Prev, Current, Dict, Throughput) ->
+linear_new_length(Prev, Current, Dict, Throughput, MaxLen) ->
     case Prev of
         -1 -> %% This is the first time!
             lager:warning("Prev is -1, Current is 0, throughput is ~w", [Throughput]),
@@ -358,22 +362,22 @@ linear_new_length(Prev, Current, Dict, Throughput) ->
                 true ->
                     case Current > Prev of
                         true ->
-                            {min(Current+1, ?BIG), dict:store(Current, Throughput, Dict)};
+                            {min(Current+1, MaxLen), dict:store(Current, Throughput, Dict)};
                         false -> 
-                            {max(Current-1, ?SML), dict:store(Current, Throughput, Dict)}
+                            {max(Current-1, 0), dict:store(Current, Throughput, Dict)}
                     end;
                 false ->
                     case Current > Prev of
                         true ->
-                            {max(Current-1, ?SML), dict:store(Current, Throughput, Dict)};
+                            {max(Current-1, 0), dict:store(Current, Throughput, Dict)};
                         false -> 
-                            {min(Current+1, ?BIG), dict:store(Current, Throughput, Dict)}
+                            {min(Current+1, MaxLen), dict:store(Current, Throughput, Dict)}
                     end
             end
     end.
 
-binary_search(Dict, Small, Big, Mid, Throughput) ->
-    case (Big == ?BIG) and (Small == ?SML) and (Mid == ?SML) of
+binary_search(Dict, Small, Big, Mid, Throughput, MaxLen) ->
+    case (Big == MaxLen) and (Small == 0) and (Mid == 0) of
         true -> % First time!
             D1 = dict:store(Small, Throughput, Dict),
             {Small, Big, (Big + Small) div 2, D1};
@@ -410,4 +414,7 @@ get_ip([C|T], Prev) ->
     end.
 
 tuner_name() ->
-    list_to_atom( get_ip(atom_to_list(node()), [])  ++ "@auto_tuner").
+    case basho_bench_config:get(auto_tune, false) of
+        false -> false;
+        true -> list_to_atom( get_ip(atom_to_list(node()), [])  ++ "@auto_tuner")
+    end.

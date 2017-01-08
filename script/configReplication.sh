@@ -25,7 +25,7 @@ if [ "$NumDcs" -eq 1 ]; then
 else
     Leap=$NodesPerDc
 fi
-echo "Leap is "$Leap
+#echo "Leap is "$Leap
 
 Length=${#AntNodeArray[@]}
 for Node in $AllNodes
@@ -46,6 +46,6 @@ do
     I=$((I+1))
 done
 ReplList=$ReplList"]"
-echo "$ReplList"
+#echo "$ReplList"
 ./localScripts/changeConfig.sh ../antidote/rel/files/antidote.config to_repl "$ReplList"
 ./localScripts/changeConfig.sh ../antidote/rel/antidote/antidote.config to_repl "$ReplList"
