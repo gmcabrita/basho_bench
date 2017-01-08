@@ -10,6 +10,46 @@ from os.path import basename
 import os
 import numpy as np
 
+def get_compare_data(root_folders, all_names):
+    num_lines=len(root_folders)
+    tl1=[]
+    tl2=[]
+    tl3=[]
+    for i in range(num_lines):
+        l1, l2, l3, l4 = get_data(root_folders[i], all_names[i])
+        tl1.append(l1)        
+        tl2.append(l2)
+        tl3.append([l3, l4])
+    return tl1, tl2, tl3
+
+def get_data(root_folder, list_names): 
+    th_list=[]
+    abort_list=[]
+    final_lat_list=[]
+    percv_lat_list=[]
+    for name in list_names:
+        folder = os.path.join(root_folder, name)
+        file = os.path.join(folder, 'total_throughput')
+        data = np.loadtxt(file, skiprows=1, usecols=range(1,7))
+        throughput=data[0,0]/1000
+        abort_rate=data[0,4]
+                
+        lat_file = os.path.join(folder, 'real_latency')
+        lat_data = np.loadtxt(lat_file, skiprows=1, usecols=range(1,2))
+        percv_latency=lat_data[0]
+        final_latency=lat_data[1]
+        th_list.append(throughput)
+        abort_list.append(abort_rate)
+        final_lat_list.append(final_latency)
+        percv_lat_list.append(percv_latency)
+
+    #print(th_list)
+    #print(abort_list)
+    #print(final_lat_list)
+    #print(percv_lat_list)
+    return th_list, abort_list, final_lat_list, percv_lat_list
+        
+
 def get_matching_series(args):
     return get_matching_series_delete(args, [], [])
 

@@ -63,10 +63,10 @@ def add_throughput(my_dict, my_file):
     if line_num > 18:
         SKIP_FIRST=13
     elif line_num > 15:
-        SKIP_FIRST=10
+        SKIP_FIRST=9
     else:
         SKIP_FIRST=2
-    SKIP_LAST=1
+    SKIP_LAST=2
     
     with open(my_file) as stream:
         oldlines = stream.read().splitlines() 
@@ -110,7 +110,7 @@ def add_real_latency(tag, total_entry, node_entry, folder):
         with open(file) as f:
             for line in f:
                 lat= parse_line(line)
-                if lat != '':
+                if lat != '' and lat > 0:
                     tmp_sum += lat
                     tmp_cnt += 1
         #node = file.split('/')[-1].split('-')[-1] 
