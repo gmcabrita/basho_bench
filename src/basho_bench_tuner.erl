@@ -237,7 +237,7 @@ gather_stat({inter_gather, InterRound, Throughput}, State=#state{inter_remain=In
             {next_state, gather_stat, State#state{inter_remain=InterRemain-1, sum_throughput=SumThroughput+Throughput}}
     end;
 gather_stat({inter_gather, Round, Throughput}, State=#state{centralized=true, 
-                inter_round=InterRound, round_dict=RoundDict}) ->
+                inter_round=InterRound, round_dict=RoundDict, inter_gather=InterGather}) ->
     lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, InterRound]),
     case Round > InterRound of
         true ->
@@ -245,7 +245,7 @@ gather_stat({inter_gather, Round, Throughput}, State=#state{centralized=true,
             {next_state, gather_stat, State#state{round_dict=RoundDict1}};
         false ->
             true = Round < InterRound,
-            {next_state, gather_stat, State}
+	    {next_state, gather_stat, State#state{inter_remain=InterGather, sum_throughput=0, inter_round=Round}}
     end;
 
 gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, centralized=Centralized, 
