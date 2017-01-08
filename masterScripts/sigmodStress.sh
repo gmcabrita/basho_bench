@@ -143,8 +143,8 @@ clock=new
 len=0
 #threads="10 20 40 80 160"
 #contentions="4 3 2 1"
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 folder="specula_tests/micro/externalnew"
 rm -rf ./config
@@ -158,8 +158,8 @@ echo micro all_nodes replace >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
@@ -192,7 +192,7 @@ sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_r
 
 for t in $threads
 do
-    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
+    #sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG
