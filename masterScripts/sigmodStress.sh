@@ -31,10 +31,10 @@ skipped=1
 skip_len=0
 prob_access=t
 
-rep=5
-parts=28
-#rep=1
-#parts=10
+#rep=5
+#parts=28
+rep=1
+parts=4
 
 #MBIG=60000
 #MSML=6000
@@ -140,7 +140,7 @@ seq="1"
 do_specula=true
 specula_read=true
 clock=new
-len=0
+len=8
 threads="80"
 #contentions="4 3 2 1"
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
@@ -158,7 +158,7 @@ echo micro all_nodes replace >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
+sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
 sudo ./script/restartAndConnect.sh
 
 for t in $threads
@@ -174,6 +174,7 @@ do
         runNTimes
     done
 done
+exit
 
 threads="10 20 40 80"
 folder="specula_tests/micro/internalnew"
