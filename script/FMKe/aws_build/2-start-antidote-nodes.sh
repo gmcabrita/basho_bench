@@ -25,7 +25,7 @@ if [ -z "$CLEANMAKE" ]; then
     CLEANMAKE=TRUE
 fi
 if [ -z "$GITBRANCH" ]; then
-    GITBRANCH="build-local-cluster"
+    GITBRANCH="build-local-cluster-aws"
 fi
 
 # env
