@@ -16,7 +16,7 @@ IP_ADDR_LIST=$(echo $* | cut -d' ' -f2-)
 SSH_OPTIONS="-o StrictHostKeyChecking=no -i $PRIVATEKEY"
 USER=ubuntu
 
-if [ -z "$BENCH_ANT"  ]; then
+if [ ! -d "$BENCHMARKS_DIR" ]; then
     mkdir $BENCHMARKS_DIR
 fi
 
