@@ -28,18 +28,22 @@ if [ -d "$ANTIDOTE_DIR" ]; then
     # Control will enter here if $DIRECTORY exists.
     cd $ANTIDOTE_DIR
 
-    git checkout build-local-cluster
+    git checkout build-local-cluster-aws
     git pull
-    make rel
 else
     echo "[SCRIPT] Antidote repository not found. Cloning repository..."
-    git clone https://github.com/SyncFree/antidote
+    git clone https://github.com/goncalotomas/antidote
 
     cd $ANTIDOTE_DIR
-    git checkout build-local-cluster
-    make rel
-fi
+    git checkout build-local-cluster-aws
 
+fi
+PUBLIC_NODE_IP=`curl checkip.amazonaws.com`
+echo "{public_ip, {$PUBLIC_NODE_IP}}" > ./config/node-address.config
+sed -ie 's/\./,/g' ./config/node-address.config
+echo "." >> ./config/node-address.config
+
+make rel
 cd $BIN_DIR
 
  ############################## FMKe #################################
