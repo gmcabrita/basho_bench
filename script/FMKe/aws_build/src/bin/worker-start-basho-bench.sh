@@ -16,5 +16,5 @@ if [ CLEANMAKE=TRUE ]; then
     git pull
     make all
 fi
-
-./_build/default/bin/basho_bench examples/fmkclient.config &
+cd -
+/home/ubuntu/basho_bench/_build/default/bin/basho_bench examples/fmkclient.config &
