@@ -17,4 +17,4 @@ if [ CLEANMAKE=TRUE ]; then
     make all
 fi
 cd -
-/home/ubuntu/basho_bench/_build/default/bin/basho_bench examples/fmkclient.config &
+/home/ubuntu/basho_bench/_build/default/bin/basho_bench /home/ubuntu/basho_bench/examples/fmkclient.config &
