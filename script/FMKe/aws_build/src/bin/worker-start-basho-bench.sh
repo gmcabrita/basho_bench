@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Call this like IP=1.2.3.4 worker-start-fmk.sh
 
-BB_DIR="/home/ubuntu/basho-bench"
+BB_DIR="/home/ubuntu/basho_bench"
 
 if [ -z "$CLEANMAKE" ]; then
     CLEANMAKE=TRUE
