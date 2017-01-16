@@ -83,6 +83,8 @@ echo "[SCRIPT]: STEP 2/4: Editing configuration files for each bench node..."
 REMOTE_CONFIG_FILE="/home/ubuntu/basho_bench/examples/fmkclient.config"
 WORKER_SCRIPT="./src/bin/worker-configure-benchmark.sh"
 REMOTE_WORKER_SCRIPT="/home/ubuntu/worker-configure-benchmark.sh"
+WORKER_BENCH_SCRIPT="./src/bin/worker-start-basho-bench.sh"
+REMOTE_WORKER_BENCH_SCRIPT="/home/ubuntu/worker-start-basho-bench.sh"
 
 for index in "${!IP_ARR[@]}"; do
     ## ASSIGN EACH BASHO BENCH TO EACH FMK IN A ROUND ROBIN FASHION
@@ -91,6 +93,10 @@ for index in "${!IP_ARR[@]}"; do
     scp ${SSH_OPTIONS} ${WORKER_SCRIPT} ${USER}@${IP_ARR[$index]}:${REMOTE_WORKER_SCRIPT}
     ssh ${SSH_OPTIONS} ${USER}@${IP_ARR[$index]} chmod u+x ${REMOTE_WORKER_SCRIPT}
     echo "[SCRIPT]: Configuration script copied successfully."
+    echo "[SCRIPT]: Copying runnable worker script to remote machine..."
+    scp ${SSH_OPTIONS} ${WORKER_BENCH_SCRIPT} ${USER}@${IP_ARR[$index]}:${REMOTE_WORKER_BENCH_SCRIPT}
+    ssh ${SSH_OPTIONS} ${USER}@${IP_ARR[$index]} chmod u+x ${REMOTE_WORKER_BENCH_SCRIPT}
+    echo "[SCRIPT]: Runnable worker script copied successfully."
     echo "[SCRIPT]: Running configuration script..."
     ssh ${SSH_OPTIONS} ${USER}@${IP_ARR[$index]} NUM_CLIENTS=${NUM_CLIENTS} BENCHDURATION=${BENCHDURATION} IP_ADDR=${IP_ARR[$index]} FMK_HTTP_ADDRESSES=${FMK_ADDRESS_ARR[$(($index % $FMK_ADDRESS_ARR_SIZE))]} FMK_HTTP_PORTS=${FMK_PORT_ARR[$(($index % $FMK_ADDRESS_ARR_SIZE))]} REMOTE_CONFIG_FILE=${REMOTE_CONFIG_FILE} ${REMOTE_WORKER_SCRIPT}
 done
@@ -125,11 +131,11 @@ echo "STEP 3/4: Done."
 #########################################################
 # BENCHMARKING STAGE                                    #
 #########################################################
+REMOTE_BB_SCRIPT=${REMOTE_WORKER_BENCH_SCRIPT}
 echo "[SCRIPT]: STEP 4/4: Starting benchmarks..."
 for IP_ADDR in $IP_ADDR_LIST; do
-    REMOTE_BENCHMARK_COMMAND="/home/ubuntu/basho_bench/_build/default/bin/basho_bench ${REMOTE_CONFIG_FILE}"
     echo "[SCRIPT]: Starting benchmark in node ${IP_ADDR}..."
-    ssh ${SSH_OPTIONS} ${USER}@${IP_ADDR} $REMOTE_BENCHMARK_COMMAND &
+    ssh $SSH_OPTIONS $USER@${IP_ADDR} GITBRANCH=${GITBRANCH} CLEANMAKE=${CLEANMAKE} ${REMOTE_BB_SCRIPT} &
 done
 echo "[SCRIPT]: BENCHMARKS STARTED IN ALL NODES."
 
