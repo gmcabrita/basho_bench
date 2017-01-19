@@ -25,6 +25,7 @@
 
 %% 0 means no spec read + SL0, 1 means spec read +SL1...
 -define(SML, 0).
+-define(DAMP_FACTOR, 1.05).
 %% API
 -export([start_link/0]).
 
@@ -318,7 +319,7 @@ linear_stay(Prev, Current, Dict, Throughput, MaxLen) ->
         _ ->
             PrevTh = dict:fetch(Prev, Dict),
             lager:warning("Prev is ~w, prevth is ~w, curr is ~w, curr th is ~w, max len is ~w", [PrevTh, Prev, Throughput, Current, MaxLen]),
-            case Throughput > PrevTh of
+            case Throughput > PrevTh*?DAMP_FACTOR of
                 true ->
                     case Current > Prev of
                         true ->

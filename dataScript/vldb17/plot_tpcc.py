@@ -64,7 +64,7 @@ ax33 = plt.subplot2grid((3,3), (2,2))
 time=datetime.now().strftime("%Y%m%d-%H:%M:%S")
 output_folder='./figures/vldb/tpcc/' + time
 os.mkdir(output_folder)
-dict1={'y_lim':1, 'y3_lim':40000, 'legend_type':'warehouse', 'legends':['ClockSI-Rep', 'PLANET', 'STR-Internal', 'STR-External'], 'y1_label':'Thousand txs/sec', 'y2_label':'Abort rate', 'y3_label':'Latency(ms) in log', 'abort_legend':['Abort rate  ', 'Baseline', 'STR: i. abort', 'STR: s. abort'], 'no_title':True, 'x_label': 'Client number', 'th_lim':5, 'lat_lim':100000, 'under_labels':'(a) 5% new order, 83% payment', 'bbox_loc':(2.1,1.42)}
+dict1={'y_lim':2, 'y3_lim':40000, 'legend_type':'warehouse', 'legends':['ClockSI-Rep', 'PLANET', 'STR-Internal', 'STR-External'], 'y1_label':'Thousand txs/sec', 'y2_label':'Abort rate', 'y3_label':'Latency(ms) in log', 'abort_legend':['Abort rate  ', 'Baseline', 'STR: i. abort', 'STR: s. abort'], 'no_title':True, 'x_label': 'Client number', 'th_lim':5, 'lat_lim':100000, 'under_labels':'(a) 5% new order, 83% payment', 'bbox_loc':(2.1,1.42)}
 dict1['x_ticks']=[10, 100, 200, 400, 600, 800]
 
 [baselineLL]=get_matching_series_delete([baseline_folder, 'tpcc', 7, 8, 5, 83, 1], [], {'order':'ascend'})
@@ -73,12 +73,10 @@ baselineLL=sort_by_num(baselineLL)
 [planetLL]=get_matching_series_delete([planet_folder, 'tpcc', 7, 8, 5, 83, 1], [], {'order':'ascend'})
 planetLL=sort_by_num(planetLL)
 #planetLL=planetLL[:-1]
-#[internalLL]=get_matching_series_delete([int_folder, 'tpcc', 7, 8, 5, 83, 1], [], {'order':'ascend'})
-#internalLL=sort_by_num(internalLL)
-#[externalLL]=get_matching_series_delete([ext_folder, 'tpcc', 7, 8, 5, 83, 1], [], {'order':'ascend'})
-#externalLL=sort_by_num(externalLL)
-internalLL=[]
-externalLL=[]
+[internalLL]=get_matching_series_delete([int_folder, 'tpcc', 7, 8, 5, 83, 1], [], {'order':'ascend'})
+internalLL=sort_by_num(internalLL)
+[externalLL]=get_matching_series_delete([ext_folder, 'tpcc', 7, 8, 5, 83, 1], [], {'order':'ascend'})
+externalLL=sort_by_num(externalLL)
 th, abort, lat = get_compare_data([baseline_folder, planet_folder, int_folder, ext_folder], [baselineLL, planetLL, internalLL, externalLL])
 lgd=plot_lines(th, abort, lat, ax11, ax12, ax13, dict1)
 
@@ -94,17 +92,14 @@ baselineLL=sort_by_num(baselineLL)
 [planetLL]=get_matching_series_delete([planet_folder, 'tpcc', 7, 8, 45, 43, 1], [], {'order':'ascend'})
 planetLL=sort_by_num(planetLL)
 #planetLL=planetLL[:-1]
-#[internalLL]=get_matching_series_delete([int_folder, 'tpcc', 7, 8, 45, 43, 1], [], {'order':'ascend'})
-#internalLL=sort_by_num(internalLL)
-#[externalLL]=get_matching_series_delete([ext_folder, 'tpcc', 7, 8, 45, 43, 1], [], {'order':'ascend'})
-#externalLL=sort_by_num(externalLL)
-internalLL=[]
-externalLL=[]
+[internalLL]=get_matching_series_delete([int_folder, 'tpcc', 7, 8, 45, 43, 1], [], {'order':'ascend'})
+internalLL=sort_by_num(internalLL)
+[externalLL]=get_matching_series_delete([ext_folder, 'tpcc', 7, 8, 45, 43, 1], [], {'order':'ascend'})
+externalLL=sort_by_num(externalLL)
 #print("Planet: "+" ".join(planetLL))
 #print("Internal: "+" ".join(internalLL))
 #print("External: "+" ".join(externalLL))
-#th, abort, lat = get_compare_data([baseline_folder, planet_folder, int_folder, ext_folder], [baselineLL, planetLL, internalLL, externalLL])
-th, abort, lat = get_compare_data([baseline_folder, planet_folder], [baselineLL, planetLL])
+th, abort, lat = get_compare_data([baseline_folder, planet_folder, int_folder, ext_folder], [baselineLL, planetLL, internalLL, externalLL])
 plot_lines(th, abort, lat, ax21, ax22, ax23, dict1)
 
 dict1['under_labels']='(c) 5% new order, 43% payment'
@@ -115,12 +110,10 @@ baselineLL=sort_by_num(baselineLL)
 [planetLL]=get_matching_series_delete([planet_folder, 'tpcc', 7, 8, 5, 43, 1], [], {'order':'ascend'})
 planetLL=sort_by_num(planetLL)
 #planetLL=planetLL[:-1]
-#[internalLL]=get_matching_series_delete([int_folder, 'tpcc', 7, 8, 5, 43, 1], [], {'order':'ascend'})
-#internalLL=sort_by_num(internalLL)
-#[externalLL]=get_matching_series_delete([ext_folder, 'tpcc', 7, 8, 5, 43, 1], [], {'order':'ascend'})
-#externalLL=sort_by_num(externalLL)
-internalLL=[]
-externalLL=[]
+[internalLL]=get_matching_series_delete([int_folder, 'tpcc', 7, 8, 5, 43, 1], [], {'order':'ascend'})
+internalLL=sort_by_num(internalLL)
+[externalLL]=get_matching_series_delete([ext_folder, 'tpcc', 7, 8, 5, 43, 1], [], {'order':'ascend'})
+externalLL=sort_by_num(externalLL)
 th, abort, lat = get_compare_data([baseline_folder, planet_folder, int_folder, ext_folder], [baselineLL, planetLL, internalLL, externalLL])
 #print("Planet: "+" ".join(planetLL))
 #print("Internal: "+" ".join(internalLL))

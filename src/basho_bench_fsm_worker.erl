@@ -27,6 +27,7 @@
 %% API
 -export([start_link/1,
          run/1,
+         tt_to_time/1,
          cleanup/2,
          suspend/1,
          stop/1]).
@@ -524,6 +525,7 @@ worker_next_op(State) ->
             end;
         {specula_commit, {AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
             %lager:warning("Final commit updates are ~w, FinallComm Reads are ~w, spec txs are ~w, read txs are ~w, update seq is ~w, lucnt is ~w", [FinalCommitUpdates, FinalCommitReads, SpeculaTxs, ReadTxs, UpdateSeq, LatestUpdate]),
+            %lager:warning("TxnSeq is ~w, Now is ~w", [UpdateSeq, Now]),
             ReadTxs1 = finalize_reads(reverse_sort(FinalCommitReads), ReadTxs, [], ok),
             ReadTxs2 = finalize_reads(reverse_sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], Now),
@@ -730,11 +732,15 @@ commit_updates(FinalCdf, SpeculaCdf, [{TxnSeq, SpecCommitTime, EndTime}], [{TxnS
     SCTime = timer:now_diff(SpecCommitTime, StartTime),
     basho_bench_stats:op_complete({OpName, OpName}, ok),
     {[{Now, UsedTime}|FinalCdf], [{Now, SCTime}|SpeculaCdf], SpeculaRest}; 
-commit_updates(FinalCdf, SpeculaCdf, [{{tx_id, _A, _B, _C, TxnSeq}, EndTime}|Rest], [{TxnSeq, OpName, StartTime, SpecTime}|SpeculaRest], PreviousSpecula, Now)->
+commit_updates(FinalCdf, SpeculaCdf, [{{tx_id, _A, _B, _C, TxnSeq}=_TxId, EndTime}|Rest], [{TxnSeq, OpName, StartTime, SpecTime}|SpeculaRest], PreviousSpecula, Now)->
     %case EndTime of ignore ->%lager:warning("End Time is ~w, SpecTime is ~w, TxId is ~w", [EndTime, SpecTime, TxId]); _ -> ok end, 
     UsedTime = timer:now_diff(EndTime, StartTime),
     %case SpecTime of ignore ->%lager:warning("End Time is ~w, SpecTime is ~w, TxId is ~w", [EndTime, SpecTime, TxId]); _ -> ok end, 
-    PercvTime = timer:now_diff(SpecTime, StartTime),
+    PercvTime0 = timer:now_diff(SpecTime, StartTime),
+    PercvTime = case UsedTime < PercvTime0 of
+                    true -> UsedTime;
+                    false -> PercvTime0
+                end,
     basho_bench_stats:op_complete({OpName, OpName}, ok),
     commit_updates([{Now, UsedTime}|FinalCdf], [{Now, PercvTime}|SpeculaCdf], Rest, SpeculaRest, PreviousSpecula, Now);
 commit_updates(FinalCdf, SpeculaCdf, [{tx_id, _A, _B, _C, TxnSeq}|Rest], [{TxnSeq, OpName, _StartTime, _SpecTime}|SpeculaRest], PreviousSpecula, Now)->
@@ -829,3 +835,5 @@ get_op_type({_, order_status}) ->
 get_op_type(_Name) ->
     read.
    
+tt_to_time({MegaSecs, Secs, MicroSecs}) ->
+    (MegaSecs * 1000000 + Secs) * 1000000 + MicroSecs.

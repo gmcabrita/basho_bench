@@ -77,8 +77,6 @@ baselineLL=baselineLL[:-1]
 [planetLL]=get_matching_series_delete([planet_folder, 'micro', 4, 6, 30000, 15000, 1], [], {'order':'ascend'})
 planetLL=sort_by_num(planetLL)
 planetLL=planetLL[:-1]
-internalLL=[]
-externalLL=[]
 [internalLL]=get_matching_series_delete([int_folder, 'micro', 4, 6, 30000, 15000, 1], [], {'order':'ascend'})
 internalLL=sort_by_num(internalLL)
 [externalLL]=get_matching_series_delete([ext_folder, 'micro', 4, 6, 30000, 15000, 1], [], {'order':'ascend'})
@@ -100,8 +98,6 @@ baselineLL=baselineLL[:-1]
 [planetLL]=get_matching_series_delete([planet_folder, 'micro', 4, 6, 1000, 15000, 1], [], {'order':'ascend'})
 planetLL=sort_by_num(planetLL)
 planetLL=planetLL[:-1]
-internalLL=[]
-externalLL=[]
 [internalLL]=get_matching_series_delete([int_folder, 'micro', 4, 6, 1000, 15000, 1], [], {'order':'ascend'})
 internalLL=sort_by_num(internalLL)
 [externalLL]=get_matching_series_delete([ext_folder, 'micro', 4, 6, 1000, 15000, 1], [], {'order':'ascend'})
@@ -109,8 +105,8 @@ externalLL=sort_by_num(externalLL)
 #print("Planet: "+" ".join(planetLL))
 #print("Internal: "+" ".join(internalLL))
 #print("External: "+" ".join(externalLL))
-#th, abort, lat = get_compare_data([baseline_folder, planet_folder, int_folder, ext_folder], [baselineLL, planetLL, internalLL, externalLL])
-th, abort, lat = get_compare_data([baseline_folder, planet_folder], [baselineLL, planetLL])
+th, abort, lat = get_compare_data([baseline_folder, planet_folder, int_folder, ext_folder], [baselineLL, planetLL, internalLL, externalLL])
+#th, abort, lat = get_compare_data([baseline_folder, planet_folder], [baselineLL, planetLL])
 plot_lines(th, abort, lat, ax21, ax22, ax23, dict1)
 
 dict1['under_labels']='(c) Low local, high remote'
@@ -142,13 +138,13 @@ planetLL=planetLL[:-1]
 internalLL=sort_by_num(internalLL)
 [externalLL]=get_matching_series_delete([ext_folder, 'micro', 4, 6, 1000, 500, 1], [], {'order':'ascend'})
 externalLL=sort_by_num(externalLL)
-#th, abort, lat = get_compare_data([baseline_folder, planet_folder, int_folder, ext_folder], [baselineLL, planetLL, internalLL, externalLL])
+th, abort, lat = get_compare_data([baseline_folder, planet_folder, int_folder, ext_folder], [baselineLL, planetLL, internalLL, externalLL])
 #print("Planet: "+" ".join(planetLL))
 #print("Internal: "+" ".join(internalLL))
 #print("External: "+" ".join(externalLL))
 #plot_lines([[0.62, 0.74, 1.19, 0.93, 0.59], [2.41, 2.43, 1.14, 0.94, 0.72]], [], [[],[]], ax41, ax42, ax43, dict1)
 #plot_lines([[0]], [[0]], [[[0],[0]]], ax41, ax42, ax43, dict1)
-th, abort, lat = get_compare_data([baseline_folder, planet_folder], [baselineLL, planetLL])
+#th, abort, lat = get_compare_data([baseline_folder, planet_folder], [baselineLL, planetLL])
 plot_lines(th, abort, lat, ax41, ax42, ax43, dict1)
 
 plt.figtext(0.42, 0.11, "Number of clients per server", fontsize=18)
