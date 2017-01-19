@@ -49,6 +49,7 @@ CBIG=15000
 CSML=500
 
 MR=$MBIG 
+
 CR=$CBIG
 SR=100000
 
@@ -140,13 +141,13 @@ seq="1"
 do_specula=true
 specula_read=true
 clock=new
-len=0
-#threads="10 20 40 80 160"
-#contentions="4 3 2 1"
+len=8
+threads="40 80"
+contentions="4 2 1"
 sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
-folder="specula_tests/micro/externalnew"
+folder="specula_tests/20170118"
 rm -rf ./config
 echo micro duration 120 >> config
 echo micro auto_tune true >> config
@@ -174,7 +175,9 @@ do
         runNTimes
     done
 done
+exit
 
+threads="10 20 40 80"
 folder="specula_tests/micro/internalnew"
 rm -rf ./config
 echo micro duration 80 >> config
@@ -192,7 +195,7 @@ sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_r
 
 for t in $threads
 do
-    sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
+    #sudo ./script/configBeforeRestart.sh $t $do_specula $len $rep $parts $specula_read
     for cont in $contentions
     do
         if [ $cont == 1 ]; then MR=$MBIG CR=$CBIG

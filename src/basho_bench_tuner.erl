@@ -214,11 +214,11 @@ gather_stat({master_gather, Round, Throughput}, State=#state{centralized=true,
     lager:warning("Received here!!?? Current round is ~w, proceeding to ~w", [MasterRound, Round]),
     case Round > MasterRound of
         true ->
-            RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict)  ,
-            {next_state, gather_stat, State#state{round_dict=RoundDict1}};
+            %RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict)  ,
+            %{next_state, gather_stat, State#state{round_dict=RoundDict1}};
+	    {next_state, gather_stat, State#state{master_remain=NumDcs-1, sum_throughput=Throughput, master_round=Round}};
         false ->
-	    {next_state, gather_stat, State#state{master_remain=NumDcs, sum_throughput=0,
-                        master_round=Round}}
+	    {next_state, gather_stat, State}
     end;
 
 gather_stat({inter_gather, InterRound, Throughput}, State=#state{inter_remain=InterRemain, centralized=true, 
@@ -238,15 +238,16 @@ gather_stat({inter_gather, InterRound, Throughput}, State=#state{inter_remain=In
             {next_state, gather_stat, State#state{inter_remain=InterRemain-1, sum_throughput=SumThroughput+Throughput}}
     end;
 gather_stat({inter_gather, Round, Throughput}, State=#state{centralized=true, 
-                inter_round=InterRound, round_dict=RoundDict}) ->
+                inter_round=InterRound, round_dict=RoundDict, inter_gather=InterGather}) ->
     lager:warning("Received here!!?? Round is ~w, current round is ~w", [Round, InterRound]),
     case Round > InterRound of
         true ->
-            RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict)  ,
-            {next_state, gather_stat, State#state{round_dict=RoundDict1}};
+            %RoundDict1 = dict:update(Round, fun({RSum, RCount}) -> {RSum+Throughput, RCount+1} end, {0,0}, RoundDict)  ,
+            %{next_state, gather_stat, State#state{round_dict=RoundDict1}};
+	    {next_state, gather_stat, State#state{inter_remain=InterGather-1, sum_throughput=Throughput, inter_round=Round}};
         false ->
             true = Round < InterRound,
-            {next_state, gather_stat, State}
+	    {next_state, gather_stat, State}
     end;
 
 gather_stat({throughput, Round, Throughput}, State=#state{num_nodes=NumNodes, centralized=Centralized, 

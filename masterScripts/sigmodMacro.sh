@@ -60,26 +60,26 @@ tpcc_length="8"
 rubis_length="8"
 len=8
 
-if [ 1 == 2 ];
-then
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
-echo tpcc duration 240 >> config
+echo tpcc duration 120 >> config
 echo rubis cdf true >> config
-echo rubis duration 240 >> config
+echo rubis duration 120 >> config
 echo rubis all_update true >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 2000 $do_specula $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 4000 $do_specula $len $rep $parts $specula_read
+#sudo ./script/restartAndConnect.sh
 
-#tpcc_threads="200 400 600 800 1000"
-tpcc_threads="800"
+if [ 1 == 2 ];
+then
+Folder="./specula_tests/macro/external/tpcc/"
+tpcc_threads="10 100 200 400 600 800"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -93,9 +93,7 @@ do
         done
 done
 
-#tpcc_threads="300 600 900 1200 1500"
-#tpcc_threads="900 1200"
-tpcc_threads="1200"
+tpcc_threads="20 200 400 600 800 1000"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -109,9 +107,7 @@ do
         done
 done
 
-#tpcc_threads="600 1200 1800 2400 3000"
-#tpcc_threads="1200 1800"
-tpcc_threads="1800"
+tpcc_threads="20 200 400 800 1200 1600"
 workloads="3"
 for t in $tpcc_threads
 do  
@@ -131,14 +127,83 @@ do
         done
 done
 
-#rubis_threads="3000 4000 5000"
-rubis_threads="500"
+Folder="./specula_tests/macro/external/rubis/"
+rubis_threads="50 500 1000 2000 3000 4000"
 for t in $rubis_threads
 do  
         think_time="0"
         runRubis
 done
 fi
+
+
+## Internal!!!
+tpcc_length="0"
+rubis_length="0"
+len=0
+sudo ./script/configBeforeRestart.sh 4000 $do_specula $len $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
+
+Folder="./specula_tests/macro/internal/tpcc/"
+tpcc_threads="10 100 200 400 600 800"
+workloads="1"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+
+tpcc_threads="20 200 400 600 800 1000"
+workloads="2"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+            for wh in $warehouse
+            do
+                think_time="tpcc"
+                runTpccNTimes 
+            done
+        done
+done
+
+tpcc_threads="20 200 400 800 1200 1600"
+workloads="3"
+for t in $tpcc_threads
+do  
+        for wl in $workloads
+        do
+	    for len in $tpcc_length
+	    do
+            for wh in $warehouse
+            do
+		for len in $tpcc_length
+		do
+                think_time="tpcc"
+                runTpccNTimes 
+		done
+            done
+	    done
+        done
+done
+
+Folder="./specula_tests/macro/internal/rubis/"
+rubis_threads="50 500 1000 2000 3000 4000"
+for t in $rubis_threads
+do  
+        think_time="0"
+        runRubis
+done
+
+
+
+exit
 
 do_specula=true
 specula_read=false
