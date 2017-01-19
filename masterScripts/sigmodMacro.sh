@@ -60,8 +60,8 @@ tpcc_length="8"
 rubis_length="8"
 len=8
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -74,7 +74,7 @@ sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 sudo ./script/configBeforeRestart.sh 4000 $do_specula $len $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/restartAndConnect.sh
 
 if [ 1 == 2 ];
 then
@@ -126,6 +126,7 @@ do
 	    done
         done
 done
+fi
 
 Folder="./specula_tests/macro/external/rubis/"
 rubis_threads="50 500 1000 2000 3000 4000"
@@ -134,7 +135,6 @@ do
         think_time="0"
         runRubis
 done
-fi
 
 
 ## Internal!!!
@@ -142,8 +142,10 @@ tpcc_length="0"
 rubis_length="0"
 len=0
 sudo ./script/configBeforeRestart.sh 4000 $do_specula $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/restartAndConnect.sh
 
+if [ 1 == 2 ];
+then
 Folder="./specula_tests/macro/internal/tpcc/"
 tpcc_threads="10 100 200 400 600 800"
 workloads="1"
@@ -192,6 +194,7 @@ do
 	    done
         done
 done
+fi
 
 Folder="./specula_tests/macro/internal/rubis/"
 rubis_threads="50 500 1000 2000 3000 4000"
@@ -200,8 +203,6 @@ do
         think_time="0"
         runRubis
 done
-
-
 
 exit
 
