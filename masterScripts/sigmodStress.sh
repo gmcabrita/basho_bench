@@ -142,12 +142,12 @@ do_specula=true
 specula_read=true
 clock=new
 len=0
-threads="40 80"
-contentions="1"
+threads="80"
+contentions="2"
 #sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
 #sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
-folder="specula_tests/20170118"
+folder="specula_tests/20170118new"
 rm -rf ./config
 echo micro duration 180 >> config
 echo micro auto_tune true >> config
@@ -159,7 +159,7 @@ echo micro all_nodes replace >> config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
+#sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
 #sudo ./script/restartAndConnect.sh
 
 for t in $threads
