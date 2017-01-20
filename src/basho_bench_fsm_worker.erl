@@ -257,7 +257,7 @@ execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf,
             T = tpcc_tool:get_think_time(OpTag),
             timer:sleep(round(T*random:uniform()));
         rubis ->
-            T = tpcc_tool:get_think_time({whatever, home}),
+            T = rubis_tool:get_think_time({whatever, home}),
             timer:sleep(round(T*random:uniform()));
         _ -> ok
         
