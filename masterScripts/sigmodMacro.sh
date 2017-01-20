@@ -40,12 +40,12 @@ warehouse="5"
 
 #rep=8
 #parts=28
-#rep=5
-#parts=28
+rep=5
+parts=28
 ##rep=3
 #parts=20
-rep=1
-parts=2
+#rep=1
+#parts=2
 
 start_ind=1
 skip_len=0
@@ -130,13 +130,12 @@ fi
 
 Folder="./specula_tests/macro/external/rubis/"
 #rubis_threads="50 500 1000 2000 3000 4000"
-rubis_threads="2000"
+rubis_threads="3000 4000 5000 6000"
 for t in $rubis_threads
 do  
         think_time="rubis"
         runRubis
 done
-exit
 
 
 ## Internal!!!
@@ -199,7 +198,7 @@ done
 fi
 
 Folder="./specula_tests/macro/internal/rubis/"
-rubis_threads="50 500 1000 2000"
+rubis_threads="50 500 1000 2000 3000 4000 5000 6000"
 for t in $rubis_threads
 do  
         think_time="rubis"
