@@ -68,7 +68,7 @@
                  specula_cdf, 
                  do_specula,
                  store_cdf,
-                 abort_stat,
+                 %abort_stat,
                  %op_list,
                  %cdf,
                  txn_start,
@@ -193,7 +193,7 @@ init([Id, Name]) ->
                      seed=Now,
                      specula_read=false,
                      read_txs=[],
-                     abort_stat={0,0},
+                     %abort_stat={0,0},
                      read_seq=-1,
                      store_cdf = {1, ignore, basho_bench_config:get(store_to_table, 5000)*1000},
                      update_seq=0,
@@ -282,7 +282,7 @@ execute(timeout, State=#state{mode=Mode, rate_sleep=RateSleep}) ->
 
 execute({final_abort, NewMsgId, TxId, AbortedReads, FinalCommitUpdates, FinalCommitReads}, 
         State=#state{msg_id=MsgId, final_cdf=FinalCdf, specula_cdf=SpeculaCdf, specula_txs=SpeculaTxs,
-         latest_update=LatestUpdate, read_txs=ReadTxs, update_seq=PreviousSeq, abort_stat=AbortStat, todo_op=ToDoOp}) ->
+         latest_update=LatestUpdate, read_txs=ReadTxs, update_seq=PreviousSeq, todo_op=ToDoOp}) ->
     %lager:warning("Got final abort msg, NewMsgId is ~w, OldMsgId is ~w for ~w", [NewMsgId, MsgId, TxId]),
     NewMsgId = MsgId + 1,
     {FinalCdf1, SpeculaCdf1, SpeculaTxs1} =
@@ -295,14 +295,14 @@ execute({final_abort, NewMsgId, TxId, AbortedReads, FinalCommitUpdates, FinalCom
     case (TxSeq =< PreviousSeq) of
 	    true -> 
 	    {PreviousOps, _} = ToDoOp,
-        {Sum, Cnt} = AbortStat,	
-        AbortStat1 = {Sum+timer:now_diff(os:timestamp(), StartTime), Cnt+1},
+        %{Sum, Cnt} = AbortStat,	
+        %AbortStat1 = {Sum+timer:now_diff(os:timestamp(), StartTime), Cnt+1},
         case lists:last(SpeculaTxs) of 
             {LatestUpdate, _, _, _} ->
                 {next_state, execute, State#state{final_cdf=FinalCdf1, specula_cdf=SpeculaCdf1, specula_txs=SpeculaTxs1, read_txs=ReadTxs2, 
-                msg_id=NewMsgId, update_seq=TxSeq, todo_op={PreviousOps, OpName}, abort_stat=AbortStat1, seed=StartTime, op_type=update}, 0};
+                msg_id=NewMsgId, update_seq=TxSeq, todo_op={PreviousOps, OpName}, seed=StartTime, op_type=update}, 0};
             _ ->
-	            {next_state, execute, State#state{final_cdf=FinalCdf1, specula_cdf=SpeculaCdf1, latest_update=LatestUpdate-1, specula_txs=SpeculaTxs1, read_txs=ReadTxs2, msg_id=NewMsgId, update_seq=TxSeq, todo_op={PreviousOps, OpName}, abort_stat=AbortStat1, seed=StartTime, op_type=update}, 0}
+	            {next_state, execute, State#state{final_cdf=FinalCdf1, specula_cdf=SpeculaCdf1, latest_update=LatestUpdate-1, specula_txs=SpeculaTxs1, read_txs=ReadTxs2, msg_id=NewMsgId, update_seq=TxSeq, todo_op={PreviousOps, OpName}, seed=StartTime, op_type=update}, 0}
         end;
 	false ->
 	    {next_state, execute, State, 0}
@@ -330,11 +330,11 @@ execute({'EXIT', Reason}, State) ->
             {stop, normal, State}
     end;
 
-execute({'CLEANUP', Sender}, State=#state{store_cdf=StoreCdf, id=Id, name=Name, final_cdf=FinalCdf, abort_stat=AbortStat, specula_cdf=SpeculaCdf}) ->
+execute({'CLEANUP', Sender}, State=#state{store_cdf=StoreCdf, id=Id, name=Name, final_cdf=FinalCdf, specula_cdf=SpeculaCdf}) ->
     {Cnt, _Start, _Period} = StoreCdf,
     ets:insert(final_cdf, {{Cnt, State#state.id}, FinalCdf}), 
     ets:insert(percv_cdf, {{Cnt, State#state.id}, SpeculaCdf}),
-    ets:insert(stat, {{abort_stat, State#state.id}, AbortStat}),
+    %ets:insert(stat, {{abort_stat, State#state.id}, AbortStat}),
     case Id of 
         1 ->
             Value = (State#state.driver):get_stat(State#state.driver_state),
@@ -399,7 +399,6 @@ worker_next_op(State) ->
     {PreviousOps, OpTag} = ToDo,
     FinalCdf0 = State#state.final_cdf,
     SpeculaCdf0 = State#state.specula_cdf,
-    AbortStat = State#state.abort_stat,
     ReadTxs = State#state.read_txs,
     LatestUpdate = State#state.latest_update,
     CurrentOpType = State#state.op_type,
@@ -578,9 +577,9 @@ worker_next_op(State) ->
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], Now),
             
             {StartTime, {RetryOpSeq, NextOpName}} = find_specula_tx(AbortedTxId, SpeculaTxs1),
-            {Sum, Count} = AbortStat,
-            AbortStat1 = {timer:now_diff(Now, StartTime)+Sum, Count+1},
-            {next_state, execute, State#state{driver_state=DriverState, todo_op={RetryOpSeq, NextOpName}, update_seq=RetryOpSeq, op_type=update, specula_txs=SpeculaTxs1, read_txs=ReadTxs2, abort_stat=AbortStat1, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, seed=StartTime, store_cdf=StoreCdf}, 0};
+            %{Sum, Count} = AbortStat,
+            %AbortStat1 = {timer:now_diff(Now, StartTime)+Sum, Count+1},
+            {next_state, execute, State#state{driver_state=DriverState, todo_op={RetryOpSeq, NextOpName}, update_seq=RetryOpSeq, op_type=update, specula_txs=SpeculaTxs1, read_txs=ReadTxs2, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, seed=StartTime, store_cdf=StoreCdf}, 0};
         {aborted, {AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
 	        %lager:warning("Op aborted! seq is ~w, list is ~w", [UpdateSeq, SpeculaTxs]),
             %State#state.shutdown_on_error andalso
@@ -592,11 +591,11 @@ worker_next_op(State) ->
             {FinalCdf1, SpeculaCdf1, SpeculaTxs1} = commit_updates(FinalCdf, SpeculaCdf, FinalCommitUpdates, SpeculaTxs, [], Now),
                       %% Add abort of this txn to stat, if no cascading abort was found 
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
-            {Sum, Count} = AbortStat,
-            AbortStat1 = {timer:now_diff(Now, Seed)+Sum, Count+1},
-            BackoffTime = case OpTag of store_bid -> round(random:uniform()*20); _ -> 0 end,
+            %{Sum, Count} = AbortStat,
+            %AbortStat1 = {timer:now_diff(Now, Seed)+Sum, Count+1},
+            BackoffTime = case OpTag of store_bid -> round(random:uniform()*50); _ -> 0 end,
             {next_state, execute, State#state{driver_state=DriverState, update_seq=UpdateSeq, store_cdf=StoreCdf,  
-                    specula_txs=SpeculaTxs1, read_txs=ReadTxs2, abort_stat=AbortStat1, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1}, BackoffTime};
+                    specula_txs=SpeculaTxs1, read_txs=ReadTxs2, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1}, BackoffTime};
         {wrong_msg, DriverState} ->
             %lager:warning("WTF, wrong msg!!!"),
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),

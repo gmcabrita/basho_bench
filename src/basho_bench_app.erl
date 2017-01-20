@@ -130,7 +130,7 @@ write_cdf(Stat) ->
     PercvCdf = ets:tab2list(percv_cdf),
     FinalCdf = ets:tab2list(final_cdf),
     AllStat = ets:tab2list(stat),
-    {AbortStat, TuneStat} = filter_stat(AllStat, [], []),
+    {_AbortStat, TuneStat} = filter_stat(AllStat, [], []),
     PercvCdfSort = lists:sort(PercvCdf),
     FinalCdfSort = lists:sort(FinalCdf),
 
@@ -140,14 +140,14 @@ write_cdf(Stat) ->
                 output_when(StartTimeInt, EndTimeInt, LatList, PercvLatFile)
                 end, PercvCdfSort),
 
-    {SSum, SCount} = lists:foldl(fun({_, {Sum, Count}}, {TSum, TCount}) ->
-                      {TSum+Sum, Count+TCount}
-                      end, {0,0}, AbortStat), 
+    %{SSum, SCount} = lists:foldl(fun({_, {Sum, Count}}, {TSum, TCount}) ->
+    %                  {TSum+Sum, Count+TCount}
+    %                  end, {0,0}, AbortStat), 
     
-    file:write(PercvLatFile,  io_lib:format("Avg wait ~w, waited ~w\n", [SSum div max(SCount,1), SCount])), 
-    lists:foreach(fun({_, {Sum, Count}}) ->
-                file:write(PercvLatFile, io_lib:format("~w, ~w\n", [Sum, Count]))
-                end, AbortStat),
+    %file:write(PercvLatFile,  io_lib:format("Avg wait ~w, waited ~w\n", [SSum div max(SCount,1), SCount])), 
+    %lists:foreach(fun({_, {Sum, Count}}) ->
+    %            file:write(PercvLatFile, io_lib:format("~w, ~w\n", [Sum, Count]))
+    %            end, AbortStat),
     
     file:write(PercvLatFile, io_lib:format("A hit counters ~w\n", [Stat])),
     %file:write(PercvLatFile,  io_lib:format("EndTimeInt is ~w, EndTime is ~w \n", [EndTimeInt/1000000+15, to_integer(now())/1000000])),
