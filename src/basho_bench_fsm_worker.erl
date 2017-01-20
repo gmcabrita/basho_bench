@@ -251,11 +251,16 @@ execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf,
         1 -> ets:insert(final_cdf, {start_time, os:timestamp()});
         _ -> ok
     end,
-    case ThinkTime of tpcc ->
-		{_, OpTag} = ToDoOp,
-		T = tpcc_tool:get_think_time(OpTag),
-    		timer:sleep(round(T*random:uniform()));
-	      _ -> ok
+    case ThinkTime of 
+        tpcc ->
+            {_, OpTag} = ToDoOp,
+            T = tpcc_tool:get_think_time(OpTag),
+            timer:sleep(round(T*random:uniform()));
+        rubis ->
+            T = tpcc_tool:get_think_time({whatever, home}),
+            timer:sleep(round(T*random:uniform()));
+        _ -> ok
+        
     end,
     worker_next_op(State#state{store_cdf={Count, os:timestamp(), Period}});
 
@@ -578,9 +583,9 @@ worker_next_op(State) ->
             {next_state, execute, State#state{driver_state=DriverState, todo_op={RetryOpSeq, NextOpName}, update_seq=RetryOpSeq, op_type=update, specula_txs=SpeculaTxs1, read_txs=ReadTxs2, abort_stat=AbortStat1, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1, seed=StartTime, store_cdf=StoreCdf}, 0};
         {aborted, {AbortedReads, FinalCommitUpdates, FinalCommitReads}, DriverState} ->
 	        %lager:warning("Op aborted! seq is ~w, list is ~w", [UpdateSeq, SpeculaTxs]),
-            State#state.shutdown_on_error andalso
-                erlang:send_after(500, basho_bench,
-                                  {shutdown, "Shutdown on errors requested", 1}),
+            %State#state.shutdown_on_error andalso
+            %    erlang:send_after(500, basho_bench,
+            %                      {shutdown, "Shutdown on errors requested", 1}),
             ReadTxs1 = finalize_reads(reverse_sort(FinalCommitReads), ReadTxs, [], ok),
             %case FinalCommitUpdates of [] -> ok; _ ->lager:warning("Commit updates before abort, FinalCommitUpdates are ~w", [FinalCommitUpdates]) end,
             ReadTxs2 = finalize_reads(reverse_sort(AbortedReads), ReadTxs1, [], {error, specula_abort}),
@@ -589,8 +594,9 @@ worker_next_op(State) ->
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
             {Sum, Count} = AbortStat,
             AbortStat1 = {timer:now_diff(Now, Seed)+Sum, Count+1},
+            BackoffTime = case OpTag of store_bid -> round(random:uniform()*20); _ -> 0 end,
             {next_state, execute, State#state{driver_state=DriverState, update_seq=UpdateSeq, store_cdf=StoreCdf,  
-                    specula_txs=SpeculaTxs1, read_txs=ReadTxs2, abort_stat=AbortStat1, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1}, 0};
+                    specula_txs=SpeculaTxs1, read_txs=ReadTxs2, abort_stat=AbortStat1, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1}, BackoffTime};
         {wrong_msg, DriverState} ->
             %lager:warning("WTF, wrong msg!!!"),
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
