@@ -1056,15 +1056,19 @@ run(store_bid, TxnSeq, MsgId, _Seed, State=#state{part_list=PartList, tx_server=
                             {ok, Info, State};
                         {ok, {specula_commit, _SpeculaCT, Info}} ->
                             {specula_commit, Info, State};
+                        %{cascade_abort, Info} ->
+                        %    {cascade_abort, Info, State};
+                        %{aborted, Info} ->
+                        %    {aborted, Info, State};
                         {cascade_abort, Info} ->
-                            {cascade_abort, Info, State};
+                            {ok, Info, State};
+                        {aborted, Info} ->
+                            {ok, Info, State};
                         wrong_msg ->
                             {wrong_msg, State};
                         {error,timeout} ->
                             lager:info("Timeout on client ~p",[TxServer]),
                             {error, timeout, State};
-                        {aborted, Info} ->
-                            {aborted, Info, State};
                         {badrpc, Reason} ->
                             {error, Reason, State}
                     end;
@@ -1122,6 +1126,7 @@ run(store_bid, TxnSeq, MsgId, _Seed, State=#state{part_list=PartList, tx_server=
                     lager:info("Timeout on client ~p",[TxServer]),
                     {error, timeout, State};
                 {aborted, Info} ->
+                    %lager:warning("Store bid aborted ~w", [TxId]),
                     {aborted, Info, State};
                 {badrpc, Reason} ->
                     {error, Reason, State}
