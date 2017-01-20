@@ -40,8 +40,10 @@ warehouse="5"
 
 #rep=8
 #parts=28
+#rep=5
+#parts=28
 rep=5
-parts=28
+parts=12
 ##rep=3
 #parts=20
 #rep=1
@@ -60,8 +62,8 @@ tpcc_length="8"
 rubis_length="8"
 len=8
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
