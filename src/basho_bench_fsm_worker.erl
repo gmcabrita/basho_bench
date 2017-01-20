@@ -241,7 +241,7 @@ init([Id, Name]) ->
 
     {ok, execute, State1#state{driver_state=DriverState, mode=Mode, rate_sleep=RateSleep}}.
 
-execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf, id=Id, think_time=ThinkTime, todo_op=ToDoOp}) ->
+execute(start, State=#state{mode=Mode, transition=Transition, rate_sleep=RateSleep, store_cdf=StoreCdf, id=Id, think_time=ThinkTime, todo_op=ToDoOp}) ->
     {Count, ignore, Period} = StoreCdf, 
     case Mode of
         max -> ok; 
@@ -257,7 +257,7 @@ execute(start, State=#state{mode=Mode, rate_sleep=RateSleep, store_cdf=StoreCdf,
             T = tpcc_tool:get_think_time(OpTag),
             timer:sleep(round(T*random:uniform()));
         rubis ->
-            T = rubis_tool:get_think_time({whatever, home}),
+            T = rubis_tool:get_think_time({whatever, home}, Transition),
             timer:sleep(round(T*random:uniform()));
         _ -> ok
         
@@ -594,7 +594,7 @@ worker_next_op(State) ->
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
             {Sum, Count} = AbortStat,
             AbortStat1 = {timer:now_diff(Now, Seed)+Sum, Count+1},
-            BackoffTime = case OpTag of store_bid -> round(random:uniform()*20); _ -> 0 end,
+            BackoffTime = case OpTag of store_bid -> lager:warning("Store bid aborted!"), round(random:uniform()*20); _ -> 0 end,
             {next_state, execute, State#state{driver_state=DriverState, update_seq=UpdateSeq, store_cdf=StoreCdf,  
                     specula_txs=SpeculaTxs1, read_txs=ReadTxs2, abort_stat=AbortStat1, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1}, BackoffTime};
         {wrong_msg, DriverState} ->
