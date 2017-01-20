@@ -40,12 +40,12 @@ warehouse="5"
 
 #rep=8
 #parts=28
-#rep=5
-#parts=28
+rep=5
+parts=28
 ##rep=3
 #parts=20
-rep=1
-parts=4
+#rep=1
+#parts=2
 
 start_ind=1
 skip_len=0
@@ -60,8 +60,8 @@ tpcc_length="8"
 rubis_length="8"
 len=8
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -130,13 +130,12 @@ fi
 
 Folder="./specula_tests/macro/external/rubis/"
 #rubis_threads="50 500 1000 2000 3000 4000"
-rubis_threads="2000"
+rubis_threads="2000 3000 4000 5000 6000"
 for t in $rubis_threads
 do  
         think_time="rubis"
         runRubis
 done
-exit
 
 
 ## Internal!!!
@@ -199,7 +198,7 @@ done
 fi
 
 Folder="./specula_tests/macro/internal/rubis/"
-rubis_threads="50 500 1000 2000"
+rubis_threads="50 500 1000 2000 3000 4000 5000 6000"
 for t in $rubis_threads
 do  
         think_time="rubis"
