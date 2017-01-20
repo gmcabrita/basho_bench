@@ -130,7 +130,7 @@ fi
 
 Folder="./specula_tests/macro/external/rubis/"
 #rubis_threads="50 500 1000 2000 3000 4000"
-rubis_threads="3000 4000 5000 6000"
+rubis_threads="2000 3000 4000 5000 6000"
 for t in $rubis_threads
 do  
         think_time="rubis"
