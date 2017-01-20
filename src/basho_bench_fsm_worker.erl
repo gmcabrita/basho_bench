@@ -594,7 +594,7 @@ worker_next_op(State) ->
             basho_bench_stats:op_complete({OpTag, OpTag}, {error, immediate_abort}),
             {Sum, Count} = AbortStat,
             AbortStat1 = {timer:now_diff(Now, Seed)+Sum, Count+1},
-            BackoffTime = case OpTag of store_bid -> lager:warning("Store bid aborted!"), round(random:uniform()*20); _ -> 0 end,
+            BackoffTime = case OpTag of store_bid -> round(random:uniform()*20); _ -> 0 end,
             {next_state, execute, State#state{driver_state=DriverState, update_seq=UpdateSeq, store_cdf=StoreCdf,  
                     specula_txs=SpeculaTxs1, read_txs=ReadTxs2, abort_stat=AbortStat1, specula_cdf=SpeculaCdf1, final_cdf=FinalCdf1}, BackoffTime};
         {wrong_msg, DriverState} ->
