@@ -1030,7 +1030,7 @@ run(put_bid, TxnSeq, MsgId, Seed, State=#state{part_list=PartList, tx_server=TxS
 %% VERIFIED
 run(store_bid, TxnSeq, MsgId, _Seed, State=#state{part_list=PartList, tx_server=TxServer, 
         hash_dict=HashDict, node_id=MyNode, prev_state=PrevState, specula=Specula}) ->
-    random:seed(os:timestamp()),
+    %random:seed(os:timestamp()),
     MyselfId = PrevState#prev_state.myself_id,
     ItemId = PrevState#prev_state.item_id,
     MinBid = PrevState#prev_state.min_bid,
