@@ -598,7 +598,7 @@ worker_next_op(State) ->
             %AbortStat1 = {timer:now_diff(Now, Seed)+Sum, Count+1},
             %BackoffTime = case OpTag of store_bid -> round(random:uniform()*50)*(IAbort+1); _ -> 0 end,
             random:seed(os:timestamp()),
-            BackoffTime = round(random:uniform()*500)*(IAbort+1),
+            BackoffTime = round(random:uniform()*100)*(IAbort+1),
             %BackoffTime = 0,
             {next_state, execute, State#state{driver_state=DriverState, update_seq=UpdateSeq, store_cdf=StoreCdf,  
                     specula_txs=SpeculaTxs1, read_txs=ReadTxs2, specula_cdf=SpeculaCdf1, i_abort=IAbort+1, final_cdf=FinalCdf1}, BackoffTime};
