@@ -62,8 +62,8 @@ tpcc_length="4"
 rubis_length="4"
 len=4
 
-sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
-sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
+#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -131,7 +131,7 @@ done
 fi
 
 Folder="./specula_tests/macro/external/rubis/"
-rubis_threads="50 500 1000 2000 3000 4000 5000"
+rubis_threads="3000 4000 5000"
 #rubis_threads="4000 5000 6000"
 for t in $rubis_threads
 do  
