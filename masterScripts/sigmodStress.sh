@@ -137,15 +137,15 @@ done
 fi
 
 ### Normal specula
-seq="1 2"
+seq="1"
 do_specula=true
 specula_read=true
 clock=new
 len=0
 threads="80"
-contentions="2"
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+contentions="2 3"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 folder="specula_tests/complementary"
 rm -rf ./config
@@ -156,12 +156,12 @@ echo micro tune_sleep 1 >> config
 echo micro centralized true >> config
 echo micro max_len 9 >> config
 echo micro all_nodes replace >> config
-#sudo ./script/copy_to_all.sh ./config ./basho_bench/
-#sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
+sudo ./script/copy_to_all.sh ./config ./basho_bench/
+sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 
-#sudo ./script/configBeforeRestart.sh 1000 $do_specula $len $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 4000 $do_specula $len $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
@@ -176,10 +176,10 @@ do
         runNTimes
     done
 done
-exit
 
-threads="10 20 40 80"
-folder="specula_tests/micro/internalnew"
+threads="80"
+contentions="4"
+folder="specula_tests/complementary"
 rm -rf ./config
 echo micro duration 80 >> config
 echo micro auto_tune true >> config
@@ -192,7 +192,7 @@ sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 sudo ./script/configBeforeRestart.sh 500 $do_specula $len $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/restartAndConnect.sh
 
 for t in $threads
 do
