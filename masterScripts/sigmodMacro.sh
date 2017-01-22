@@ -40,10 +40,10 @@ warehouse="5"
 
 #rep=8
 #parts=28
-#rep=5
-#parts=28
 rep=5
-parts=12
+parts=28
+#rep=5
+#parts=12
 ##rep=3
 #parts=20
 #rep=1
@@ -58,12 +58,12 @@ AS=0
 specula_read=true
 do_specula=true
 
-tpcc_length="8"
-rubis_length="8"
-len=8
+tpcc_length="4"
+rubis_length="4"
+len=4
 
-#sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
-#sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
+sudo ./masterScripts/initMachnines.sh 1 benchmark_precise_remove_stat_forward_rr 
+sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
 rm -rf ./config
 echo tpcc cdf true >> config
@@ -75,8 +75,8 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-#sudo ./script/configBeforeRestart.sh 4000 $do_specula $len $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read
+sudo ./script/restartAndConnect.sh
 
 if [ 1 == 2 ];
 then
@@ -131,14 +131,13 @@ done
 fi
 
 Folder="./specula_tests/macro/external/rubis/"
-#rubis_threads="50 500 1000 2000 3000 4000"
-rubis_threads="4000 5000 6000"
+rubis_threads="50 500 1000 2000 3000 4000 5000"
+#rubis_threads="4000 5000 6000"
 for t in $rubis_threads
 do  
         think_time="rubis"
         runRubis
 done
-exit
 
 
 ## Internal!!!
@@ -146,7 +145,7 @@ tpcc_length="0"
 rubis_length="0"
 len=0
 sudo ./script/configBeforeRestart.sh 4000 $do_specula $len $rep $parts $specula_read
-#sudo ./script/restartAndConnect.sh
+sudo ./script/restartAndConnect.sh
 
 if [ 1 == 2 ];
 then
@@ -201,7 +200,7 @@ done
 fi
 
 Folder="./specula_tests/macro/internal/rubis/"
-rubis_threads="50 500 1000 2000 3000 4000 5000 6000"
+rubis_threads="50 500 1000 2000 3000 4000 5000"
 for t in $rubis_threads
 do  
         think_time="rubis"
