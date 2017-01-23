@@ -70,18 +70,19 @@ echo tpcc cdf true >> config
 echo tpcc duration 120 >> config
 echo rubis cdf true >> config
 echo rubis duration 120 >> config
-echo rubis all_update true >> config
+echo rubis all_update false >> config
 echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
 sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/restartAndConnect.sh
 
 if [ 1 == 2 ];
 then
 Folder="./specula_tests/macro/external/tpcc/"
-tpcc_threads="10 100 200 400 600 800"
+#tpcc_threads="10 100 200 400 600 800"
+tpcc_threads="800 1000"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -95,7 +96,8 @@ do
         done
 done
 
-tpcc_threads="20 200 400 600 800 1000"
+#tpcc_threads="20 200 400 600 800 1000"
+tpcc_threads="1000 1200"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -131,7 +133,7 @@ done
 fi
 
 Folder="./specula_tests/macro/external/rubis/"
-rubis_threads="3000 4000 5000"
+rubis_threads="4000 5000"
 #rubis_threads="4000 5000 6000"
 for t in $rubis_threads
 do  
@@ -145,12 +147,12 @@ tpcc_length="0"
 rubis_length="0"
 len=0
 sudo ./script/configBeforeRestart.sh 4000 $do_specula $len $rep $parts $specula_read
-sudo ./script/restartAndConnect.sh
+#sudo ./script/restartAndConnect.sh
 
 if [ 1 == 2 ];
 then
-Folder="./specula_tests/macro/internal/tpcc/"
-tpcc_threads="10 100 200 400 600 800"
+#tpcc_threads="10 100 200 400 600 800"
+tpcc_threads="800 1000"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -164,7 +166,9 @@ do
         done
 done
 
-tpcc_threads="20 200 400 600 800 1000"
+Folder="./specula_tests/macro/internal/tpcc/"
+#tpcc_threads="20 200 400 600 800 1000"
+tpcc_threads="1000 1200"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -200,7 +204,7 @@ done
 fi
 
 Folder="./specula_tests/macro/internal/rubis/"
-rubis_threads="50 500 1000 2000 3000 4000 5000"
+rubis_threads="4000 5000"
 for t in $rubis_threads
 do  
         think_time="rubis"
