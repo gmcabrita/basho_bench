@@ -78,9 +78,11 @@ sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_fil
 #sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read
 #sudo ./script/restartAndConnect.sh
 
+if [ 1 == 2 ];
+then
 Folder="./specula_tests/add_macro/"
 #tpcc_threads="10 100 200 400 600 800"
-tpcc_threads="800 1000"
+tpcc_threads="1200"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -95,7 +97,7 @@ do
 done
 
 #tpcc_threads="20 200 400 600 800 1000"
-tpcc_threads="1000 1200"
+tpcc_threads="1400"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -109,8 +111,6 @@ do
         done
 done
 
-if [ 1 == 2 ];
-then
 tpcc_threads="20 200 400 800 1200 1600"
 workloads="3"
 for t in $tpcc_threads
@@ -146,11 +146,13 @@ fi
 tpcc_length="0"
 rubis_length="0"
 len=0
-sudo ./script/configBeforeRestart.sh 4000 $do_specula $len $rep $parts $specula_read
+#sudo ./script/configBeforeRestart.sh 4000 $do_specula $len $rep $parts $specula_read
 #sudo ./script/restartAndConnect.sh
 
+if [ 1 == 2 ];
+then
 #tpcc_threads="10 100 200 400 600 800"
-tpcc_threads="800 1000"
+tpcc_threads="1200"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -165,7 +167,7 @@ do
 done
 
 #tpcc_threads="20 200 400 600 800 1000"
-tpcc_threads="1000 1200"
+tpcc_threads="1400"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -179,8 +181,6 @@ do
         done
 done
 
-if [ 1 == 2 ];
-then
 tpcc_threads="20 200 400 800 1200 1600"
 workloads="3"
 for t in $tpcc_threads
@@ -200,8 +200,6 @@ do
 	    done
         done
 done
-fi
-exit
 
 Folder="./specula_tests/macro/internal/rubis/"
 rubis_threads="4000 5000"
@@ -210,17 +208,17 @@ do
         think_time="rubis"
         runRubis
 done
+fi
 
-exit
 
 do_specula=true
 specula_read=false
-len=16
+len=8
 
 sudo ./masterScripts/initMachnines.sh 1 benchmark_no_specula_remove_stat 
 sudo ./script/parallel_command.sh "cd antidote && sudo make rel"
 
-Folder="./specula_tests/planet16"
+Folder="./specula_tests/add_macro/base/"
 rm -rf ./config
 echo tpcc cdf true >> config
 echo tpcc duration 120 >> config
@@ -234,7 +232,7 @@ sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_
 sudo ./script/restartAndConnect.sh
 
 
-tpcc_threads="10 100 200 400 600 800"
+tpcc_threads="1000 1200"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -248,7 +246,7 @@ do
         done
 done
 
-tpcc_threads="20 200 400 600 800 1000"
+tpcc_threads="1200 1400"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -262,6 +260,8 @@ do
         done
 done
 
+if [ 1 == 2 ];
+then
 tpcc_threads="20 200 400 800 1200 1600"
 workloads="3"
 for t in $tpcc_threads
@@ -283,19 +283,18 @@ do
         think_time="rubis"
         runRubis
 done
-exit
+fi
 
 
 do_specula=true
 specula_read=false
 len=1
 
-#sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read 
+Folder="./specula_tests/add_macro/planet"
+sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read 
 #sudo ./script/restartAndConnect.sh
 
-if [ 1 == 2 ];
-then
-tpcc_threads="100 10 200 400 600 800 1000"
+tpcc_threads="1000 1200"
 workloads="1"
 for t in $tpcc_threads
 do  
@@ -309,7 +308,7 @@ do
         done
 done
 
-tpcc_threads="100 10 300 600 900 1200 1500"
+tpcc_threads="1200 1400"
 workloads="2"
 for t in $tpcc_threads
 do  
@@ -323,6 +322,8 @@ do
         done
 done
 
+if [ 1 == 2 ];
+then
 tpcc_threads="300 30 600 1200 1800 2400 3000"
 workloads="3"
 for t in $tpcc_threads
