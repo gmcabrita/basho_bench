@@ -75,12 +75,10 @@ echo ant cdf true >> ./config
 sudo ./script/copy_to_all.sh ./config ./basho_bench/
 sudo ./script/parallel_command.sh "cd basho_bench && sudo ./script/config_by_file.sh"
 
-sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read
+#sudo ./script/configBeforeRestart.sh 5000 $do_specula $len $rep $parts $specula_read
 #sudo ./script/restartAndConnect.sh
 
-if [ 1 == 2 ];
-then
-Folder="./specula_tests/macro/external/tpcc/"
+Folder="./specula_tests/add_macro/"
 #tpcc_threads="10 100 200 400 600 800"
 tpcc_threads="800 1000"
 workloads="1"
@@ -111,6 +109,8 @@ do
         done
 done
 
+if [ 1 == 2 ];
+then
 tpcc_threads="20 200 400 800 1200 1600"
 workloads="3"
 for t in $tpcc_threads
@@ -130,7 +130,6 @@ do
 	    done
         done
 done
-fi
 
 Folder="./specula_tests/macro/external/rubis/"
 rubis_threads="4000 5000"
@@ -140,6 +139,7 @@ do
         think_time="rubis"
         runRubis
 done
+fi
 
 
 ## Internal!!!
@@ -149,8 +149,6 @@ len=0
 sudo ./script/configBeforeRestart.sh 4000 $do_specula $len $rep $parts $specula_read
 #sudo ./script/restartAndConnect.sh
 
-if [ 1 == 2 ];
-then
 #tpcc_threads="10 100 200 400 600 800"
 tpcc_threads="800 1000"
 workloads="1"
@@ -166,7 +164,6 @@ do
         done
 done
 
-Folder="./specula_tests/macro/internal/tpcc/"
 #tpcc_threads="20 200 400 600 800 1000"
 tpcc_threads="1000 1200"
 workloads="2"
@@ -182,6 +179,8 @@ do
         done
 done
 
+if [ 1 == 2 ];
+then
 tpcc_threads="20 200 400 800 1200 1600"
 workloads="3"
 for t in $tpcc_threads
@@ -202,6 +201,7 @@ do
         done
 done
 fi
+exit
 
 Folder="./specula_tests/macro/internal/rubis/"
 rubis_threads="4000 5000"
