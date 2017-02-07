@@ -79,7 +79,7 @@ run(topk_ccrdt_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target,
     Key = rand:uniform(NumKeys),
     PlayerId = rand:uniform(NumPlayers),
     Score = rand:uniform(1000000000),
-    Object = {Key, antidote_ccrdt_topk_with_deletes, Key},
+    Object = {Key, antidote_ccrdt_topk, Key},
     Updates = [{Object, add, {PlayerId, Score}}],
     Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
     case Response of
