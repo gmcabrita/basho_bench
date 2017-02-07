@@ -10,6 +10,7 @@
 -record(state,
   {
     pid,
+    num_keys,
     num_players,
     target,
     added_ccrdt,
@@ -25,6 +26,7 @@ new(Id) ->
     %% read relevant configuration from config file
     [Target | _Nodes] = basho_bench_config:get(antidote_nodes,['antidote@127.0.0.1']),
     Cookie = basho_bench_config:get(antidote_cookie,antidote),
+    NumKeys = basho_bench_config:get(num_keys, 1),
     NumPlayers = basho_bench_config:get(num_players, 500000),
 
     %% Initialize cookie for each of the nodes
@@ -37,6 +39,7 @@ new(Id) ->
     {ok,
       #state {
         pid = Id,
+        num_keys = NumKeys,
         num_players = NumPlayers,
         target = Target,
         added_ccrdt = #{},
@@ -44,8 +47,8 @@ new(Id) ->
       }
     }.
 
-run(topk_ccrdt_with_deletes_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, num_players = NumPlayers, added_ccrdt = Map}) ->
-    Key = 1,
+run(topk_ccrdt_with_deletes_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, num_keys = NumKeys, num_players = NumPlayers, added_ccrdt = Map}) ->
+    Key = rand:uniform(NumKeys),
     PlayerId = rand:uniform(NumPlayers),
     Score = rand:uniform(1000000000),
     Object = {Key, antidote_ccrdt_topk_with_deletes, Key},
@@ -72,8 +75,8 @@ run(topk_ccrdt_with_deletes_add, _KeyGen, _Value_Gen, State=#state{pid = Id, tar
         {badrpc, Reason} ->
             {error, Reason, State}
     end;
-run(topk_ccrdt_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, num_players = NumPlayers}) ->
-    Key = 1,
+run(topk_ccrdt_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, num_keys = NumKeys, num_players = NumPlayers}) ->
+    Key = rand:uniform(NumKeys),
     PlayerId = rand:uniform(NumPlayers),
     Score = rand:uniform(1000000000),
     Object = {Key, antidote_ccrdt_topk_with_deletes, Key},
@@ -94,14 +97,15 @@ run(topk_ccrdt_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target,
             {error, Reason, State}
     end;
 run(topk_ccrdt_with_deletes_del, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, added_ccrdt = Map}) ->
-    Key = 1,
+    Key = case maps:keys(Map) of
+        [] -> nil;
+        ListKeys -> random_element(ListKeys)
+    end,
     PlayerId = case maps:is_key(Key, Map) of
         true ->
             case gb_sets:to_list(maps:get(Key, Map)) of
                 [] -> nil;
-                List ->
-                    {_, Player} = hd(lists:sort([{rand:uniform(), N} || N <- List])),
-                    Player
+                ListPlayers -> random_element(ListPlayers)
             end;
         false -> nil
     end,
@@ -129,8 +133,6 @@ run(topk_ccrdt_with_deletes_del, _KeyGen, _Value_Gen, State=#state{pid = Id, tar
             end
     end.
 
-% get_random_bucket() ->
-%     Chrs = list_to_tuple("abcdefghijklmnopqrstuvwxyz"),
-%     ChrsSize = size(Chrs),
-%     F = fun(_, R) -> [element(rand:uniform(ChrsSize), Chrs) | R] end,
-%     list_to_atom(lists:foldl(F, "", lists:seq(1, 10))).
+random_element(List) ->
+    {_, Element} = hd(lists:sort([{rand:uniform(), N} || N <- List])),
+    Element.
