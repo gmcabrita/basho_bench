@@ -159,7 +159,10 @@ run(or_set_topk_del, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target
     PlayerId = case maps:is_key(Key, Map) of
         true ->
             Tmp = maps:get(Key, Map),
-            random_element(maps:keys(Tmp));
+            case maps:keys(Tmp) of
+                [] -> nil;
+                PlayerIds -> random_element(PlayerIds)
+            end;
         false -> nil
     end,
     case PlayerId of
