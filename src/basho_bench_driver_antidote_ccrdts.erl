@@ -167,7 +167,7 @@ run(or_set_topk_del, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target
         _ ->
             PlayerMap = maps:get(Key, Map),
             ElementsToRemove = maps:get(PlayerId, PlayerMap),
-            Object = {Key, antidote_ccrdt_topk_with_deletes, topk_or_set},
+            Object = {Key, antidote_crdt_orset, topk_or_set},
             Updates = [{Object, remove_all, ElementsToRemove}],
             Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
             case Response of
