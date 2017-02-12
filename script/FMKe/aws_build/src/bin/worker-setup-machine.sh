@@ -22,7 +22,9 @@ sudo chown ubuntu /usr/local/lib/R/site-library/
 
  #############################  antidote @############################
  ANTIDOTE_DIR=$HOME/antidote
- ANTIDOTE_BRANCH=ccrdts-aws
+if [ -z "$ANTIDOTE_BRANCH" ]; then
+    ANTIDOTE_BRANCH="ccrdts-aws"
+fi
 
 if [ -d "$ANTIDOTE_DIR" ]; then
     echo "[SCRIPT] Antidote directory has been found in this node. Pulling latest changes..."

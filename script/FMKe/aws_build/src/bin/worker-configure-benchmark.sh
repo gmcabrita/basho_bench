@@ -1,6 +1,6 @@
 ANTIDOTE_NODES="\"${ANTIDOTE_NODES}\""
 
-sed -ie 's#{antidote_nodes, \[\(\"\([0-9]\{1,3\}\.\)\{3\}\([0-9]\{1,3\}\)\{1\}\"\)\(,\(\"\([0-9]\{1,3\}\.\)\{3\}\([0-9]\{1,3\}\)\{1\}\"\)\)*\]}.#{antidote_nodes, ['"${ANTIDOTE_NODES}"']}.#g' ${REMOTE_CONFIG_FILE}
+sed -ie 's#{antidote_nodes, .*}.#{antidote_nodes, ['"${ANTIDOTE_NODES}"']}.#g' ${REMOTE_CONFIG_FILE}
 if [ "$?" = 0  ]; then
     echo "[SCRIPT]: Configured Antidote server addresses."
 else
