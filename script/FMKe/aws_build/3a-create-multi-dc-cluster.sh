@@ -23,7 +23,7 @@ if [ -z "$CLEANMAKE" ]; then
     CLEANMAKE=TRUE
 fi
 if [ -z "$GITBRANCH" ]; then
-    GITBRANCH="build-local-cluster"
+    GITBRANCH="ccrdts-aws"
 fi
 
 # env

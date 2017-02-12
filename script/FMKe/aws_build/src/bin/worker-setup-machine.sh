@@ -22,20 +22,21 @@ sudo chown ubuntu /usr/local/lib/R/site-library/
 
  #############################  antidote @############################
  ANTIDOTE_DIR=$HOME/antidote
+ ANTIDOTE_BRANCH=ccrdts-aws
 
 if [ -d "$ANTIDOTE_DIR" ]; then
     echo "[SCRIPT] Antidote directory has been found in this node. Pulling latest changes..."
     # Control will enter here if $DIRECTORY exists.
     cd $ANTIDOTE_DIR
 
-    git checkout build-local-cluster-aws
+    git checkout $ANTIDOTE_BRANCH
     git pull
 else
     echo "[SCRIPT] Antidote repository not found. Cloning repository..."
-    git clone https://github.com/goncalotomas/antidote
+    git clone https://github.com/gmcabrita/antidote
 
     cd $ANTIDOTE_DIR
-    git checkout build-local-cluster-aws
+    git checkout $ANTIDOTE_BRANCH
 
 fi
 PUBLIC_NODE_IP=`curl checkip.amazonaws.com`
@@ -46,40 +47,19 @@ echo "." >> ./config/node-address.config
 make rel
 cd $BIN_DIR
 
- ############################## FMKe #################################
-FMKE_DIR=$HOME/FMKe
-
- if [ -d "$FMKE_DIR" ]; then
-     echo "[SCRIPT] FMKe directory has been found in this node. Pulling latest changes..."
-
-     cd $FMKE_DIR
-     git checkout perf-and-errors
-     git pull
-     make rel
- else
-     echo "[SCRIPT] FMKe repository not found. Cloning repository..."
-
-     git clone https://github.com/goncalotomas/FMKe
-     cd $FMKE_DIR
-     git checkout perf-and-errors
-     make rel
- fi
-
- cd $BIN_DIR
-
  ########################## basho_bensh ##############################
  BASHO_BENSH_DIR=$HOME/basho_bench
 
  if [ -d "$BASHO_BENSH_DIR" ]; then
-     echo "[SCRIPT] FMKe directory has been found in this node. Pulling latest changes..."
+     echo "[SCRIPT] Basho Bench directory has been found in this node. Pulling latest changes..."
 
      cd $BASHO_BENSH_DIR
      git checkout antidote_pb_fmk_aws
      git pull
      make all
  else
-     echo "[SCRIPT] FMKe repository not found. Cloning repository..."
-     git clone https://github.com/SyncFree/basho_bench
+     echo "[SCRIPT] Basho Bench repository not found. Cloning repository..."
+     git clone https://github.com/gmcabrita/basho_bench
      cd $BASHO_BENSH_DIR
      git checkout antidote_pb_fmk_aws
      make all

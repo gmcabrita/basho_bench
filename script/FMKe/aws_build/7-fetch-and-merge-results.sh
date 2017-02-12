@@ -3,7 +3,7 @@
 set -e
 
 if [ -z "$PRIVATEKEY" ]; then
-    PRIVATEKEY=~/.ssh/fmke_experiments.pem
+    PRIVATEKEY=~/.ssh/ccrdt_experiments.pem
 fi
 if [[ ! -e $PRIVATEKEY ]]; then
     echo "Error: $PRIVATEKEY: no such file"

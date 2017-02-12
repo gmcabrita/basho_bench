@@ -7,7 +7,10 @@ if [ -z "$CLEANMAKE" ]; then
     CLEANMAKE=TRUE
 fi
 if [ -z "$GITBRANCH" ]; then
-    GITBRANCH="antidote_pb_fmk_aws"
+    GITBRANCH="antidote_pb_ccrdts_aws"
+fi
+if [ -z "$CONFIG_FILE" ]; then
+    GITBRANCH="antidote_ccrdts_topkd_only"
 fi
 
 if [ CLEANMAKE=TRUE ]; then
@@ -17,4 +20,4 @@ if [ CLEANMAKE=TRUE ]; then
     make all
 fi
 cd -
-/home/ubuntu/basho_bench/_build/default/bin/basho_bench /home/ubuntu/basho_bench/examples/fmkclient.config &
+/home/ubuntu/basho_bench/_build/default/bin/basho_bench /home/ubuntu/basho_bench/examples/${CONFIG_FILE}.config &
