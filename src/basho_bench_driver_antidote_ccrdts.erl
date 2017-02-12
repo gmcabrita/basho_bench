@@ -49,7 +49,7 @@ new(Id) ->
 
 %%% Top-K with support for deletes
 
-run(topk_ccrdt_with_deletes_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, num_keys = NumKeys, num_players = NumPlayers, added_ccrdt = Map}) ->
+run(topkd_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, num_keys = NumKeys, num_players = NumPlayers, added_ccrdt = Map}) ->
     Key = rand:uniform(NumKeys),
     PlayerId = rand:uniform(NumPlayers),
     Score = rand:uniform(1000000000),
@@ -78,7 +78,7 @@ run(topk_ccrdt_with_deletes_add, _KeyGen, _Value_Gen, State=#state{pid = Id, tar
             {error, Reason, State}
     end;
 
-run(topk_ccrdt_with_deletes_del, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, added_ccrdt = Map}) ->
+run(topkd_del, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, added_ccrdt = Map}) ->
     Key = case maps:keys(Map) of
         [] -> nil;
         ListKeys -> random_element(ListKeys)
@@ -115,9 +115,9 @@ run(topk_ccrdt_with_deletes_del, _KeyGen, _Value_Gen, State=#state{pid = Id, tar
             end
     end;
 
-%%%% OR-Set moddeling a Top-K with removals
+%%%% OR-Set modeling a Top-K with removals
 
-run(or_set_topk_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, num_keys = NumKeys, num_players = NumPlayers, added_crdt = Map}) ->
+run(or_set_topkd_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, num_keys = NumKeys, num_players = NumPlayers, added_crdt = Map}) ->
     Key = rand:uniform(NumKeys),
     PlayerId = rand:uniform(NumPlayers),
     Score = rand:uniform(1000000000),
@@ -151,7 +151,7 @@ run(or_set_topk_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target
             {error, Reason, State}
     end;
 
-run(or_set_topk_del, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, added_crdt = Map}) ->
+run(or_set_topkd_del, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, added_crdt = Map}) ->
     Key = case maps:keys(Map) of
         [] -> nil;
         ListKeys -> random_element(ListKeys)
@@ -193,7 +193,7 @@ run(or_set_topk_del, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target
 
 %%%% Plain Top-K
 
-run(topk_ccrdt_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, num_keys = NumKeys, num_players = NumPlayers}) ->
+run(topk_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, num_keys = NumKeys, num_players = NumPlayers}) ->
     Key = rand:uniform(NumKeys),
     PlayerId = rand:uniform(NumPlayers),
     Score = rand:uniform(1000000000),
@@ -215,18 +215,41 @@ run(topk_ccrdt_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target,
             {error, Reason, State}
     end;
 
-%%%% G-Set modelling a Top-K
+%%%% OR-Set modeling a Top-K
 
-run(g_set_topk_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, num_keys = NumKeys, num_players = NumPlayers}) ->
+run(or_set_topk_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target, num_keys = NumKeys, num_players = NumPlayers}) ->
     Key = rand:uniform(NumKeys),
     PlayerId = rand:uniform(NumPlayers),
     Score = rand:uniform(1000000000),
-    Object = {Key, antidote_crdt_gset, topk_gset},
-    Updates = [{Object, add, {PlayerId, Score}}],
-    Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
-    case Response of
-        {ok, _} ->
-            {ok, State};
+    Object = {Key, antidote_crdt_orset, plain_topk_orset},
+    % playerid and score are inverted here so we can get free ordering in gb_sets
+    Element = {Score, PlayerId},
+    ResponseRead = rpc:call(Target, antidote, read_objects, [ignore, [], [Object]]),
+    case ResponseRead of
+        {ok, [ORSet], _} ->
+            Set = gb_sets:from_list(ORSet),
+            MaxK = max_k(gb_sets:add(Element, Set)),
+            case gb_sets:is_member(Element, MaxK) of
+                true ->
+                    Remove = gb_sets:to_list(gb_sets:difference(Set, MaxK)),
+                    Updates = [{Object, add, Element}, {Object, remove_all, Remove}],
+                    Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
+                    case Response of
+                        {ok, _} ->
+                            {ok, State};
+                        {error,timeout} ->
+                            lager:info("Timeout on client ~p",[Id]),
+                            {error, timeout, State};
+                        {error, Reason} ->
+                            lager:error("Error: ~p",[Reason]),
+                            {error, Reason, State};
+                        error ->
+                            {error, abort, State};
+                        {badrpc, Reason} ->
+                            {error, Reason, State}
+                    end;
+                false -> {ok, State}
+            end;
         {error,timeout} ->
             lager:info("Timeout on client ~p",[Id]),
             {error, timeout, State};
@@ -237,6 +260,32 @@ run(g_set_topk_add, _KeyGen, _Value_Gen, State=#state{pid = Id, target = Target,
             {error, abort, State};
         {badrpc, Reason} ->
             {error, Reason, State}
+    end.
+
+max_k(Set) ->
+    List = lists:reverse(gb_sets:to_list(Set)),
+    {Top, _, _} = reduce_while(
+        List,
+        {gb_sets:new(), gb_sets:new(), 100},
+        fun(_, {_, _, K}) -> K > 0 end,
+        fun({_, Id} = E, {T, C, K} = Acc) ->
+            case gb_sets:is_member(Id, C) of
+                true -> Acc;
+                false -> {gb_sets:add(E, T), gb_sets:add(Id, C), K - 1}
+            end
+        end),
+    Top.
+
+reduce_while(Col, Initial, While_Func, Reduce_Func) ->
+    try
+        lists:foldl(fun (X, Acc) ->
+            case While_Func(X, Acc) of
+                true -> Reduce_Func(X, Acc);
+                false -> throw({halt, Acc})
+            end
+        end, Initial, Col)
+    catch
+        throw:{halt, Acc} -> Acc
     end.
 
 random_element(List) ->
