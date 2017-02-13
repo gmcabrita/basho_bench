@@ -23,7 +23,7 @@ if [ -z "$CLEANMAKE" ]; then
     CLEANMAKE=TRUE
 fi
 if [ -z "$GITBRANCH" ]; then
-    GITBRANCH="ccrdts-aws"
+    GITBRANCH="aws-ccrdts"
 fi
 
 # env
