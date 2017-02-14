@@ -13,15 +13,20 @@ fi
 if [ CLEANMAKE=TRUE ]; then
     cd $ANTIDOTE_DIR
     echo "[SCRIPT] KILLING ALL ERLANG PROCESSES ON REMOTE MACHINES..."
+    pkill epmd
     pkill beam
     if [ -f rebar.lock ]; then
         rm rebar.lock ## not doing this was causing issues
+        rm -rf _build/default/lib/antidote
+        rm -rf _build/default/rel
+        ./rebar3 upgrade
     fi
 
     echo "----Worker $IP ----: git checkout $GITBRANCH"
     git checkout $GITBRANCH
     echo "----Worker $IP ----: git pull"
     git pull
+    git reset --hard origin/$GITBRANCH
     echo "[SCRIPT] DELETING DATA FROM PREVIOUS BENCHMARKS, IF ANY..."
     echo "----Worker $IP ----: make relclean"
     make relclean
