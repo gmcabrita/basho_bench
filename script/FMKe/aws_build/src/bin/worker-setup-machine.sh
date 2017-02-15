@@ -56,13 +56,13 @@ cd $BIN_DIR
      echo "[SCRIPT] Basho Bench directory has been found in this node. Pulling latest changes..."
 
      cd $BASHO_BENSH_DIR
-     git checkout antidote_pb_fmk_aws
+     git checkout antidote_pb_ccrdts_aws
      git pull
      make all
  else
      echo "[SCRIPT] Basho Bench repository not found. Cloning repository..."
      git clone https://github.com/gmcabrita/basho_bench
      cd $BASHO_BENSH_DIR
-     git checkout antidote_pb_fmk_aws
+     git checkout antidote_pb_ccrdts_aws
      make all
  fi

@@ -1,4 +1,4 @@
-ANTIDOTE_NODES="\"${ANTIDOTE_NODES}\""
+ANTIDOTE_NODES="${ANTIDOTE_NODES}"
 
 sed -ie 's#{antidote_nodes, .*}.#{antidote_nodes, ['"${ANTIDOTE_NODES}"']}.#g' ${REMOTE_CONFIG_FILE}
 if [ "$?" = 0  ]; then
