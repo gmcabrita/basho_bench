@@ -93,7 +93,7 @@ for index in "${!IP_ARR[@]}"; do
     ssh ${SSH_OPTIONS} ${USER}@${IP_ARR[$index]} chmod u+x ${REMOTE_WORKER_BENCH_SCRIPT}
     echo "[SCRIPT]: Runnable worker script copied successfully."
     echo "[SCRIPT]: Running configuration script..."
-    ssh ${SSH_OPTIONS} ${USER}@${IP_ARR[$index]} NUM_CLIENTS=${NUM_CLIENTS} BENCHDURATION=${BENCHDURATION} IP_ADDR=${IP_ARR[$index]} FMK_HTTP_ADDRESSES=${FMK_ADDRESS_ARR[$(($index % $FMK_ADDRESS_ARR_SIZE))]} FMK_HTTP_PORTS=${FMK_PORT_ARR[$(($index % $FMK_ADDRESS_ARR_SIZE))]} REMOTE_CONFIG_FILE=${REMOTE_CONFIG_FILE} ${REMOTE_WORKER_SCRIPT}
+    ssh ${SSH_OPTIONS} ${USER}@${IP_ARR[$index]} NUM_CLIENTS=${NUM_CLIENTS} BENCHDURATION=${BENCHDURATION} IP_ADDR=${IP_ARR[$index]} ANTIDOTE_NODES=${ANTIDOTE_NODES_ARR[$(($index % $ANTIDOTE_NODES_ARR_SIZE))]} REMOTE_CONFIG_FILE=${REMOTE_CONFIG_FILE} ${REMOTE_WORKER_SCRIPT}
 done
 
 #########################################################
