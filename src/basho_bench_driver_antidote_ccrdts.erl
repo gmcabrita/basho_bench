@@ -60,7 +60,7 @@ run(topkd_add, _KeyGen, _Value_Gen, State=#state{pid = Id,
     Key = rand:uniform(NumKeys),
     PlayerId = rand:uniform(NumPlayers),
     Score = rand:uniform(250000),
-    Object = {Key, antidote_ccrdt_topk_with_deletes, topkd},
+    Object = {Key, antidote_ccrdt_topk_rmv, topkd},
     Updates = [{Object, add, {PlayerId, Score}}],
     Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
     case Response of
@@ -85,7 +85,7 @@ run(topkd_del, _KeyGen, _Value_Gen, State=#state{pid = Id,
         0 -> {ok, State};
         _ ->
             Key = random_element(sets:to_list(UsedKeys)),
-            Object = {Key, antidote_ccrdt_topk_with_deletes, topkd},
+            Object = {Key, antidote_ccrdt_topk_rmv, topkd},
             ResponseRead = rpc:call(Target, antidote, read_objects, [ignore, [], [Object]]),
             case ResponseRead of
                 {ok, [[]], _} ->
@@ -93,7 +93,7 @@ run(topkd_del, _KeyGen, _Value_Gen, State=#state{pid = Id,
                     {ok, State#state{topkd_used_keys = sets:del_element(Key, UsedKeys)}};
                 {ok, [TopK], _} ->
                     {PlayerId, _} = random_element(TopK),
-                    Updates = [{Object, del, PlayerId}],
+                    Updates = [{Object, rmv, PlayerId}],
                     Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
                     case Response of
                         {ok, _} ->
@@ -132,13 +132,52 @@ run(or_set_topkd_add, _KeyGen, _Value_Gen, State=#state{pid = Id,
     Key = rand:uniform(NumKeys),
     PlayerId = rand:uniform(NumPlayers),
     Score = rand:uniform(250000),
-    Object = {Key, antidote_crdt_orset, topkd_orset},
     Element = {PlayerId, Score},
-    Updates = [{Object, add, Element}],
-    Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
-    case Response of
-        {ok, _} ->
-            {ok, State#state{topkd_orset_used_keys = sets:add_element(Key, UsedKeys)}};
+    Object = {Key, antidote_crdt_orset, topkd_orset},
+    ResponseRead = rpc:call(Target, antidote, read_objects, [ignore, [], [Object]]),
+    case ResponseRead of
+        {ok, [[]], _} ->
+            Updates = [{Object, add, Element}],
+            Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
+            case Response of
+                {ok, _} ->
+                    {ok, State#state{topkd_orset_used_keys = sets:add_element(Key, UsedKeys)}};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[Id]),
+                    {error, timeout, State};
+                {error, Reason} ->
+                    lager:error("Error: ~p",[Reason]),
+                    {error, Reason, State};
+                error ->
+                    {error, abort, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end;
+        {ok, [TopK], _} ->
+            Players = [Element | lists:filter(fun({EId, _}) -> EId =/= PlayerId end, TopK)],
+            Max = lists:foldl(fun({_, S} = E, Acc) ->
+                case S > Score of
+                    true -> E;
+                    false -> Acc
+                end
+            end, Element, Players),
+            ElementsToRemove = lists:delete(Max, Players),
+            Updates = [{Object, remove_all, ElementsToRemove}, {Object, add, Max}],
+            Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
+            case Response of
+                {ok, _} ->
+                    {ok, State#state{topkd_orset_used_keys = sets:add_element(Key, UsedKeys)}};
+                {error,timeout} ->
+                    lager:info("Timeout on client ~p",[Id]),
+                    {error, timeout, State};
+                {error, Reason} ->
+                    lager:error("Error: ~p",[Reason]),
+                    {error, Reason, State};
+                error ->
+                    {error, abort, State};
+                {badrpc, Reason} ->
+                    {error, Reason, State}
+            end;
         {error,timeout} ->
             lager:info("Timeout on client ~p",[Id]),
             {error, timeout, State};
@@ -165,7 +204,7 @@ run(or_set_topkd_del, _KeyGen, _Value_Gen, State=#state{pid = Id,
                     %% in this case the top-K was empty
                     {ok, State#state{topkd_orset_used_keys = sets:del_element(Key, UsedKeys)}};
                 {ok, [TopK], _} ->
-                    {_, PlayerId} = random_element(TopK),
+                    {PlayerId, _} = random_element(TopK),
                     ElementsToRemove = lists:filter(fun({I, _}) ->
                         I == PlayerId
                     end, TopK),
@@ -233,7 +272,7 @@ run(or_set_topk_add, _KeyGen, _Value_Gen, State=#state{pid = Id,
                                                        num_players = NumPlayers}) ->
     Key = rand:uniform(NumKeys),
     PlayerId = rand:uniform(NumPlayers),
-    Score = rand:uniform(1000000000),
+    Score = rand:uniform(250000),
     Object = {Key, antidote_crdt_orset, topk_orset},
     % playerid and score are inverted so we can get free ordering in gb_sets
     Element = {Score, PlayerId},
