@@ -1,5 +1,8 @@
 ANTIDOTE_NODES="${ANTIDOTE_NODES}"
 
+pkill beam
+pkill epmd
+
 sed -ie "s#{antidote_nodes, .*}.#{antidote_nodes, ['${ANTIDOTE_NODES}']}.#g" ${REMOTE_CONFIG_FILE}
 if [ "$?" = 0  ]; then
     echo "[SCRIPT]: Configured Antidote server addresses."
