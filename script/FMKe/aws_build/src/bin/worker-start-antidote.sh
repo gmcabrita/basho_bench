@@ -29,6 +29,7 @@ if [ CLEANMAKE=TRUE ]; then
     git reset --hard origin/$GITBRANCH
     echo "[SCRIPT] DELETING DATA FROM PREVIOUS BENCHMARKS, IF ANY..."
     echo "----Worker $IP ----: make relclean"
+    rm -rf _build/default/rel
     make relclean
     echo "[SCRIPT] REGENERATING RELX RELEASE..."
     echo "----Worker $IP ----: make rel"

@@ -301,7 +301,27 @@ run(or_set_topk_add, _KeyGen, _Value_Gen, State=#state{pid = Id,
                         {badrpc, Reason} ->
                             {error, Reason, State}
                     end;
-                false -> {ok, State}
+                false ->
+                    case gb_sets:to_list(gb_sets:difference(Set, MaxK)) of
+                        [] -> {ok, State};
+                        Remove ->
+                            Updates = [{Object, remove_all, Remove}],
+                            Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
+                            case Response of
+                                {ok, _} ->
+                                    {ok, State};
+                                {error,timeout} ->
+                                    lager:info("Timeout on client ~p",[Id]),
+                                    {error, timeout, State};
+                                {error, Reason} ->
+                                    lager:error("Error: ~p",[Reason]),
+                                    {error, Reason, State};
+                                error ->
+                                    {error, abort, State};
+                                {badrpc, Reason} ->
+                                    {error, Reason, State}
+                            end
+                    end
             end;
         {error,timeout} ->
             lager:info("Timeout on client ~p",[Id]),
