@@ -23,4 +23,4 @@ if [ CLEANMAKE=TRUE ]; then
     make all
 fi
 cd -
-/home/ubuntu/basho_bench/_build/default/bin/basho_bench /home/ubuntu/basho_bench/examples/${CONFIG_FILE}.config -n "${NODE_NAME}" &
+/home/ubuntu/basho_bench/_build/default/bin/basho_bench -N "${NODE_NAME}" /home/ubuntu/basho_bench/examples/${CONFIG_FILE}.config &
