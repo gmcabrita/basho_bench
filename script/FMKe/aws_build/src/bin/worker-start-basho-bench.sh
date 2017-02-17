@@ -23,4 +23,5 @@ if [ CLEANMAKE=TRUE ]; then
     make all
 fi
 cd -
+epmd &
 /home/ubuntu/basho_bench/_build/default/bin/basho_bench -N "${NODE_NAME}" -C antidote /home/ubuntu/basho_bench/examples/${CONFIG_FILE}.config &
