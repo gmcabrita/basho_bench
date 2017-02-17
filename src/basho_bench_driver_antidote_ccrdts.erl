@@ -26,7 +26,7 @@ new(Id) ->
     %% read relevant configuration from config file
     Nodes = basho_bench_config:get(antidote_nodes,['antidote@127.0.0.1']),
     Cookie = basho_bench_config:get(antidote_cookie,antidote),
-    NumKeys = basho_bench_config:get(num_keys, 250),
+    NumKeys = basho_bench_config:get(num_keys, 1000),
     NumPlayers = basho_bench_config:get(num_players, 50000),
 
     % Sticky "sessions"
