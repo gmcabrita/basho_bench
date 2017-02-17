@@ -25,7 +25,6 @@ new(Id) ->
 
     %% read relevant configuration from config file
     Nodes = basho_bench_config:get(antidote_nodes,['antidote@127.0.0.1']),
-    _MyNode = basho_bench_config:get(bench_node,['bb@127.0.0.1', longnames]),
     Cookie = basho_bench_config:get(antidote_cookie,antidote),
     NumKeys = basho_bench_config:get(num_keys, 250),
     NumPlayers = basho_bench_config:get(num_players, 50000),
@@ -34,6 +33,7 @@ new(Id) ->
     Target = lists:nth((Id rem length(Nodes)+1), Nodes),
 
     %% Initialize cookie for each of the nodes
+    lager:info("~p~n", [node()]),
     true = erlang:set_cookie(node(), Cookie),
     true = erlang:set_cookie(Target, Cookie),
 
