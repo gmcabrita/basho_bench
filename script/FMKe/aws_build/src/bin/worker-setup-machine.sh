@@ -57,6 +57,7 @@ cd $BIN_DIR
 
      cd $BASHO_BENSH_DIR
      git checkout antidote_pb_ccrdts_aws
+     git stash
      git pull
      make all
  else
