@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Call this like IP=1.2.3.4 worker-start-fmk.sh
 
+pkill epmd
+pkill beam
+
 BB_DIR="/home/ubuntu/basho_bench"
 
 if [ -z "$CLEANMAKE" ]; then

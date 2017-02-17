@@ -1,10 +1,19 @@
 ANTIDOTE_NODES="${ANTIDOTE_NODES}"
+BENCH_NODE="${BENCH_NODE}"
 
-sed -ie 's#{antidote_nodes, .*}.#{antidote_nodes, ['"${ANTIDOTE_NODES}"']}.#g' ${REMOTE_CONFIG_FILE}
+sed -ie "s#{antidote_nodes, .*}.#{antidote_nodes, ['${ANTIDOTE_NODES}']}.#g" ${REMOTE_CONFIG_FILE}
 if [ "$?" = 0  ]; then
     echo "[SCRIPT]: Configured Antidote server addresses."
 else
     echo "[SCRIPT]: Could not write Antidote server addresses to node ${IP_ADDR}, aborting..."
+    exit 1
+fi
+
+sed -ie "s#{bench_node, .*}.#{bench_node, ['${BENCH_NODE}', longnames]}.#g" ${REMOTE_CONFIG_FILE}
+if [ "$?" = 0  ]; then
+    echo "[SCRIPT]: Configured bench node address."
+else
+    echo "[SCRIPT]: Could not write bench node address for node ${IP_ADDR}, aborting..."
     exit 1
 fi
 
