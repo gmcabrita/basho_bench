@@ -37,9 +37,6 @@ if [ ! -d "$DIRECTORY" ] ; then
     exit 1
 fi
 
-# Define the number of bench nodes from the number of files in the directory
-# NOTE: this assumes that the master-runBenchmarkStarter.sh script has already verified
-# that all workers have sent their results to the target dir.
 cd "$DIRECTORY"
 NUM_RUNS=$(find . -mindepth 1 -maxdepth 1 -type d -iname "run-*" | wc -l)
 
