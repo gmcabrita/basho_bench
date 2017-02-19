@@ -2,6 +2,7 @@
 # this script merges results from different runs
 # it assumes the given folder contains folders with the results of different runs
 # (where each result is the output of master-mergeResults.sh)
+#
 # the folder structure should look like this:
 # $dir
 #   run-1
@@ -12,7 +13,7 @@
 #   run-n
 #     summary
 #
-# to run: merge-runs.sh <directory> ./merge-runs.sh <directory with runs> <basho_bench directory>
+# to run: ./merge-runs.sh <directory with runs> <basho_bench directory>
 set -e
 
 echo "Starting merge..."
