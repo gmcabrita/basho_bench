@@ -208,12 +208,37 @@ run(topk_add, _KeyGen, _Value_Gen, State=#state{pid = Id,
     Key = rand:uniform(NumKeys),
     PlayerId = rand:uniform(NumPlayers),
     Score = rand:uniform(250000),
+    Element = {PlayerId, Score},
     Object = {Key, antidote_ccrdt_topk, topk},
-    Updates = [{Object, add, {PlayerId, Score}}],
-    Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
-    case Response of
-        {ok, _} ->
-            {ok, State};
+    ResponseRead = rpc:call(Target, antidote, read_objects, [ignore, [], [Object]]),
+    case ResponseRead of
+        {ok, [TopK], _} ->
+            ShouldRequest = lists:foldl(fun({I, S}, Acc) ->
+                case I == PlayerId of
+                    true -> Score > S;
+                    false -> Score > S andalso Acc
+                end
+            end, false, TopK),
+            case ShouldRequest of
+                true ->
+                    Updates = [{Object, add, Element}],
+                    Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
+                    case Response of
+                        {ok, _} ->
+                            {ok, State};
+                        {error,timeout} ->
+                            lager:info("Timeout on client ~p",[Id]),
+                            {error, timeout, State};
+                        {error, Reason} ->
+                            lager:error("Error: ~p",[Reason]),
+                            {error, Reason, State};
+                        error ->
+                            {error, abort, State};
+                        {badrpc, Reason} ->
+                            {error, Reason, State}
+                    end;
+                false -> {ok, State}
+            end;
         {error,timeout} ->
             lager:info("Timeout on client ~p",[Id]),
             {error, timeout, State};
