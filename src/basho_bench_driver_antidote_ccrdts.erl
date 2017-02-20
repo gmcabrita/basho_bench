@@ -135,50 +135,11 @@ run(or_set_topkd_add, _KeyGen, _Value_Gen, State=#state{pid = Id,
     Score = rand:uniform(250000),
     Element = {PlayerId, Score},
     Object = {Key, antidote_crdt_orset, topkd_orset},
-    ResponseRead = rpc:call(Target, antidote, read_objects, [ignore, [], [Object]]),
-    case ResponseRead of
-        {ok, [[]], _} ->
-            Updates = [{Object, add, Element}],
-            Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
-            case Response of
-                {ok, _} ->
-                    {ok, State#state{topkd_orset_used_keys = sets:add_element(Key, UsedKeys)}};
-                {error,timeout} ->
-                    lager:info("Timeout on client ~p",[Id]),
-                    {error, timeout, State};
-                {error, Reason} ->
-                    lager:error("Error: ~p",[Reason]),
-                    {error, Reason, State};
-                error ->
-                    {error, abort, State};
-                {badrpc, Reason} ->
-                    {error, Reason, State}
-            end;
-        {ok, [TopK], _} ->
-            Players = [Element | lists:filter(fun({EId, _}) -> EId =/= PlayerId end, TopK)],
-            Max = lists:foldl(fun({_, S} = E, Acc) ->
-                case S > Score of
-                    true -> E;
-                    false -> Acc
-                end
-            end, Element, Players),
-            ElementsToRemove = lists:delete(Max, Players),
-            Updates = [{Object, remove_all, ElementsToRemove}, {Object, add, Max}],
-            Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
-            case Response of
-                {ok, _} ->
-                    {ok, State#state{topkd_orset_used_keys = sets:add_element(Key, UsedKeys)}};
-                {error,timeout} ->
-                    lager:info("Timeout on client ~p",[Id]),
-                    {error, timeout, State};
-                {error, Reason} ->
-                    lager:error("Error: ~p",[Reason]),
-                    {error, Reason, State};
-                error ->
-                    {error, abort, State};
-                {badrpc, Reason} ->
-                    {error, Reason, State}
-            end;
+    Updates = [{Object, add, Element}],
+    Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
+    case Response of
+        {ok, _} ->
+            {ok, State#state{topkd_orset_used_keys = sets:add_element(Key, UsedKeys)}};
         {error,timeout} ->
             lager:info("Timeout on client ~p",[Id]),
             {error, timeout, State};
