@@ -41,7 +41,7 @@ if [ ! -d "$BASHO_BENCH" ] ; then
 fi
 
 cd "$DIRECTORY"
-NUM_RESULTS=$(find . -mindepth 1 -maxdepth 1 -type d -iname "results-*" | wc -l)
+NUM_RESULTS=$(find . -mindepth 1 -maxdepth 2 -type d -iname "results-*" | wc -l)
 
 ########################################################
     # Merge Latency Files
@@ -59,7 +59,9 @@ done
 awk -f "${BASHO_BENCH}/script/mergeResults.awk" $LATENCY_FILES > "${DIRECTORY}/summary/throughput_vs_latency.csv"
 tail -n +2 "${DIRECTORY}/summary/throughput_vs_latency.csv" | awk '{split($0,a);print(a[3]/a[2]),a[5]/1}' | sort -n | tr ' ' ', ' > "${DIRECTORY}/summary/throughput_vs_latency_simple.csv"
 
+echo $NUM_LATENCY_FILES
+echo $NUM_RESULTS
 echo "Building throughput vs latency graph..."
-gnuplot -e "constant=($NUM_LATENCY_FILES*$NUM_RESULTS);inputname='${DIRECTORY}/summary/throughput_vs_latency_simple.csv'; outputname='${DIRECTORY}/summary/throughput_vs_latency.pdf'" "${BASHO_BENCH}/priv/throughput_vs_latency.gp"
+gnuplot -e "constant=$(($NUM_LATENCY_FILES*$NUM_RESULTS));inputname='${DIRECTORY}/summary/throughput_vs_latency_simple.csv'; outputname='${DIRECTORY}/summary/throughput_vs_latency.pdf'" "${BASHO_BENCH}/priv/throughput_vs_latency.gp"
 
 echo "Done!"

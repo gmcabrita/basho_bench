@@ -11,8 +11,8 @@ set style line 2 dashtype 2 lc rgb '#387DB8' pt 4 ps 1 lt 1 lw 3
 set output outputname
 set datafile separator ','
 
-set xlabel "Throughput (operations/second)"
-set ylabel "Latency (milliseconds)"
+set xlabel "Throughput (ops/sec)"
+set ylabel "Mean Latency (ms)"
 
 set key off
 

@@ -48,6 +48,9 @@ fi
 
 cd "$DIRECTORY"
 
+rm -f clients_throughput_latency.csv
+rm -f clients_throughput_latency_sorted.csv
+
 echo "Merging all runs for each collection."
 for DIR in */ ; do
     ./../merge-runs.sh "$DIR" "$BASHO_BENCH" ;
