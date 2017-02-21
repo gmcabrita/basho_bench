@@ -336,7 +336,7 @@ max_k(Set) ->
     Top.
 
 cmp({Id1, Score1}, {Id2, Score2}) ->
-    Score1 > Score2 orelse (Score1 == Score2 andalso Id1 > Id2)
+    Score1 > Score2 orelse (Score1 == Score2 andalso Id1 > Id2).
 
 reduce_while(Col, Initial, While_Func, Reduce_Func) ->
     try
