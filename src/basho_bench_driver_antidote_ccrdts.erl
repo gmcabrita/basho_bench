@@ -261,8 +261,7 @@ run(or_set_topk_add, _KeyGen, _Value_Gen, State=#state{pid = Id,
     PlayerId = rand:uniform(NumPlayers),
     Score = rand:uniform(250000),
     Object = {Key, antidote_crdt_orset, topk_orset},
-    % playerid and score are inverted so we can get free ordering in gb_sets
-    Element = {Score, PlayerId},
+    Element = {PlayerId, Score},
     ResponseRead = rpc:call(Target, antidote, read_objects, [ignore, [], [Object]]),
     case ResponseRead of
         {ok, [ORSet], _} ->
@@ -322,9 +321,10 @@ run(or_set_topk_add, _KeyGen, _Value_Gen, State=#state{pid = Id,
     end.
 
 max_k(Set) ->
-    List = lists:reverse(gb_sets:to_list(Set)),
+    List = gb_sets:to_list(Set),
+    SortedList = lists:sort(fun(X,Y) -> cmp(X, Y) end, List),
     {Top, _, _} = reduce_while(
-        List,
+        SortedList,
         {gb_sets:new(), gb_sets:new(), 100},
         fun(_, {_, _, K}) -> K > 0 end,
         fun({_, Id} = E, {T, C, K} = Acc) ->
@@ -334,6 +334,9 @@ max_k(Set) ->
             end
         end),
     Top.
+
+cmp({Id1, Score1}, {Id2, Score2}) ->
+    Score1 > Score2 orelse (Score1 == Score2 andalso Id1 > Id2)
 
 reduce_while(Col, Initial, While_Func, Reduce_Func) ->
     try

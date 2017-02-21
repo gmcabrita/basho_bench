@@ -11,11 +11,11 @@ set style line 2 dashtype 2 lc rgb '#387DB8' pt 4 ps 1 lt 1 lw 3
 set output outputname
 set datafile separator ','
 
-set xlabel "Throughput (operations/second)"
+set xlabel "Number of clients per data center"
 set ylabel "Latency (milliseconds)"
 
 set key off
 
 set datafile missing '0'
 
-plot inputname using ($1*constant):($2/1000) smooth bezier with lines ls 1
+plot inputname using 1:($3/1000) smooth bezier with lines ls 1
