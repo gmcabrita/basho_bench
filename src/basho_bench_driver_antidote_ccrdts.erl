@@ -89,26 +89,29 @@ run(topkd_del, _KeyGen, _Value_Gen, State=#state{pid = Id,
             Object = {Key, antidote_ccrdt_topk_rmv, topkd},
             ResponseRead = rpc:call(Target, antidote, read_objects, [ignore, [], [Object]]),
             case ResponseRead of
-                {ok, [#{}], _} ->
-                    %% in this case the top-K was empty
-                    {ok, State#state{topkd_used_keys = sets:del_element(Key, UsedKeys)}};
                 {ok, [Elems], _} ->
-                    PlayerId = random_element(maps:keys(Elems)),
-                    Updates = [{Object, rmv, PlayerId}],
-                    Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
-                    case Response of
-                        {ok, _} ->
-                            {ok, State};
-                        {error,timeout} ->
-                            lager:info("Timeout on client ~p",[Id]),
-                            {error, timeout, State};
-                        {error, Reason} ->
-                            lager:error("Error: ~p",[Reason]),
-                            {error, Reason, State};
-                        error ->
-                            {error, abort, State};
-                        {badrpc, Reason} ->
-                            {error, Reason, State}
+                    case maps:size(Elems) == 0 of
+                        true ->
+                            %% in this case the top-K was empty
+                            {ok, State#state{topkd_used_keys = sets:del_element(Key, UsedKeys)}};
+                        false ->
+                            PlayerId = random_element(maps:keys(Elems)),
+                            Updates = [{Object, rmv, PlayerId}],
+                            Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
+                            case Response of
+                                {ok, _} ->
+                                    {ok, State};
+                                {error,timeout} ->
+                                    lager:info("Timeout on client ~p",[Id]),
+                                    {error, timeout, State};
+                                {error, Reason} ->
+                                    lager:error("Error: ~p",[Reason]),
+                                    {error, Reason, State};
+                                error ->
+                                    {error, abort, State};
+                                {badrpc, Reason} ->
+                                    {error, Reason, State}
+                            end
                     end;
                 {error,timeout} ->
                     lager:info("Timeout on client ~p",[Id]),
