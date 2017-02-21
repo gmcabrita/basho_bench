@@ -14,8 +14,9 @@ set datafile separator ','
 set xlabel "Number of clients per data center"
 set ylabel "Mean Throughput (ops/sec)"
 
-set key off
+set key horizontal outside box 3
 
 set datafile missing '0'
 
-plot inputname using 1:2 smooth bezier with lines ls 1
+plot inputone using 1:2 title titleone smooth bezier with lines ls 1, \
+     inputtwo using 1:2 title titletwo smooth bezier with lines ls 2

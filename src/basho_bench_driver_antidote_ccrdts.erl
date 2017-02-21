@@ -216,13 +216,9 @@ run(topk_add, _KeyGen, _Value_Gen, State=#state{pid = Id,
     ResponseRead = rpc:call(Target, antidote, read_objects, [ignore, [], [Object]]),
     case ResponseRead of
         {ok, [TopK], _} ->
-            ShouldRequest = lists:foldl(fun({I, S}, Acc) ->
-                case I == PlayerId of
-                    true -> Score > S;
-                    false -> Score > S andalso Acc
-                end
-            end, false, TopK),
-            case ShouldRequest of
+            Set = gb_sets:from_list(TopK),
+            MaxK = max_k(gb_sets:add(Element, Set)),
+            case gb_sets:is_member(Element, MaxK) of
                 true ->
                     Updates = [{Object, add, Element}],
                     Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),

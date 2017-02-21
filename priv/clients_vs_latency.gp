@@ -12,7 +12,7 @@ set output outputname
 set datafile separator ','
 
 set xlabel "Number of clients per data center"
-set ylabel "Latency (milliseconds)"
+set ylabel "Mean Latency (ms)"
 
 set key off
 
