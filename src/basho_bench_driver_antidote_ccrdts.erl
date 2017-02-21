@@ -89,11 +89,11 @@ run(topkd_del, _KeyGen, _Value_Gen, State=#state{pid = Id,
             Object = {Key, antidote_ccrdt_topk_rmv, topkd},
             ResponseRead = rpc:call(Target, antidote, read_objects, [ignore, [], [Object]]),
             case ResponseRead of
-                {ok, [[]], _} ->
+                {ok, [#{}], _} ->
                     %% in this case the top-K was empty
                     {ok, State#state{topkd_used_keys = sets:del_element(Key, UsedKeys)}};
-                {ok, [TopK], _} ->
-                    {PlayerId, _} = random_element(TopK),
+                {ok, [Elems], _} ->
+                    PlayerId = random_element(maps:keys(Elems)),
                     Updates = [{Object, rmv, PlayerId}],
                     Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
                     case Response of

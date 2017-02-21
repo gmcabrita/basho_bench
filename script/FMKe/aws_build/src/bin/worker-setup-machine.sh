@@ -11,7 +11,8 @@ sudo echo "deb http://packages.erlang-solutions.com/ubuntu xenial contrib" | sud
 
 sudo apt-get update
 sudo apt-get --assume-yes upgrade
-sudo apt-get --assume-yes install build-essential autoconf git r-base erlang
+sudo apt-get --assume-yes install build-essential autoconf git r-base erlang r-cran-ggplot2 r-cran-proto r-cran-plyr r-cran-getopt
+
 
 # needed to later build the PNG image
 sudo chown ubuntu /usr/local/lib/R/site-library/
