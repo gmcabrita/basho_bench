@@ -15,12 +15,11 @@ if [ CLEANMAKE=TRUE ]; then
     echo "[SCRIPT] KILLING ALL ERLANG PROCESSES ON REMOTE MACHINES..."
     pkill epmd
     pkill beam
-    if [ -f rebar.lock ]; then
-        rm rebar.lock ## not doing this was causing issues
-        rm -rf _build/default/lib/antidote
-        rm -rf _build/default/rel
-        ./rebar3 upgrade
-    fi
+    rm -rf _build/default/lib/antidote*
+    rm -rf _build/default/rel
+    rm -f rebar.lock
+    ./rebar3 update
+    ./rebar3 upgrade
 
     echo "----Worker $IP ----: git checkout $GITBRANCH"
     git checkout $GITBRANCH
