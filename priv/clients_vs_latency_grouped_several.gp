@@ -5,10 +5,10 @@ set tics nomirror
 
 set style line 12 lc rgb '#808080' lt 0 lw 1
 
-set style line 1 dashtype 1 lc rgb '#E31A1C' pt 6 ps 1 lt 1 lw 1
-set style line 2 dashtype 2 lc rgb '#387DB8' pt 4 ps 1 lt 1 lw 1
-set style line 3 dashtype 5 lc rgb '#A870B0' pt 10 ps 1 lt 1 lw 1
-set style line 4 dashtype 4 lc rgb '#4DB04A' pt 8 ps 1 lt 1 lw 1
+set style line 1 dashtype 1 lc rgb '#E31A1C' pt 6 ps 2 lt 1 lw 2
+set style line 2 dashtype 2 lc rgb '#387DB8' pt 4 ps 2 lt 1 lw 2
+set style line 3 dashtype 5 lc rgb '#A870B0' pt 10 ps 2 lt 1 lw 2
+set style line 4 dashtype 4 lc rgb '#4DB04A' pt 8 ps 2 lt 1 lw 2
 
 set output outputname
 set datafile separator ','

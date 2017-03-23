@@ -11,11 +11,11 @@ set style line 2 dashtype 2 lc rgb '#387DB8' pt 4 ps 2 lt 1 lw 2
 set output outputname
 set datafile separator ','
 
-set xlabel "Number of clients per data center"
-set ylabel "Mean Throughput (ops/sec)"
+set xlabel "Mean Throughput (ops/sec)"
+set ylabel "Mean Latency (ms)"
 
-set key off
+set key horizontal outside box 3
 
 set datafile missing '0'
 
-plot inputname using 1:2 with linespoints ls 1
+plot inputname using 2:($3/1000) with linespoints ls 1
