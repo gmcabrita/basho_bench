@@ -1,11 +1,11 @@
-./1-setup-vms.sh ~/.ssh/id_rsa ip1 ip2 ip3 ip4 ip5 ip6 ip7 ip8 ip9 ip10
+GITBRANCH="nupaxos-extra" ./1-setup-vms.sh ~/.ssh/id_rsa ip1 ip2 ip3 ip4
 
-./2-start-antidote-nodes.sh ~/.ssh/id_rsa ip1 ip2 ip3 ip4 ip5
+GITBRANCH="nupaxos-extra" ./2-start-antidote-nodes.sh ~/.ssh/id_rsa ip1 ip2 ip3
 
-./3a-create-multi-dc-cluster.sh ~/.ssh/id_rsa ip1 ip2 ip3 ip4 ip5
+GITBRANCH="nupaxos-extra" ./3-create-antidote-cluster.sh ~/.ssh/id_rsa ip1 ip2 ip3
 
-CONFIG_FILE="antidote_bigdata_topk" ANTIDOTE_NODES="antidote@ip1 antidote@ip2 antidote@ip3 antidote@ip4 antidote@ip5" NUM_CLIENTS=8 BENCHDURATION=3 ./5-start-benchmarks.sh ~/.ssh/id_rsa ip6 ip7 ip8 ip9 ip10
+CONFIG_FILE="antidote_nupaxos" ANTIDOTE_NODES="antidote@ip1 antidote@ip2 antidote@ip3" NUM_CLIENTS=5 BENCHDURATION=5 ./5-start-benchmarks.sh ~/.ssh/id_rsa ip4
 
-PRIVATEKEY=~/.ssh/id_rsa ./6-prepare-results.sh ~/.ssh/id_rsa ip6 ip7 ip8 ip9 ip10
+PRIVATEKEY=~/.ssh/id_rsa ./6-prepare-results.sh ~/.ssh/id_rsa ip4
 
-PRIVATEKEY=~/.ssh/id_rsa ./7-fetch-and-merge-results.sh ~/.ssh/id_rsa ip6 ip7 ip8 ip9 ip10
+PRIVATEKEY=~/.ssh/id_rsa ./7-fetch-and-merge-results.sh ~/.ssh/id_rsa ip4
