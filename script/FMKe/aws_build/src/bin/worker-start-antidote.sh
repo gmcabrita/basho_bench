@@ -7,7 +7,7 @@ if [ -z "$CLEANMAKE" ]; then
     CLEANMAKE=TRUE
 fi
 if [ -z "$GITBRANCH" ]; then
-    GITBRANCH="nupaxos"
+    GITBRANCH="nupaxos-extra"
 fi
 
 if [ CLEANMAKE=TRUE ]; then

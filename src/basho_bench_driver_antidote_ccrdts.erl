@@ -90,12 +90,12 @@ run(topkd_del, _KeyGen, _Value_Gen, State=#state{pid = Id,
             ResponseRead = rpc:call(Target, antidote, read_objects, [ignore, [], [Object]]),
             case ResponseRead of
                 {ok, [Elems], _} ->
-                    case maps:size(Elems) == 0 of
+                    case length(Elems) == 0 of
                         true ->
                             %% in this case the top-K was empty
                             {ok, State#state{topkd_used_keys = sets:del_element(Key, UsedKeys)}};
                         false ->
-                            PlayerId = random_element(maps:keys(Elems)),
+                            {PlayerId, _} = random_element(Elems),
                             Updates = [{Object, rmv, PlayerId}],
                             Response = rpc:call(Target, antidote, update_objects, [ignore, [], Updates]),
                             case Response of

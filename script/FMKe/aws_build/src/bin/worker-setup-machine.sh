@@ -17,7 +17,7 @@ sudo chown ubuntu /usr/local/lib/R/site-library/
  #############################  antidote @############################
  ANTIDOTE_DIR=$HOME/antidote
 if [ -z "$ANTIDOTE_BRANCH" ]; then
-    ANTIDOTE_BRANCH="nupaxos"
+    ANTIDOTE_BRANCH="nupaxos-extra"
 fi
 
 if [ -d "$ANTIDOTE_DIR" ]; then
@@ -51,7 +51,7 @@ cd $BIN_DIR
      echo "[SCRIPT] Basho Bench directory has been found in this node. Pulling latest changes..."
 
      cd $BASHO_BENSH_DIR
-     git checkout nupaxos
+     git checkout nupaxos-extra
      git stash
      git pull
      make all
