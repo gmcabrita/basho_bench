@@ -1,15 +1,7 @@
 #!/bin/bash
-# author goncalotomas
-# This script prepares several amazon virtual machines for later use.
-# You should pass in a list of (public) IP addresses as arguments to the script,
-# as well as the following environment variables:
-# PRIVATEKEY: used to ssh into the amazon virtual machines. Every machine is
-# assumed to be accessible using one key.
 
-set -e # Any subsequent(*) commands which fail will cause the shell script
-       # to exit immediately
+set -e
 
-# args checking
 if [[ $# -lt 2 ]]; then
     echo "Error: usage $0 <private_key_file> <IP_ADDR_LIST> ..."
     exit 2

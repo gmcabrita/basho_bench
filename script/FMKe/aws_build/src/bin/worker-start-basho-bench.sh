@@ -10,10 +10,10 @@ if [ -z "$CLEANMAKE" ]; then
     CLEANMAKE=TRUE
 fi
 if [ -z "$GITBRANCH" ]; then
-    GITBRANCH="antidote_pb_ccrdts_aws"
+    GITBRANCH="nupaxos"
 fi
 if [ -z "$CONFIG_FILE" ]; then
-    CONFIG_FILE="antidote_ccrdts_topkd_only"
+    CONFIG_FILE="antidote_nupaxos"
 fi
 
 if [ CLEANMAKE=TRUE ]; then

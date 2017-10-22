@@ -19,14 +19,6 @@ else
     exit 1
 fi
 
-sed -ie 's#{num_keys, .*}.#{num_keys, '"${NUM_KEYS}"'}.#g' ${REMOTE_CONFIG_FILE}
-if [ "$?" = 0  ]; then
-    echo "[SCRIPT]: Configured number of keys."
-else
-    echo "[SCRIPT]: Could not write number of keys in node ${IP_ADDR}, aborting..."
-    exit 1
-fi
-
 sed -ie 's#{duration, [0-9]\+}.#{duration, '"${BENCHDURATION}"'}.#g' ${REMOTE_CONFIG_FILE}
 if [ "$?" = 0  ]; then
     echo "[SCRIPT]: Configured benchmark duration."

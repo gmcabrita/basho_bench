@@ -1,5 +1,4 @@
 #!/bin/bash
-# author goncalotomas
 # This script joins N already running replicas of antidote into a cluster (DC).
 # You should pass in a list of (public) IP addresses as arguments to the script,
 # as well as the following environment variables:
@@ -23,7 +22,7 @@ if [ -z "$CLEANMAKE" ]; then
     CLEANMAKE=TRUE
 fi
 if [ -z "$GITBRANCH" ]; then
-    GITBRANCH="aws-ccrdts"
+    GITBRANCH="nupaxos"
 fi
 
 # env

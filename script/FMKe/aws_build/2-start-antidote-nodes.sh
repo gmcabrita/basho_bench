@@ -1,15 +1,10 @@
 #!/bin/bash
-# author goncalotomas
-# This script starts N replicas of antidote on previously configured remote vms.
-# You should pass in a list of (public) IP addresses as arguments to the script,
-# as well as the following environment variables:
-# PRIVATEKEY: used to ssh into the amazon virtual machines. Every machine is
-# assumed to be accessible using one key.
+# ENV VARIABLES:
+# PRIVATEKEY: private key location
 # GITBRANCH: antidote branch to start up
-# CLEANMAKE = TRUE/FALSE: make relclean && make rel or not
+# CLEANMAKE = TRUE/FALSE
 
-set -e # Any subsequent(*) commands which fail will cause the shell script
-       # to exit immediately
+set -e
 
 # args checking
 if [[ $# -lt 2 ]]; then
@@ -25,7 +20,7 @@ if [ -z "$CLEANMAKE" ]; then
     CLEANMAKE=TRUE
 fi
 if [ -z "$GITBRANCH" ]; then
-    GITBRANCH="aws-ccrdts"
+    GITBRANCH="nupaxos"
 fi
 
 # env
